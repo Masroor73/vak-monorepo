@@ -1,15 +1,25 @@
 import { View, Text } from 'react-native';
+import { ShiftStatusCard } from '@vak/ui'; // <--- The Moment of Truth
 
 export default function Index() {
   return (
     <View className="flex-1 justify-center items-center bg-damascus-background">
-      <Text className="text-3xl font-bold text-damascus-primary">
-        V.A.K Online
+      <Text className="text-2xl font-bold text-damascus-primary mb-8">
+        V.A.K Mobile
       </Text>
-      <View className="h-4 w-4 bg-damascus-secondary rounded-full mt-4" />
-      <Text className="text-damascus-muted mt-2">
-        System Operational
-      </Text>
+      
+      {/* Testing the Shared Component */}
+      <ShiftStatusCard 
+        title="Dinner Rush" 
+        subtitle="Feb 2, 5:00 PM - 11:00 PM" 
+        status="approved" 
+      />
+      
+      <ShiftStatusCard 
+        title="Prep Shift" 
+        subtitle="Feb 3, 9:00 AM - 2:00 PM" 
+        status="pending" 
+      />
     </View>
   );
 }

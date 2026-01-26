@@ -9,6 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@vak/ui": "*",
     "@vak/contract": "*",
     "expo": "~54.0.32",
     "expo-constants": "^18.0.13",

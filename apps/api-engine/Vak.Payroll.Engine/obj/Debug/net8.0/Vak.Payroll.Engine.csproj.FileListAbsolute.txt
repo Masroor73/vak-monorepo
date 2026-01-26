@@ -1,0 +1,15 @@
+C:\Projects\vak-monorepo\apps\api-engine\Vak.Payroll.Engine\bin\Debug\net8.0\Vak.Payroll.Engine.exe
+C:\Projects\vak-monorepo\apps\api-engine\Vak.Payroll.Engine\bin\Debug\net8.0\Vak.Payroll.Engine.deps.json
+C:\Projects\vak-monorepo\apps\api-engine\Vak.Payroll.Engine\bin\Debug\net8.0\Vak.Payroll.Engine.runtimeconfig.json
+C:\Projects\vak-monorepo\apps\api-engine\Vak.Payroll.Engine\bin\Debug\net8.0\Vak.Payroll.Engine.dll
+C:\Projects\vak-monorepo\apps\api-engine\Vak.Payroll.Engine\bin\Debug\net8.0\Vak.Payroll.Engine.pdb
+C:\Projects\vak-monorepo\apps\api-engine\Vak.Payroll.Engine\obj\Debug\net8.0\Vak.Payroll.Engine.GeneratedMSBuildEditorConfig.editorconfig
+C:\Projects\vak-monorepo\apps\api-engine\Vak.Payroll.Engine\obj\Debug\net8.0\Vak.Payroll.Engine.AssemblyInfoInputs.cache
+C:\Projects\vak-monorepo\apps\api-engine\Vak.Payroll.Engine\obj\Debug\net8.0\Vak.Payroll.Engine.AssemblyInfo.cs
+C:\Projects\vak-monorepo\apps\api-engine\Vak.Payroll.Engine\obj\Debug\net8.0\Vak.Payroll.Engine.csproj.CoreCompileInputs.cache
+C:\Projects\vak-monorepo\apps\api-engine\Vak.Payroll.Engine\obj\Debug\net8.0\Vak.Payroll.Engine.sourcelink.json
+C:\Projects\vak-monorepo\apps\api-engine\Vak.Payroll.Engine\obj\Debug\net8.0\Vak.Payroll.Engine.dll
+C:\Projects\vak-monorepo\apps\api-engine\Vak.Payroll.Engine\obj\Debug\net8.0\refint\Vak.Payroll.Engine.dll
+C:\Projects\vak-monorepo\apps\api-engine\Vak.Payroll.Engine\obj\Debug\net8.0\Vak.Payroll.Engine.pdb
+C:\Projects\vak-monorepo\apps\api-engine\Vak.Payroll.Engine\obj\Debug\net8.0\Vak.Payroll.Engine.genruntimeconfig.cache
+C:\Projects\vak-monorepo\apps\api-engine\Vak.Payroll.Engine\obj\Debug\net8.0\ref\Vak.Payroll.Engine.dll
