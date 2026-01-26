@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Vak.Payroll.Engine")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5aa7486c526a168c235eda3219e99a8fe8ab841b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e612491b0546bb5ef0051c7589714ddda85ae82c")]
 [assembly: System.Reflection.AssemblyProductAttribute("Vak.Payroll.Engine")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Vak.Payroll.Engine")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
