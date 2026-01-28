@@ -1,44 +1,57 @@
-// packages/contract/src/index.ts
-
-// --- 1. CORE ENUMS (The Rules) ---
-
-export type UserRole = 'MANAGER' | 'EMPLOYEE';
+// --- 1. CORE ENUMS ---
+export type UserRole = 'OWNER' | 'MANAGER' | 'EMPLOYEE';
 
 export type ShiftStatus = 
-  | 'DRAFT'      // Manager is still planning
-  | 'PUBLISHED'  // Visible to employees
-  | 'COMPLETED'  // Shift is over
-  | 'VOID';      // Cancelled
+  | 'DRAFT'      
+  | 'PUBLISHED'  
+  | 'COMPLETED'  
+  | 'VOID';      
 
 export type SwapStatus = 
-  | 'PENDING'    // Waiting for peer to accept
-  | 'MANAGER_REVIEW' // Peer accepted, waiting for manager
-  | 'APPROVED'   // Manager said yes
-  | 'DENIED';    // Manager said no
+  | 'PENDING'        
+  | 'MANAGER_REVIEW' 
+  | 'APPROVED'   
+  | 'DENIED';    
 
-// --- 2. DATABASE MODELS (Supabase Mirrors) ---
+export type NotificationType = 
+  | 'SHIFT_PUBLISHED' 
+  | 'SWAP_REQUEST' 
+  | 'SWAP_APPROVED' 
+  | 'GENERAL';
+
+// --- 2. DATABASE MODELS ---
 
 export interface Profile {
-  id: string; // UUID from auth.users
+  id: string;
   email: string;
   full_name: string;
+  phone_number?: string; 
   role: UserRole;
   avatar_url?: string;
-  hourly_rate?: number; // Only visible to Managers
+  hourly_rate?: number; 
   created_at: string;
 }
 
 export interface Shift {
   id: string;
   employee_id: string;
-  manager_id: string; // Who created it
-  start_time: string; // ISO 8601 (2026-01-25T09:00:00Z)
+  manager_id: string;
+  
+  // Scheduled (Plan)
+  start_time: string; 
   end_time: string;
+  
+  // Actuals:
+  actual_start_time?: string; 
+  actual_end_time?: string;   
+  clock_in_lat?: number;
+  clock_in_long?: number;
+  
   location_id?: string;
-  role_at_time_of_shift?: string; // e.g., "Line Cook" vs "Dishwasher"
+  role_at_time_of_shift?: string;
   status: ShiftStatus;
   
-  // Compliance Fields (For Squad C)
+  //Compliance Fields:
   unpaid_break_minutes: number;
   is_holiday: boolean;
 }
@@ -46,16 +59,37 @@ export interface Shift {
 export interface ShiftSwapRequest {
   id: string;
   requester_id: string;
-  recipient_id?: string; // Optional (Open market swap)
+  recipient_id?: string; 
   shift_id: string;
   status: SwapStatus;
   reason?: string;
   created_at: string;
 }
 
-// --- 3. PAYROLL ENGINE DTOs (For .NET) ---
+//AI Waste Log:
+export interface WasteLog {
+  id: string;
+  reporter_id: string;
+  photo_url: string;
+  item_name?: string;
+  estimated_cost?: number;
+  created_at: string;
+}
 
-// Input: What C# receives
+//Notifications:
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  is_read: boolean;
+  related_entity_id?: string;
+  created_at: string;
+}
+
+// --- 3. PAYROLL ENGINE DTOs ---
+
 export interface PayrollCalculationRequest {
   employee_id: string;
   start_date: string;
@@ -63,7 +97,6 @@ export interface PayrollCalculationRequest {
   shifts: Shift[]; 
 }
 
-// Output: What C# returns
 export interface PayrollReport {
   employee_id: string;
   period_start: string;
@@ -71,9 +104,9 @@ export interface PayrollReport {
   
   total_hours: number;
   regular_hours: number;
-  overtime_hours: number; // Calculated via 8/44 Rule
+  overtime_hours: number; 
   holiday_pay_hours: number;
   
-  gross_pay: number;
-  breakdown_html?: string; // For generating PDF
+  gross_pay: number; 
+  breakdown_html?: string; 
 }
