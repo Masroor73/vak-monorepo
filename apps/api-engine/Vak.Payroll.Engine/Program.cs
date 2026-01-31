@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 
 namespace Vak.Payroll.Engine
 {
@@ -28,32 +29,70 @@ public class PayrollReport
         static void Main(string[] args)
         {
             Console.WriteLine("--- V.A.K Compliance Engine (Alberta 8/44) ---");
+            
+            // Accept a JSON filepath via CLI args, deserialize, then calculate.
+            // Example usage (future state):
+            // dotnet run -- "path/to/test_shifts.json"
 
-            // 2. Mock Data (Simulating a heavy work week)
-            var shifts = new List<Shift>
+            if (args.Length < 1)
             {
-                // Day 1: 10 Hours (2 Hours OT daily)
-                new Shift { Id = "S1", EmployeeId = "EMP001", StartTime = DateTime.Parse("2026-02-01 09:00"), EndTime = DateTime.Parse("2026-02-01 19:00"), UnpaidBreakMinutes = 0 },
-                // Day 2: 8 Hours (Normal)
-                new Shift { Id = "S2", EmployeeId = "EMP001", StartTime = DateTime.Parse("2026-02-02 09:00"), EndTime = DateTime.Parse("2026-02-02 17:00"), UnpaidBreakMinutes = 0 },
-                // Day 3: 12 Hours (4 Hours OT daily)
-                new Shift { Id = "S3", EmployeeId = "EMP001", StartTime = DateTime.Parse("2026-02-03 09:00"), EndTime = DateTime.Parse("2026-02-03 21:00"), UnpaidBreakMinutes = 0 },
-                // Day 4: 8 Hours
-                new Shift { Id = "S4", EmployeeId = "EMP001", StartTime = DateTime.Parse("2026-02-04 09:00"), EndTime = DateTime.Parse("2026-02-04 17:00"), UnpaidBreakMinutes = 0 },
-                // Day 5: 8 Hours (Triggers Weekly OT > 44?)
-                new Shift { Id = "S5", EmployeeId = "EMP001", StartTime = DateTime.Parse("2026-02-05 09:00"), EndTime = DateTime.Parse("2026-02-05 17:00"), UnpaidBreakMinutes = 0 },
-                 // Day 6: 8 Hours
-                new Shift { Id = "S6", EmployeeId = "EMP001", StartTime = DateTime.Parse("2026-02-06 09:00"), EndTime = DateTime.Parse("2026-02-06 17:00"), UnpaidBreakMinutes = 0 }
-            };
+                Console.WriteLine("Usage: dotnet run -- \"path/to/shifts.json\"");
+                return;
+            }
 
-            // 3. Run Calculation
-            var report = CalculatePayroll("EMP001", shifts);
+            //Extract the JSON filepath from the CLI args
+            string jsonFilePath = args[0];
+            List<Shift>? shifts;
 
-            // 4. Output Result
-            Console.WriteLine($"Employee: {report.EmployeeId}");
-            Console.WriteLine($"Total Hours: {report.TotalHours}");
-            Console.WriteLine($"Regular Hours: {report.RegularHours}");
-            Console.WriteLine($"Overtime Hours: {report.OvertimeHours} (High Risk)");
+            if (!File.Exists(jsonFilePath))
+            {
+                Console.WriteLine($"Error: File not found: {jsonFilePath}");
+                return;
+            }
+
+            // Try to read and parse the JSON file, if it fails, print the error and return
+            try
+            {
+                var json = File.ReadAllText(jsonFilePath);
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                shifts = JsonSerializer.Deserialize<List<Shift>>(json, options);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error reading/parsing shifts file: {ex.Message}");
+                return;
+            }
+            
+            // If the shifts are null or empty, print the error and return
+            if (shifts == null || shifts.Count == 0)
+            {
+                Console.WriteLine("Error: No shifts found in the file.");
+                return;
+            }
+
+            /*
+            Sprint 1 assumptions:
+            1. CalculatePayroll function has not filtering logic for the shiftID, employeeID, or start/end time so we will need to add it later.
+            2. CalculatePayroll function has not logic to handle the unpaid break minutes so we will need to add it later.
+            3. Each shift will have only one employee assigned to it so we will need to add a restriction later.
+            */
+
+            // Loop through the shifts and calculate the payroll for each shift, and output the result on the console
+            for (int i = 0; i < shifts.Count; i++)
+            {
+                var shift = shifts[i];
+                var employeeId = shift.EmployeeId;
+                var report = CalculatePayroll(employeeId, shifts);
+
+                //Output on the console
+                Console.WriteLine("=== payroll report ===");
+                Console.WriteLine($"Employee: {report.EmployeeId}");
+                Console.WriteLine($"Total Hours: {report.TotalHours}");
+                Console.WriteLine($"Regular Hours: {report.RegularHours}");
+                Console.WriteLine($"Overtime Hours: {report.OvertimeHours}");
+                Console.WriteLine("=== end of payroll report ===");
+                Console.WriteLine();
+            }
         }
 
         static PayrollReport CalculatePayroll(string employeeId, List<Shift> shifts)
@@ -61,11 +100,12 @@ public class PayrollReport
             double totalWorked = 0;
             double dailyOvertimeAccumulator = 0;
 
-            foreach (var shift in shifts)
+            //Filter the shifts by the employeeId to only process the shifts for the employee     
+            foreach (var shift in shifts.Where(s => s.EmployeeId == employeeId))
             {
                 var duration = (shift.EndTime - shift.StartTime).TotalHours;
                 var netHours = duration - (shift.UnpaidBreakMinutes / 60.0);
-                
+
                 totalWorked += netHours;
 
                 // Rule 1: Daily Overtime (> 8 hours)
