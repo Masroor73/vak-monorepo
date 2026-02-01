@@ -77,16 +77,12 @@ public class PayrollReport
             3. Each shift will have only one employee assigned to it so we will need to add a restriction later.
             */
 
-            // Loop through the shifts and calculate the payroll for each shift, and output the result on the console
-            for (int i = 0; i < shifts.Count; i++)
-            {
-                var shift = shifts[i];
-                var employeeId = shift.EmployeeId;
-                var report = CalculatePayroll(employeeId, shifts);
+            var uniqueEmployeeIds = shifts.Select(s => s.EmployeeId).Distinct();
 
-                //Output on the console
-                Console.WriteLine("=== payroll report ===");
-                Console.WriteLine($"Employee: {report.EmployeeId}");
+            foreach (var employeeId in uniqueEmployeeIds)
+            {
+                var report = CalculatePayroll(employeeId, shifts);
+                Console.WriteLine($"=== payroll report for employee: {report.EmployeeId} ===");
                 Console.WriteLine($"Total Hours: {report.TotalHours}");
                 Console.WriteLine($"Regular Hours: {report.RegularHours}");
                 Console.WriteLine($"Overtime Hours: {report.OvertimeHours}");
