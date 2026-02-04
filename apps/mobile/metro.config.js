@@ -7,38 +7,16 @@ const workspaceRoot = path.resolve(projectRoot, "../..");
 
 const config = getDefaultConfig(projectRoot);
 
-config.resolver.unstable_enableSymlinks = true;
-config.resolver.unstable_enablePackageExports = true;
-
+// 1. Watch the workspace root
 config.watchFolders = [workspaceRoot];
 
+// 2. Tells Metrowhere to look 
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, "node_modules"),
   path.resolve(workspaceRoot, "node_modules"),
 ];
 
-config.resolver.resolveRequest = (context, moduleName, platform) => {
-  const monorepoPackages = [
-    'react',
-    'react-native',
-    '@vak/ui',
-    '@vak/contract'
-  ];
-
-  if (monorepoPackages.includes(moduleName)) {
-    try {
-      const resolvedPath = require.resolve(moduleName, {
-        paths: [workspaceRoot]
-      });
-      return {
-        filePath: resolvedPath,
-        type: 'sourceFile',
-      };
-    } catch (e) {
-      return context.resolveRequest(context, moduleName, platform);
-    }
-  }
-  return context.resolveRequest(context, moduleName, platform);
-};
+// 3. Block duplicates 
+config.resolver.disableHierarchicalLookup = true;
 
 module.exports = withNativeWind(config, { input: "./global.css" });

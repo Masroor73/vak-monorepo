@@ -29,6 +29,9 @@ jobs:
       - name: Lint (Check for sloppy code)
         run: pnpm -w turbo lint
         
+      - name: Build Shared Packages
+        run: pnpm turbo build --filter=@vak/*
+        
       - name: Build Engine (Check C#)
         run: dotnet build apps/api-engine/Vak.Payroll.Engine/Vak.Payroll.Engine.csproj
         
