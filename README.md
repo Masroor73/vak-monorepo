@@ -19,7 +19,9 @@ We utilize a **Polyglot Monorepo** structure managed by **Turborepo** to handle 
 
 ![V.A.K Architecture Diagram](./assets/architecture-diagram.png)
 
+
 ### The Microservices Topology
+---
 The system is decoupled into three distinct layers to ensure scalability and fault tolerance:
 
 1.  **Client Layer (Frontend):**
@@ -47,7 +49,7 @@ The system is decoupled into three distinct layers to ensure scalability and fau
 
 | Layer | Technology | Justification |
 | :--- | :--- | :--- |
-| **Monorepo** | **Turborepo** | High-performance build system for multi-package workspaces. |
+| **Monorepo** | **pnpm + Turborepo** | High-performance build system for multi-package workspaces. |
 | **Mobile** | **React Native (Expo)** | Single codebase for iOS/Android with Over-the-Air (OTA) updates. |
 | **Web** | **React (Expo Web)** | Responsive manager dashboard sharing UI types with mobile. |
 | **Styling** | **NativeWind** | Shared Tailwind CSS design system across Web & Mobile. |
@@ -65,25 +67,25 @@ vak-monorepo/
 ├── apps/
 │   ├── mobile/         # Employee App (Expo/React Native)
 │   ├── web/            # Manager Dashboard (React/Expo Web)
-│   └── api/            # (Optional) Standalone API services
+│   └── api-engine/     # .NET 8 Payroll Logic (C#)
 ├── packages/
-│   ├── ui/             # Shared UI Components (NativeWind)
-│   ├── config/         # Shared ESLint/TSConfig settings
-│   └── types/          # The "Contract": Shared TypeScript Interfaces & Zod Schemas
-├── services/
-│   ├── compliance/     # .NET 8 Payroll Engine (C#)
-│   └── intelligence/   # Gemini AI Edge Functions (Node.js)
-└── turbo.json          # Build pipeline configuration
+│   ├── ui/             # Shared UI "Legos" (ShiftStatusCard, Buttons, etc.)
+│   └── contract/       # The "Contract": Zod Schemas & Shared Types
+├── .github/workflows/  # CI/CD (GitHub Actions)
+├── turbo.json          # Task runner configuration
+└── .npmrc              # CRITICAL: node-linker=hoisted for Metro compatibility
 ```
 
 ## Getting Started 
 ### Prerequisites
 ---
-> Node.js >= 18
+> Node.js >= 20.x
 
-> Bun / npm / pnpm
+> Package Manager: pnpm (Install via npm i -g pnpm)
 
-> .NET 8 SDK (for Compliance Engine)
+> .NET 8 or 10 SDK (for Compliance Engine)
+
+> Watchman: brew install watchman (Recommended for Mac)
 
 > Expo Go (on mobile device)
 
@@ -97,17 +99,34 @@ cd vak-monorepo
 
 2. Install Dependencies:
 ```bash
-npm install 
-# or
-bun install
+pnpm install
 ```
 
-3. Run Development Environment:
+3. Environment Setup
+```text
+Create a .env file in both apps/mobile and apps/web:
+```
 ```bash
-npx turbo dev
+EXPO_PUBLIC_SUPABASE_URL=your_project_url
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 ```
-This starts the Mobile App, Web Dashboard, and Mock API services concurrently.
 
+4. Development Flow   
+```text
+Because we use shared internal packages, you must build the "Contract" and "UI" packages before starting the apps.
+```
+```bash
+# Build shared libraries
+pnpm turbo build --filter="@vak/*"
+
+# Start the full environment
+pnpm dev
+```
+```text
+Web: http://localhost:8082
+
+Mobile (iOS): Press i in a separate terminal via pnpm --filter mobile start -- --ios
+```
 
 ## Security & Compliance
 * Row Level Security (RLS): All database access is scoped to the user's restaurant_id at the Postgres level.
