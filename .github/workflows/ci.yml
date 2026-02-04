@@ -24,10 +24,10 @@ jobs:
           dotnet-version: 8.0.x
           
       - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install -w --frozen-lockfile
         
       - name: Lint (Check for sloppy code)
-        run: pnpm turbo lint
+        run: pnpm -w turbo lint
         
       - name: Build Engine (Check C#)
         run: dotnet build apps/api-engine/Vak.Payroll.Engine/Vak.Payroll.Engine.csproj
