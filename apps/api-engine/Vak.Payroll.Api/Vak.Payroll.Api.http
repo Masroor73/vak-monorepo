@@ -1,0 +1,6 @@
+@host = http://localhost:5117
+
+GET {{host}}/calculate-payroll?jsonFilePath=../../../../Vak.Payroll.Engine/test_shifts.json
+Accept: application/json
+
+###
