@@ -98,6 +98,11 @@ cd vak-monorepo
 ```
 
 2. Install Dependencies:
+
+```bash
+npm install -g pnpm
+```
+
 ```bash
 pnpm install
 ```
