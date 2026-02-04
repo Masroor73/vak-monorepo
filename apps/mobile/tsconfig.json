@@ -1,11 +1,17 @@
 {
-  "extends": "expo/tsconfig.base",
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@vak/ui": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "@vak/contract": [
+        "../../packages/contract/src/index.ts"
       ]
     }
   },

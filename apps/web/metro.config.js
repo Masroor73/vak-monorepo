@@ -7,10 +7,16 @@ const workspaceRoot = path.resolve(projectRoot, "../..");
 
 const config = getDefaultConfig(projectRoot);
 
+// 1. Watch the workspace root
 config.watchFolders = [workspaceRoot];
+
+// 2. Tells Metro where to look
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, "node_modules"),
   path.resolve(workspaceRoot, "node_modules"),
 ];
+
+// 3. Blocks duplicates 
+config.resolver.disableHierarchicalLookup = true;
 
 module.exports = withNativeWind(config, { input: "./global.css" });

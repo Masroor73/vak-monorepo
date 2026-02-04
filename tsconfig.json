@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@vak/ui": ["packages/ui/src/index.ts"],
+      "@vak/contract": ["packages/contract/src/index.ts"]
+    }
+  }
+}

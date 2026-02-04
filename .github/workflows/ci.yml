@@ -1,0 +1,39 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10
+          
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+          
+      - name: Install Dependencies
+        run: pnpm install -w --frozen-lockfile
+        
+      - name: Lint (Check for sloppy code)
+        run: pnpm -w turbo lint
+        
+      - name: Build Shared Packages
+        run: pnpm turbo build --filter=@vak/*
+        
+      - name: Build Engine (Check C#)
+        run: dotnet build apps/api-engine/Vak.Payroll.Engine/Vak.Payroll.Engine.csproj
+        
+      - name: Typecheck (Check TypeScript)
+        run: pnpm turbo type-check --filter web --filter mobile
