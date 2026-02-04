@@ -1,5 +1,5 @@
 import { View, Text } from 'react-native';
-import { ShiftStatusCard } from '@vak/ui'; // <--- The Moment of Truth
+import { ShiftStatusCard } from '@vak/ui'; 
 
 export default function Index() {
   return (
