@@ -4,16 +4,16 @@ namespace Vak.Payroll.Engine.Models
 {
     public class PayrollReport
     {
-        [JsonPropertyName("employeeId")]
+        [JsonPropertyName("employee_id")]
         public required string EmployeeId { get; set; }
 
-        [JsonPropertyName("totalHours")]
+        [JsonPropertyName("total_hours")]
         public double TotalHours { get; set; }
 
-        [JsonPropertyName("regularHours")]
+        [JsonPropertyName("regular_hours")]
         public double RegularHours { get; set; }
 
-        [JsonPropertyName("overtimeHours")]
+        [JsonPropertyName("overtime_hours")]
         public double OvertimeHours { get; set; }
     }
 }

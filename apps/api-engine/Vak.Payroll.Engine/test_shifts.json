@@ -1,38 +1,38 @@
 [
     { "id": "S1", 
-    "employeeId": "EMP001", 
-    "startTime": "2026-02-01T09:00:00", 
-    "endTime": "2026-02-01T19:00:00",
-    "unpaidBreakMinutes":0 
+    "employee_id": "EMP001", 
+    "start_time": "2026-02-01T09:00:00", 
+    "end_time": "2026-02-01T19:00:00",
+    "unpaid_break_minutes":0 
     },
     { "id": "S2", 
-    "employeeId": "EMP001", 
-    "startTime": "2026-02-02T09:00:00", 
-    "endTime": "2026-02-02T17:00:00",
-    "unpaidBreakMinutes":0 
+    "employee_id": "EMP001", 
+    "start_time": "2026-02-02T09:00:00", 
+    "end_time": "2026-02-02T17:00:00",
+    "unpaid_break_minutes":0 
     },
     { "id": "S3", 
-    "employeeId": "EMP001", 
-    "startTime": "2026-02-03T09:00:00", 
-    "endTime": "2026-02-03T21:00:00",
-    "unpaidBreakMinutes":0 
+    "employee_id": "EMP001", 
+    "start_time": "2026-02-03T09:00:00", 
+    "end_time": "2026-02-03T21:00:00",
+    "unpaid_break_minutes":0 
     },
     { "id": "S4", 
-    "employeeId": "EMP001", 
-    "startTime": "2026-02-04T09:00:00", 
-    "endTime": "2026-02-04T17:00:00",
-    "unpaidBreakMinutes":0 
+    "employee_id": "EMP001", 
+    "start_time": "2026-02-04T09:00:00", 
+    "end_time": "2026-02-04T17:00:00",
+    "unpaid_break_minutes":0 
     },
     { "id": "S5", 
-    "employeeId": "EMP001", 
-    "startTime": "2026-02-05T09:00:00", 
-    "endTime": "2026-02-05T17:00:00",
-    "unpaidBreakMinutes":0 
+    "employee_id": "EMP001", 
+    "start_time": "2026-02-05T09:00:00", 
+    "end_time": "2026-02-05T17:00:00",
+    "unpaid_break_minutes":0 
     },
     { "id": "S6", 
-    "employeeId": "EMP001", 
-    "startTime": "2026-02-06T09:00:00", 
-    "endTime": "2026-02-06T17:00:00",
-    "unpaidBreakMinutes":0 
+    "employee_id": "EMP001", 
+    "start_time": "2026-02-06T09:00:00", 
+    "end_time": "2026-02-06T17:00:00",
+    "unpaid_break_minutes":0 
 }        
 ]
