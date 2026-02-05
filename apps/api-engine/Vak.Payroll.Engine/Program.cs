@@ -1,29 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 
 namespace Vak.Payroll.Engine
 {
-    // 1. Define the Data Structures (Mirroring our Types.ts Contract)
-
-    public class Shift
-{
-    public required string Id { get; set; }        // Added 'required'
-    public required string EmployeeId { get; set; } // Added 'required'
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
-    public double UnpaidBreakMinutes { get; set; }
-    public bool IsHoliday { get; set; }
-}
-
-public class PayrollReport
-{
-    public required string EmployeeId { get; set; } // Added 'required'
-    public double TotalHours { get; set; }
-    public double RegularHours { get; set; }
-    public double OvertimeHours { get; set; }
-}
+    //Definition of Data Structures were moved to the Models folder to keep the code clean and readable.
     class Program
     {
         static void Main(string[] args)
@@ -42,7 +24,7 @@ public class PayrollReport
 
             //Extract the JSON filepath from the CLI args
             string jsonFilePath = args[0];
-            List<Shift>? shifts;
+            List<Models.Shift>? shifts;
 
             if (!File.Exists(jsonFilePath))
             {
@@ -55,7 +37,7 @@ public class PayrollReport
             {
                 var json = File.ReadAllText(jsonFilePath);
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                shifts = JsonSerializer.Deserialize<List<Shift>>(json, options);
+                shifts = JsonSerializer.Deserialize<List<Models.Shift>>(json, options);
             }
             catch (Exception ex)
             {
@@ -81,7 +63,7 @@ public class PayrollReport
 
             foreach (var employeeId in uniqueEmployeeIds)
             {
-                var report = CalculatePayroll(employeeId, shifts);
+                var report = PayrollCalculator.CalculatePayroll(employeeId, shifts);
                 Console.WriteLine($"=== payroll report for employee: {report.EmployeeId} ===");
                 Console.WriteLine($"Total Hours: {report.TotalHours}");
                 Console.WriteLine($"Regular Hours: {report.RegularHours}");
@@ -91,44 +73,8 @@ public class PayrollReport
             }
         }
 
-        static PayrollReport CalculatePayroll(string employeeId, List<Shift> shifts)
-        {
-            double totalWorked = 0;
-            double dailyOvertimeAccumulator = 0;
-
-            //Filter the shifts by the employeeId to only process the shifts for the employee     
-            foreach (var shift in shifts.Where(s => s.EmployeeId == employeeId))
-            {
-                var duration = (shift.EndTime - shift.StartTime).TotalHours;
-                var netHours = duration - (shift.UnpaidBreakMinutes / 60.0);
-
-                totalWorked += netHours;
-
-                // Rule 1: Daily Overtime (> 8 hours)
-                if (netHours > 8)
-                {
-                    dailyOvertimeAccumulator += (netHours - 8);
-                }
-            }
-
-            // Rule 2: Weekly Overtime (> 44 hours)
-            double weeklyOvertime = 0;
-            if (totalWorked > 44)
-            {
-                weeklyOvertime = totalWorked - 44;
-            }
-
-            // The Alberta Rule: Whichever is GREATER is the overtime payable
-            double finalOvertime = Math.Max(dailyOvertimeAccumulator, weeklyOvertime);
-            double regularHours = totalWorked - finalOvertime;
-
-            return new PayrollReport
-            {
-                EmployeeId = employeeId,
-                TotalHours = totalWorked,
-                RegularHours = regularHours,
-                OvertimeHours = finalOvertime
-            };
-        }
+        /*
+        The CalculatePayroll function has been moved to the PayrollCalculator class within the API project to keep the code clean and readable.
+        */
     }
 }
