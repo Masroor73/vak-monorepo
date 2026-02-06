@@ -139,3 +139,6 @@ dist
 **/bin/
 **/obj/
 .vs/
+
+# Turborepo
+.turbo
