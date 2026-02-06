@@ -7,3 +7,4 @@ export const WasteLogSchema = z.object({
   // Can add 'waste_reason' enum later if needed
 });
 export type WasteLog = z.infer<typeof WasteLogSchema>;
+ 
