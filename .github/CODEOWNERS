@@ -1,0 +1,16 @@
+# Global owner (Fallback)
+* @Masroor73
+
+# 1. ARCHITECTURE & CONTRACTS (Strict Control)
+packages/contract/  @Masroor73
+packages/api/       @Masroor73
+apps/api-engine/    @Masroor73
+
+# 2. SHARED UI (Design System)
+packages/ui/        @Masroor73
+
+# 3. MOBILE APP
+apps/mobile/        @Masroor73 @kellyokada @ZainabTameem @yashneetkaur-15
+
+# 4. CI/CD Workflows
+.github/workflows/  @Masroor73
