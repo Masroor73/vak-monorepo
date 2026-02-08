@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { View, Text, Alert } from 'react-native';
-import { ShiftStatusCard, PrimaryButton, TextField } from '@vak/ui'; 
+import { ShiftStatusCard, PrimaryButton, TextField, StatusBadge } from '@vak/ui'; 
 
 export default function Index() {
    const [email, setEmail] = useState("");
@@ -10,13 +10,15 @@ export default function Index() {
       <Text className="text-2xl font-bold text-damascus-primary mb-8">
         V.A.K Mobile
       </Text>
-      
-      {/* Testing the Shared Component */}
-      <ShiftStatusCard 
-        title="Dinner Rush" 
-        subtitle="Feb 2, 5:00 PM - 11:00 PM" 
-        status="approved" 
-      />
+
+      {/* NEW: STATUS BADGE GALLERY */}
+      <View className="flex-row gap-2 mb-6 flex-wrap justify-center">
+        <StatusBadge status="DRAFT" />
+        <StatusBadge status="PUBLISHED" />
+        <StatusBadge status="COMPLETED" />
+        <StatusBadge status="VOID" />
+        <StatusBadge status="UNKNOWN_STATE" />
+      </View>
       
       <ShiftStatusCard 
         title="Prep Shift" 
