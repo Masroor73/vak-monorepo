@@ -1,77 +1,104 @@
-import React, { useState } from "react";
-import { View, Text, Alert } from "react-native";
-import { ShiftStatusCard, PrimaryButton, TextField, StatusBadge  } from "@vak/ui"; 
-import { useAuth } from "../../context/AuthContext"; // Importing useAuth to access signOut function
-import { useRouter } from "expo-router"; // For navigation if needed
+import { View, Text, FlatList } from "react-native";
+import DashboardCard from "../(components)/dashboardCard";
+import { EvilIcons } from "@expo/vector-icons";
+
+const cards1 = [
+  {
+    description: "Tap here to log your time and stay on schedule.",
+    icon: (
+      <EvilIcons
+        className="absolute right-3 -top-7 bg-white rounded-full p-1"
+        name="clock"
+        size={40}
+        color="black"
+      />
+    ),
+  },
+  {
+    description: "View and complete your daily tasks to stay on track.",
+    icon: (
+      <EvilIcons
+        className="absolute right-3 -top-5 bg-white rounded-full p-1"
+        name="check"
+        size={28}
+        color="black"
+      />
+    ),
+  },
+  {
+    description: "Help us cut down food waste by reporting it.",
+    icon: (
+      <EvilIcons
+        className="absolute right-3 -top-5 bg-white rounded-full p-1"
+        name="trash"
+        size={28}
+        color="black"
+      />
+    ),
+  },
+];
+
+const cards2 = [
+  {
+    description: "Stay on top of your schedule and never miss a shift.",
+    legend: "View All →",
+    icon: <EvilIcons name="calendar" size={64} color="black" />,
+  },
+  {
+    description: "See your latest notes and recognition.",
+    legend: "View Feedback →",
+    icon: <EvilIcons name="comment" size={64} color="black" />,
+  },
+  {
+    description: "Set the days and times you’re free.",
+    legend: "Update →",
+    icon: <EvilIcons name="clock" size={64} color="black" />,
+  },
+  {
+    description: "Get quick answers and support from your assistant.",
+    legend: "Chat →",
+    icon: <EvilIcons name="comment" size={64} color="black" />,
+  },
+];
 
 export default function Index() {
-  
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const { signOut, session, user } = useAuth();  // Accessing session, user, and signOut function from context
-  const router = useRouter(); // Router for navigation (optional if you want to navigate after logout)
-
-  const handleLogout = async () => {
-    try {
-      await signOut();  // Log the user out
-
-      // Redirect to login page after logout
-      router.replace("/(public)/login");  // Adjust path based on your routing setup
-    } catch (error) {
-      console.error("Error logging out:", error);
-      Alert.alert("Failed to log out. Please try again.");
-    }
-  };
-
   return (
-    <View className="flex-1 justify-center items-center bg-damascus-background">
-      <Text className="text-2xl font-bold text-damascus-primary mb-8">V.A.K Mobile</Text>
+    <View className="flex-1 p-4 bg-damascus-background pb-28">
+      <Text className="text-blue-900 font-bold text-2xl my-6">
+        Welcome!
+      </Text>
 
-      {/* NEW: STATUS BADGE GALLERY */}
-      <View className="flex-row gap-2 mb-6 flex-wrap justify-center">
-        <StatusBadge status="DRAFT" />
-        <StatusBadge status="PUBLISHED" />
-        <StatusBadge status="COMPLETED" />
-        <StatusBadge status="VOID" />
-        <StatusBadge status="UNKNOWN_STATE" />
+      {/* HORIZONTAL SCROLL (TOP 3 CARDS) */}
+      <View className="mb-8">
+        <FlatList
+          data={cards1}
+          keyExtractor={(_, index) => index.toString()}
+          renderItem={({ item }) => (
+            <DashboardCard
+              icon={item.icon}
+              description={item.description}
+            />
+          )}
+          horizontal
+          ItemSeparatorComponent={() => <View className="w-5" />}
+          showsHorizontalScrollIndicator={false}
+        />
       </View>
-      
-      <ShiftStatusCard 
-        title="Prep Shift" 
-        subtitle="Feb 3, 9:00 AM - 2:00 PM" 
-        status="pending" 
-      />
 
-      {/* TextFields for testing */}
-      <TextField
-        label="Email"
-        placeholder="Enter your email"
-        value={email}
-        onChangeText={setEmail}
-        errorText={email === "" ? "Email is required" : ""}
-      />
-
-      <TextField
-        label="Password"
-        placeholder="Enter your password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      {/* PrimaryButton for testing */}
-      <PrimaryButton
-        title="Confirm Shift"
-        variant="primary"
-        onPress={() => Alert.alert("Primary Button Pressed")}
-        isLoading={false}
-      />
-
-      {/* Logout Button */}
-      <PrimaryButton
-        title="Logout"
-        onPress={handleLogout}
-        isLoading={false}
+      {/* VERTICAL SCROLL (WITH ICONS BACK) */}
+      <FlatList
+        data={cards2}
+        keyExtractor={(_, index) => index.toString()}
+        renderItem={({ item }) => (
+          <DashboardCard
+            variant="secondary"
+            icon={item.icon}
+            legend={item.legend}
+            description={item.description}
+          />
+        )}
+        ItemSeparatorComponent={() => <View className="h-5" />}
+        showsVerticalScrollIndicator={false}
       />
     </View>
   );

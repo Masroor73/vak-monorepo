@@ -110,7 +110,7 @@ export default function LoginScreen() {
         {/* Sliding Toggle */}
         <View className="flex-row bg-white border border-black rounded-full overflow-hidden w-[250px] h-[50px] self-center -mt-20">
           <Pressable
-            className={`flex-1 items-center justify-center rounded-full ${ activeTab === "signin" ? "bg-black" : "bg-transparent" }`}
+            className={`flex-1 items-center justify-center rounded-full ${activeTab === "signin" ? "bg-black" : "bg-transparent"}`}
             onPress={() => setActiveTab("signin")}
           >
             <Text className={`text-lg font-semibold ${activeTab === "signin" ? "text-white" : "text-black"}`}>
@@ -118,7 +118,7 @@ export default function LoginScreen() {
             </Text>
           </Pressable>
           <Pressable
-            className={`flex-1 items-center justify-center rounded-full ${ activeTab === "signup" ? "bg-black" : "bg-transparent"}`}
+            className={`flex-1 items-center justify-center rounded-full ${activeTab === "signup" ? "bg-black" : "bg-transparent"}`}
             onPress={() => setActiveTab("signup")}
           >
             <Text className={`text-lg font-semibold ${activeTab === "signup" ? "text-white" : "text-black"}`}>
