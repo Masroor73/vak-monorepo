@@ -118,7 +118,7 @@ export default function LoginScreen() {
   return (
     <View className="flex-1 bg-white">
       {/* Logo Section */}
-      <View className="w-full h-1/2 bg-brand-VAKBlue rounded-b-[35px] -mt-12">
+      <View className="w-full h-1/2 bg-brand-primary rounded-b-[35px] -mt-12">
         <View className="items-center justify-center flex-1">
           <Logo width={128} height={128} />
         </View>
@@ -272,9 +272,9 @@ export default function LoginScreen() {
                 onPress={() => setRememberMe(!rememberMe)}
                 className="flex-row items-center mb-3 self-center"
               >
-                <View className="w-5 h-5 rounded-sm justify-center items-center mr-2 bg-brand-VAKDarkBlue">
+                <View className="w-5 h-5 rounded-sm justify-center items-center mr-2 bg-brand-secondary">
                   {rememberMe && (
-                    <Text className="text-brand-VAKGreen font-bold text-base text-center -translate-y-1">
+                    <Text className="text-brand-success font-bold text-base text-center -translate-y-1">
                       ✓
                     </Text>
                   )}

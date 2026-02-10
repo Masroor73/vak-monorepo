@@ -15,9 +15,9 @@ module.exports = {
           text: "#212121",
         },
         brand: {
-          VAKBlue: '#62CCEF',
-          VAKDarkBlue: "#063386",
-          VAKGreen: "#05CC66",
+          primary: '#62CCEF',
+          secondary: "#063386",
+          success: "#05CC66",
         },
       },
     },
