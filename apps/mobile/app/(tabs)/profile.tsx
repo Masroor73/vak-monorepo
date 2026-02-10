@@ -2,7 +2,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 
-const Alerts = () => {
+const Profile = () => {
   return (
     <View>
       <Text>Profile Page</Text>
@@ -10,4 +10,4 @@ const Alerts = () => {
   );
 };
 
-export default Alerts;
+export default Profile;

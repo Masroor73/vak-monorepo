@@ -13,7 +13,12 @@ module.exports = {
           secondary: "#FBC02D", 
           background: "#F5F5F5",
           text: "#212121",
-        }
+        },
+        brand: {
+          primary: '#62CCEF',
+          secondary: "#063386",
+          success: "#05CC66",
+        },
       },
     },
   },
