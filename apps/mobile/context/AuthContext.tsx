@@ -11,6 +11,7 @@ type AuthContextType = {
   isAdmin: boolean;
   isManager: boolean;
   signOut: () => Promise<void>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   isManager: false,
   signOut: async () => {},
+  signUp: async () => ({ error: null }),
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -75,6 +77,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const signUp = async (email: string, password: string, fullName: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName, 
+        },
+      },
+    });
+
+    return { error };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
@@ -84,7 +100,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <AuthContext.Provider 
-      value={{ session, user, profile, loading, isAdmin, isManager, signOut }}
+      value={{ session, user, profile, loading, isAdmin, isManager, signOut,  signUp,}}
     >
       {children}
     </AuthContext.Provider>

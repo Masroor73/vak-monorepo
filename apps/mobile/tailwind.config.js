@@ -15,6 +15,12 @@ module.exports = {
           text: "#212121",
           lightBlue: "#62CCEF"
         }
+        },
+        brand: {
+          primary: '#62CCEF',
+          secondary: "#063386",
+          success: "#05CC66",
+        },
       },
     },
   },
