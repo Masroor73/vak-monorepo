@@ -9,6 +9,9 @@ module.exports = {
     extend: {
       colors: {
         damascus: {
+          VAKBlue: '#62CCEF',
+          VAKDarkBlue: "#063386",
+          VAKGreen: "#05CC66",
           primary: "#D32F2F", 
           secondary: "#FBC02D", 
           background: "#F5F5F5",
