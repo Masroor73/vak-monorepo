@@ -1,69 +1,82 @@
-// src/components/BottomNavigation.tsx
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { useRouter, usePathname } from "expo-router";
 
-// Import your SVGs based on the provided names
-import MessageCircle from "../../assets/MessageCircle.svg";
+// Normal SVGs
 import Grid from "../../assets/Grid.svg";
-import BlackMessageCircle from "../../assets/BlackMessageCircle.svg";
-import BlackGrid from "../../assets/BlackGrid.svg";
-import BlackAlert from "../../assets/BlackAlert.svg";
-import BlackAccountCircle from "../../assets/BlackAccountCircle.svg";
 import Alert from "../../assets/Alert.svg";
+import MessageCircle from "../../assets/MessageCircle.svg";
 import AccountCircle from "../../assets/AccountCircle.svg";
+
+// Blue SVGs
+import BlueGrid from "../../assets/BlueGrid.svg";
+import BlueAlert from "../../assets/BlueAlert.svg";
+import BlueMessageCircle from "../../assets/BlueMessageCircle.svg";
+import BlueAccountCircle from "../../assets/BlueAccountCircle.svg";
+
+type Tab = {
+  key: string;
+  basePaths: string[];
+  navigateTo: string;
+  Svg: any;     
+  BlueSvg: any;  
+};
 
 export default function BottomNavigation() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const tabs = [
-  {
-    key: "Index",
-    path: "/(tabs)",  // Path to Dashboard screen
-    Svg: Grid,
-    BlackSvg: BlackGrid,
-    disabled: false, // Add disabled property
-  },
-  {
-    key: "alerts",
-    path: "/(tabs)/alerts",  // Path to Alerts screen
-    Svg: Alert,
-    BlackSvg: BlackAlert,
-    disabled: false, // Add disabled property
-  },
-  {
-    key: "messages",
-    path: "/(tabs)/messages",  // Path to Messages screen
-    Svg: MessageCircle,
-    BlackSvg: BlackMessageCircle,
-    disabled: false, // Example: Disable this tab
-  },
-  {
-    key: "profile",
-    path: "/(tabs)/profile",  // Path to Profile screen
-    Svg: AccountCircle,
-    BlackSvg: BlackAccountCircle,
-    disabled: false, // Add disabled property
-  },
-];
+  const tabs: Tab[] = [
+    
+    {
+      key: "Index",
+      basePaths: ["/",  "/index", "/(tabs)"], // Include /index
+      navigateTo: "/(tabs)",
+      Svg: Grid,
+      BlueSvg: BlueGrid,
+    },
+    {
+      key: "reports",
+      basePaths: ["/(tabs)/report", "/report"],
+      navigateTo: "/(tabs)/report",
+      Svg: Alert,
+      BlueSvg: BlueAlert,
+    },
+    {
+      key: "messages",
+      basePaths: ["/(tabs)/messages", "/messages"],
+      navigateTo: "/(tabs)/messages",
+      Svg: MessageCircle,
+      BlueSvg: BlueMessageCircle,
+    },
+    {
+      key: "profile",
+      basePaths: ["/(tabs)/profile", "/profile"],
+      navigateTo: "/(tabs)/profile",
+      Svg: AccountCircle,
+      BlueSvg: BlueAccountCircle,
+    },
+  ];
 
- return (
-    <View className="absolute bottom-0 w-full h-20 bg-black flex-row items-center justify-around px-4">
-      {tabs.map(({ path, Svg, BlackSvg, disabled }) => {
-        const isActive = pathname === path;
-        const Icon = isActive ? BlackSvg : Svg;
+  const isTabActive = (tab: Tab): boolean => {
+    if (tab.key === "Index") {
+      return tab.basePaths.some((base: string) => pathname === base);
+    }
+    return tab.basePaths.some((base: string) => pathname.startsWith(base));
+  };
+
+  return (
+    <View className="w-full flex-row justify-around items-center bg-black " style={{ height: 100 }}>
+      {tabs.map((tab: Tab) => {
+        const isActive = isTabActive(tab);
+        const Icon = isActive ? tab.BlueSvg : tab.Svg;
 
         return (
           <TouchableOpacity
-            key={path}
-            onPress={() => !disabled && router.push(path)} 
-            disabled={disabled}
+            key={tab.navigateTo}
+            onPress={() => router.push(tab.navigateTo)}
           >
-            <View
-              className="p-2 rounded-xl padding"
-              style={{ marginHorizontal: 25 }} 
-            >
-              <Icon className="w-[35px] h-[35px]"/>
+            <View className="p-2 items-center justify-center"  style={{ marginHorizontal: 30}}>
+              <Icon width={45} height={45}/>
             </View>
           </TouchableOpacity>
         );
@@ -71,3 +84,4 @@ export default function BottomNavigation() {
     </View>
   );
 }
+

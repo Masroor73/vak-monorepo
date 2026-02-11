@@ -1,24 +1,40 @@
+import { View } from "react-native";
 import { Stack } from "expo-router";
-import BottomNavigation from "../../src/components/BottomNav";
 import TopNavigation from "../../src/components/TopNav";
+import BottomNavigation from "../../src/components/BottomNav";
+import Drawer from "../../src/components/Drawer";
+
+import { useState } from "react";
 
 export default function TabsLayout() {
-  return (
-    <>
-      {/* Top Navigation Bar (e.g., bell icon) */}
-      <TopNavigation />
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-      {/* Main Stack Navigation */}
-      <Stack screenOptions={{ headerShown: false }}>
-        {/* Define the screens in the tab layout */}
+  const toggleDrawer = () => setIsDrawerOpen(prev => !prev);
+
+  return (
+    <View style={{ flex: 1 }}>
+      {/* Stack Navigation */}
+      <Stack
+        screenOptions={{
+          header: () => <TopNavigation toggleDrawer={toggleDrawer} />,
+          headerShown: true,
+        }}
+      >
         <Stack.Screen name="index" />
-        <Stack.Screen name="alerts" />
+        <Stack.Screen name="report" />
         <Stack.Screen name="messages" />
         <Stack.Screen name="profile" />
+        <Stack.Screen name="notifications" />
       </Stack>
 
-      {/* Bottom Navigation Bar */}
+      {/* Drawer */}
+      <Drawer
+        isOpen={isDrawerOpen}
+        toggleDrawer={toggleDrawer}
+      />
+
+      {/* Bottom Navigation */}
       <BottomNavigation />
-    </>
+    </View>
   );
 }
