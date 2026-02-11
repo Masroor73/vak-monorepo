@@ -118,16 +118,16 @@ export default function LoginScreen() {
   return (
     <View className="flex-1 bg-white">
       {/* Logo Section */}
-      <View className="w-full h-1/2 bg-brand-primary rounded-b-[35px] -mt-12">
-        <View className="items-center justify-center flex-1">
-          <Logo width={128} height={128} />
+      <View className="w-full h-1/2 bg-brand-primary rounded-b-[40px] -mt-12">
+        <View className="items-center justify-center flex-1 mt-12">
+          <Logo width={150} height={150} />
         </View>
       </View>
 
       {/* Form Section */}
       <View className="flex-1 bg-white">
         {/* Sliding Toggle */}
-        <View className="flex-row bg-white border border-black rounded-full overflow-hidden w-[250px] h-[50px] self-center -mt-20">
+        <View className="flex-row bg-white border border-black rounded-full overflow-hidden w-[250px] h-[55px] self-center -mt-20">
           <Pressable
             className={`flex-1 items-center justify-center rounded-full ${
               activeTab === "signin" ? "bg-black" : "bg-transparent"

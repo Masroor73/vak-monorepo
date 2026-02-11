@@ -1,13 +1,13 @@
-//apps/mobile/app/(tabs)/alerts.tsx
+//apps/mobile/app/(tabs)/report.tsx
 import React from 'react';
 import { View, Text } from 'react-native';
 
-const Alerts = () => {
+const Report = () => {
   return (
     <View>
-      <Text>Alerts Page</Text>
+      <Text>Reports Page</Text>
     </View>
   );
 };
 
-export default Alerts;
+export default Report;
