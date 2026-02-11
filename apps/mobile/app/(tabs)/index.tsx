@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { View, Text, Alert } from "react-native";
 import { ShiftStatusCard, PrimaryButton, TextField, StatusBadge  } from "@vak/ui"; 
 import { useAuth } from "../../context/AuthContext"; // Importing useAuth to access signOut function
