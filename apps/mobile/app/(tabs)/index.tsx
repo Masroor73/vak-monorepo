@@ -1,34 +1,16 @@
-import React, { useState, useMemo } from "react";
-import { View, Text, Alert } from "react-native";
-import { ShiftStatusCard, PrimaryButton, TextField, StatusBadge } from "@vak/ui";
-import { useAuth } from "../../context/AuthContext"; // Importing useAuth to access signOut function
-import { useRouter } from "expo-router"; // For navigation if needed
+import React, { useMemo } from "react";
+import { View, Text, Alert, FlatList, Pressable } from "react-native";
+import { ShiftStatusCard, PrimaryButton } from "@vak/ui";
 import { MOCK_USER, MOCK_SHIFTS } from "../../constants/mockData";
 
 export default function Index() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const { signOut, session, user } = useAuth(); // Accessing session, user, and signOut function from context
-  const router = useRouter(); // Router for navigation (optional if you want to navigate after logout)
-
-  const handleLogout = async () => {
-    try {
-      await signOut(); // Log the user out
-
-      // Redirect to login page after logout
-      router.replace("/(public)/login"); // Adjust path based on your routing setup
-    } catch (error) {
-      console.error("Error logging out:", error);
-      Alert.alert("Failed to log out. Please try again.");
-    }
-  };
-
   const firstName = useMemo(() => {
     const full = MOCK_USER.full_name || "";
     return full.trim().split(" ")[0] || "User";
   }, []);
 
   const now = useMemo(() => new Date(), []);
+
   const topDate = useMemo(() => {
     const weekday = now
       .toLocaleDateString("en-US", { weekday: "short" })
@@ -63,11 +45,11 @@ export default function Index() {
   const scheduledTime = useMemo(() => {
     if (!todayShift) return "—";
     const s = todayShift._start.toLocaleTimeString("en-US", {
-      hour: "2-digit",
+      hour: "numeric",
       minute: "2-digit",
     });
     const e = todayShift._end.toLocaleTimeString("en-US", {
-      hour: "2-digit",
+      hour: "numeric",
       minute: "2-digit",
     });
     return `${s} — ${e}`;
@@ -90,6 +72,58 @@ export default function Index() {
   const locationLabel = useMemo(() => {
     return (todayShift as any)?.location_id ?? "damascus-hq";
   }, [todayShift]);
+
+  const upcomingShifts = useMemo(() => {
+    const rest = MOCK_SHIFTS.slice(1);
+
+    const mapped = rest.map((s, idx) => {
+      const srcStart = new Date(s.start_time);
+      const srcEnd = new Date(s.end_time);
+
+      const dayOffset = idx + 1;
+      const start = new Date(now);
+      start.setDate(now.getDate() + dayOffset);
+      start.setHours(srcStart.getHours(), srcStart.getMinutes(), 0, 0);
+
+      const end = new Date(now);
+      end.setDate(now.getDate() + dayOffset);
+      end.setHours(srcEnd.getHours(), srcEnd.getMinutes(), 0, 0);
+
+      if (end <= start) end.setDate(end.getDate() + 1);
+
+      const prettyDay = start.toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      });
+
+      const prettyStart = start.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+      const prettyEnd = end.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+
+      const role = String((s as any)?.role_at_time_of_shift ?? "Shift")
+        .toLowerCase()
+        .split("_")
+        .map((w) => w.slice(0, 1).toUpperCase() + w.slice(1))
+        .join(" ");
+
+      const loc = (s as any)?.location_id ?? "damascus-hq";
+
+      return {
+        id: s.id ?? `upcoming-${idx}`,
+        title: role,
+        subtitle: `${prettyDay} • ${prettyStart} - ${prettyEnd} • ${loc}`,
+        status: "pending" as const,
+      };
+    });
+
+    return mapped.slice(0, 3);
+  }, [now]);
 
   return (
     <View className="flex-1 bg-damascus-background">
@@ -134,7 +168,7 @@ export default function Index() {
               </Text>
             </View>
 
-            {/* Clock In button*/}
+            {/* Clock In button */}
             <View className="relative shrink-0 min-w-[140px]">
               <View
                 pointerEvents="none"
@@ -148,6 +182,7 @@ export default function Index() {
                 </Text>
               </View>
 
+              {/* PrimaryButton: */}
               <View className="opacity-0">
                 <PrimaryButton
                   title="CLOCK IN"
@@ -196,6 +231,37 @@ export default function Index() {
               You have 0 incomplete tasks.
             </Text>
           </View>
+        </View>
+      </View>
+
+      {/* Upcoming Shifts */}
+      <View className="px-6 pt-6">
+        <View className="flex-row items-center justify-between">
+          <Text className="text-damascus-text font-semibold text-base">
+            Your Upcoming Shifts
+          </Text>
+
+          <Pressable onPress={() => console.log("View All")}>
+            <Text className="text-brand-secondary font-semibold">View All</Text>
+          </Pressable>
+        </View>
+
+        <View className="mt-4">
+          <FlatList
+            data={upcomingShifts}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+            ItemSeparatorComponent={() => <View className="h-3" />}
+            renderItem={({ item }) => (
+              <Pressable onPress={() => console.log("Navigate to Details")}>
+                <ShiftStatusCard
+                  title={item.title}
+                  subtitle={item.subtitle}
+                  status={item.status}
+                />
+              </Pressable>
+            )}
+          />
         </View>
       </View>
     </View>
