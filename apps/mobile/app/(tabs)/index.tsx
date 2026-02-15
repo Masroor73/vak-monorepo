@@ -1,9 +1,13 @@
 import React, { useMemo } from "react";
-import { View, Text, Alert, FlatList, Pressable } from "react-native";
+import { View, Text, Alert, FlatList, Pressable, Button } from "react-native";
 import { ShiftStatusCard, PrimaryButton } from "@vak/ui";
 import { MOCK_USER, MOCK_SHIFTS } from "../../constants/mockData";
+import { useNavigation, useRouter } from "expo-router";
 
 export default function Index() {
+
+  const navigate = useRouter()
+
   const firstName = useMemo(() => {
     const full = MOCK_USER.full_name || "";
     return full.trim().split(" ")[0] || "User";
@@ -263,7 +267,10 @@ export default function Index() {
             )}
           />
         </View>
+        {/*Temporary Notification Button*/}
+        <Button title="Notification" onPress={() => navigate.push("/notifications")} />
       </View>
     </View>
+
   );
 }
