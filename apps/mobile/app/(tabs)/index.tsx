@@ -267,8 +267,6 @@ export default function Index() {
             )}
           />
         </View>
-        {/*Temporary Notification Button*/}
-        <Button title="Notification" onPress={() => navigate.push("/notifications")} />
       </View>
     </View>
 
