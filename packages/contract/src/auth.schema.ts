@@ -19,6 +19,7 @@ export const ProfileSchema = z.object({
   full_name: z.string().min(2).nullable(),
   role: SystemRoleEnum.default('EMPLOYEE'),
   // We keep hourly_rate loose here, but strictly typed as number
+  phone_number: z.string().nullable().optional(),
   hourly_rate: z.number().min(0).default(15.00), 
   avatar_url: z.string().url().nullable().optional(),
 });

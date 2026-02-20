@@ -1,20 +1,28 @@
+// apps/mobile/app/(public)/login.tsx
 import { useState, useEffect } from "react";
 import { View, Alert, Pressable, Text, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { TextField, PrimaryButton } from "@vak/ui";
 import { useAuth } from "../../context/AuthContext";
-import { supabase } from "../../lib/supabase";
 import { useForm, Controller } from "react-hook-form";
 import Logo from "../../assets/Logo.svg";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoginSchema, LoginInput, SignupSchema, SignupInput } from "@vak/contract";
+import EyeOpenIcon from "../../assets/eyeOpen.svg";
+import EyeClosedIcon from "../../assets/eyeClosed.svg";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { session, loading, signUp } = useAuth();
+  const [showSignInPassword, setShowSignInPassword] = useState(false);
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const { session, loading, signUp, login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin");
   const [rememberMe, setRememberMe] = useState(false);
+
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   // ---------------- FORMS ----------------
   const signInForm = useForm<LoginInput>({
@@ -30,28 +38,29 @@ export default function LoginScreen() {
   });
 
   useEffect(() => {
-  if (activeTab === "signup") {
-    signUpForm.reset({
-      email: "",
-      password: "",
-      full_name: "",
-      confirmPassword: "",
-    });
-  }
+    if (activeTab === "signup") {
+      signUpForm.reset({
+        email: "",
+        password: "",
+        full_name: "",
+        confirmPassword: "",
+      });
+    }
 
-  if (activeTab === "signin") {
-    signInForm.reset({
-      email: "",
-      password: "",
-    });
-  }
-}, [activeTab]);
+    if (activeTab === "signin") {
+      signInForm.reset({
+        email: "",
+        password: "",
+      });
+      setLoginError(null); // Clear login error on tab switch
+    }
+  }, [activeTab]);
 
   // ---------------- SIGN UP ----------------
   const onSignUp = async (data: SignupInput) => {
     const { email, password, full_name } = data;
-
     setIsLoading(true);
+
     try {
       const { error } = await signUp(email, password, full_name);
 
@@ -61,9 +70,7 @@ export default function LoginScreen() {
         Alert.alert(
           "Success",
           "Please check your email to verify your account.",
-          [
-            { text: "OK", onPress: () => setActiveTab("signin") },
-          ]
+          [{ text: "OK", onPress: () => setActiveTab("signin") }]
         );
       }
     } catch {
@@ -75,25 +82,28 @@ export default function LoginScreen() {
 
   // ---------------- LOGIN ----------------
   const onLogin = async (data: LoginInput) => {
-    const { email, password } = data;
-
     setIsLoading(true);
-    try {
-      const { data: loginData, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    setLoginError(null);
 
-      if (error || !loginData.session) {
-        Alert.alert("Invalid Credentials", "Email or password is incorrect.");
-      } else {
-        if (rememberMe) {
-          console.log("User will be remembered until logout.");
-        }
-        router.replace("/(tabs)");
+    try {
+      const { error } = await login(data.email, data.password);
+
+      if (error === "INVALID_CREDENTIALS") {
+        setLoginError("Invalid email or password");
+        return;
       }
-    } catch {
-      Alert.alert("Error", "Something went wrong. Please try again.");
+
+      if (error === "ACCESS_DENIED") {
+        Alert.alert("Access Denied", "Only employees can access this app.");
+        return;
+      }
+
+      if (error) {
+        setLoginError("Something went wrong. Please try again.");
+        return;
+      }
+
+      router.replace("/(tabs)");
     } finally {
       setIsLoading(false);
     }
@@ -104,9 +114,11 @@ export default function LoginScreen() {
     const timer = setTimeout(() => {
       signInForm.clearErrors();
       signUpForm.clearErrors();
+      setLoginError(null);
     }, 15000);
+
     return () => clearTimeout(timer);
-  }, [signInForm.formState.errors, signUpForm.formState.errors]);
+  }, [signInForm.formState.errors, signUpForm.formState.errors, loginError]);
 
   // ---------------- REDIRECT IF LOGGED IN ----------------
   useEffect(() => {
@@ -142,6 +154,7 @@ export default function LoginScreen() {
               Sign In
             </Text>
           </Pressable>
+
           <Pressable
             className={`flex-1 items-center justify-center rounded-full ${
               activeTab === "signup" ? "bg-black" : "bg-transparent"
@@ -175,6 +188,7 @@ export default function LoginScreen() {
                   />
                 )}
               />
+
               {/* Email */}
               <Controller
                 control={signUpForm.control}
@@ -196,30 +210,48 @@ export default function LoginScreen() {
               <Controller
                 control={signUpForm.control}
                 name="password"
-                 render={({ field: { value, onChange } }) => (
+                render={({ field }) => (
                   <TextField
                     label="Password"
                     placeholder="Enter your password"
-                    secureTextEntry
-                    value={value}
-                    onChangeText={onChange}
-                    errorText={signUpForm.formState.errors.password?.message}
+                    secureTextEntry={!showSignInPassword}
+                    value={field.value}
+                    onChangeText={field.onChange}
+                    errorText={signInForm.formState.errors.password?.message}
+                    rightElement={
+                      <Pressable onPress={() => setShowSignUpPassword(!showSignUpPassword)}>
+                        {showSignUpPassword ? (
+                          <EyeOpenIcon width={24} height={24} />
+                        ) : (
+                          <EyeClosedIcon width={24} height={24} />
+                        )}
+                      </Pressable>
+                    }
                   />
                 )}
               />
 
               {/* Confirm Password */}
               <Controller
-                 control={signUpForm.control}
-                 name="confirmPassword"
-                 render={({ field, fieldState }) => (
+                control={signUpForm.control}
+                name="confirmPassword"
+                render={({ field }) => (
                   <TextField
-                  label="Confirm Password"
-                  placeholder="Enter password again"
-                  secureTextEntry
-                  value={field.value}
-                  onChangeText={field.onChange}
-                  errorText={fieldState?.error?.message} 
+                    label="Confirm Password"
+                    placeholder="Enter password again"
+                    secureTextEntry={!showConfirmPassword}
+                    value={field.value}
+                    onChangeText={field.onChange}
+                    errorText={signUpForm.formState.errors.confirmPassword?.message}
+                    rightElement={
+                      <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                        {showConfirmPassword ? (
+                          <EyeOpenIcon width={24} height={24} />
+                        ) : (
+                          <EyeClosedIcon width={24} height={24} />
+                        )}
+                      </Pressable>
+                    }
                   />
                 )}
               />
@@ -245,7 +277,10 @@ export default function LoginScreen() {
                     keyboardType="email-address"
                     autoCapitalize="none"
                     value={field.value}
-                    onChangeText={field.onChange}
+                    onChangeText={(text) => {
+                      field.onChange(text);
+                      if (loginError) setLoginError(null);
+                    }}
                     errorText={signInForm.formState.errors.email?.message}
                   />
                 )}
@@ -256,14 +291,32 @@ export default function LoginScreen() {
                 control={signInForm.control}
                 name="password"
                 render={({ field }) => (
-                  <TextField
-                    label="Password"
-                    placeholder="Enter your password"
-                    secureTextEntry
-                    value={field.value}
-                    onChangeText={field.onChange}
-                    errorText={signInForm.formState.errors.password?.message}
-                  />
+                  <>
+                    <TextField
+                      label="Password"
+                      placeholder="Enter your password"
+                      secureTextEntry={!showSignInPassword}
+                      value={field.value}
+                      onChangeText={(text) => {
+                        field.onChange(text);
+                        if (loginError) setLoginError(null);
+                      }}
+                      errorText={signInForm.formState.errors.password?.message}
+                      rightElement={
+                        <Pressable onPress={() => setShowSignInPassword(!showSignInPassword)}>
+                          {showSignInPassword ? (
+                            <EyeOpenIcon width={24} height={24} />
+                          ) : (
+                            <EyeClosedIcon width={24} height={24} />
+                          )}
+                        </Pressable>
+                      }
+                    />
+                    {/* Show general login error below password */}
+                    {loginError && (
+                      <Text className="text-red-600 text-center p-2">{loginError}</Text>
+                    )}
+                  </>
                 )}
               />
 
