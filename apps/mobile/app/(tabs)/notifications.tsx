@@ -1,7 +1,5 @@
-//apps/mobile/app/(tabs)/notifications.tsx
 import React, { useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
-import { SafeAreaContext, SafeAreaFrameContext, SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, FlatList } from 'react-native';
 import TabSelector, { Tab } from '@/src/components/TabSelector';
 import NotificationCard from '@/src/components/NotificationCard';
 
@@ -40,7 +38,8 @@ const NOTIFICATIONS: NotificationType[] = [
   },
   {
     id: '4',
-    message: 'Oven #3 will be repaired at 3 PM today. Please plan prep accordingly.',
+    message:
+      'Oven #3 will be repaired at 3 PM today. Please plan prep accordingly.',
     time: 'October, 30',
     unread: false,
     timestamp: 1,
@@ -48,29 +47,40 @@ const NOTIFICATIONS: NotificationType[] = [
 ];
 
 function getVisibleNotifications(tab: Tab) {
-  if (tab === "Unread")
-    return NOTIFICATIONS.filter((item) => item.unread)
-  if (tab === "Most Recent")
-    return [...NOTIFICATIONS].sort((a, b) => b.timestamp - a.timestamp)
-  return NOTIFICATIONS
+  if (tab === 'Unread')
+    return NOTIFICATIONS.filter((item) => item.unread);
+
+  if (tab === 'Most Recent')
+    return [...NOTIFICATIONS].sort((a, b) => b.timestamp - a.timestamp);
+
+  return NOTIFICATIONS;
 }
 
 const Notifications = () => {
-  const [active, setActive] = useState<Tab>("All")
-  const notifications = getVisibleNotifications(active)
+  const [active, setActive] = useState<Tab>('All');
+  const notifications = getVisibleNotifications(active);
+
   return (
     <View className="flex-1 bg-damascus-background p-4">
-      <Text className="text-blue-900 font-bold text-2xl text-center mb-4">Notification</Text>
+      <Text className="text-blue-900 font-bold text-2xl text-center mb-4">
+        Notifications
+      </Text>
+
       <TabSelector active={active} setActive={setActive} />
-      <ScrollView contentContainerClassName='pb-6'>
-        {notifications.length === 0 ? (<Text>No Notifications!</Text>) : (
-          notifications.map((item) => {
-            return (
-              <NotificationCard message={item.message} time={item.time} unread={item.unread} />
-            )
-          })
+
+      <FlatList
+        data={notifications}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingBottom: 24 }}
+        ListEmptyComponent={<Text>No Notifications!</Text>}
+        renderItem={({ item }) => (
+          <NotificationCard
+            message={item.message}
+            time={item.time}
+            unread={item.unread}
+          />
         )}
-      </ScrollView>
+      />
     </View>
   );
 };
