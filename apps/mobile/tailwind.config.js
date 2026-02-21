@@ -17,7 +17,8 @@ module.exports = {
         },
         brand: {
           primary: "#62CCEF",
-          secondary: "#063386",
+          secondary: "#1E4792",
+          secondaryLight: "#224FA3",
           success: "#05CC66",
         },
       },

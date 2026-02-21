@@ -12,6 +12,11 @@ import BlueGrid from "../../assets/BlueGrid.svg";
 import BlueAlert from "../../assets/BlueAlert.svg";
 import BlueMessageCircle from "../../assets/BlueMessageCircle.svg";
 import BlueAccountCircle from "../../assets/BlueAccountCircle.svg";
+import WhiteGrid from "../../assets/WhiteGrid.svg";
+import WhiteAlert from "../../assets/WhiteAlert.svg";
+import WhiteMessageCircle from "../../assets/WhiteMessageCircle.svg";
+import WhiteAccountCircle from "../../assets/WhiteAccountCircle.svg";
+
 
 type Tab = {
   key: string;
@@ -32,28 +37,28 @@ export default function BottomNavigation() {
       basePaths: ["/",  "/index", "/(tabs)"], // Include /index
       navigateTo: "/(tabs)",
       Svg: Grid,
-      BlueSvg: BlueGrid,
+      BlueSvg: WhiteGrid,
     },
     {
       key: "reports",
       basePaths: ["/(tabs)/report", "/report"],
       navigateTo: "/(tabs)/report",
       Svg: Alert,
-      BlueSvg: BlueAlert,
+      BlueSvg: WhiteAlert,
     },
     {
       key: "messages",
       basePaths: ["/(tabs)/messages", "/messages"],
       navigateTo: "/(tabs)/messages",
       Svg: MessageCircle,
-      BlueSvg: BlueMessageCircle,
+      BlueSvg: WhiteMessageCircle,
     },
     {
       key: "profile",
       basePaths: ["/(tabs)/profile", "/profile"],
       navigateTo: "/(tabs)/profile",
       Svg: AccountCircle,
-      BlueSvg: BlueAccountCircle,
+      BlueSvg: WhiteAccountCircle,
     },
   ];
 

@@ -1,12 +1,12 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { View, Text, Alert, FlatList, Pressable, Button } from "react-native";
 import { ShiftStatusCard, PrimaryButton } from "@vak/ui";
 import { MOCK_USER, MOCK_SHIFTS } from "../../constants/mockData";
-import { useNavigation, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 
 export default function Index() {
 
-  const navigate = useRouter()
+  const router = useRouter()
 
   const firstName = useMemo(() => {
     const full = MOCK_USER.full_name || "";
@@ -129,41 +129,46 @@ export default function Index() {
     return mapped.slice(0, 3);
   }, [now]);
 
+  const formatTime = (date: Date) =>
+  date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+
+const getShiftPeriod = (start: Date, end: Date) => {
+  const hour = start.getHours();
+  if (hour < 12) return "Morning Shift";
+  if (hour < 17) return "Afternoon Shift";
+  return "Evening Shift";
+};
+
   return (
-    <View className="flex-1 bg-damascus-background">
-      {/* Header */}
-      <View className="bg-brand-primary px-6 pt-8 pb-10">
-        <View className="flex-row items-start gap-4">
-          <View className="h-12 w-12 rounded-full bg-white/35 items-center justify-center">
-            {/* Place holder for actual picture */}
-            <Text className="text-white text-xl">👤</Text>
+  <View className="flex-1 bg-damascus-background">
+    {/* Header */}
+    <View className="bg-brand-secondaryLight px-6 pt-8 pb-10">
+      <View className="flex-row items-start gap-4">
+        <View className="h-16 w-16 rounded-full bg-white/35 items-center justify-center m-5">
+          <Text className="text-white text-xl">👤</Text>
+        </View>
+        <View className="flex-1">
+          <Text className="text-white text-2xl font-semibold">
+            Good morning, {firstName}.
+          </Text>
+          <View className="mt-5 flex-row items-center gap-3">
+            <Text className="text-white/60 text-xs tracking-widest">{topDate}</Text>
+            <Text className="text-white/60 text-xs">|</Text>
+            <Text className="text-white/60 text-xs">☁︎</Text>
+            <Text className="text-white/60 text-xs">15°C</Text>
           </View>
-
-          <View className="flex-1">
-            <Text className="text-damascus-text text-2xl font-semibold">
-              Good morning, {firstName}.
-            </Text>
-
-            <View className="mt-5 flex-row items-center gap-3">
-              <Text className="text-damascus-text/60 text-xs tracking-widest">
-                {topDate}
-              </Text>
-              <Text className="text-damascus-text/50 text-xs">|</Text>
-              {/* Place holder for actual temperature */}
-              <Text className="text-damascus-text/60 text-xs">☁︎</Text>
-              <Text className="text-damascus-text/60 text-xs">15°C</Text>
-            </View>
-
-            <Text className="mt-3 text-damascus-text/70 text-base">
-              {summaryText}
-            </Text>
-          </View>
+          <Text className="mt-3 text-white/70 text-base">
+            {todayShift ? "You have one shift today." : "No shifts today."}
+          </Text>
         </View>
       </View>
+    </View>
 
-      {/* Today's Shift Card */}
+    {/* Today's Shift Card */}
+    {todayShift && (
       <View className="px-6 pt-8">
         <View className="bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-5">
+          {/* Card Header */}
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-2 flex-1">
               <View className="h-2 w-2 rounded-full bg-brand-primary" />
@@ -171,104 +176,42 @@ export default function Index() {
                 TODAY&apos;S SHIFT
               </Text>
             </View>
-
-            {/* Clock In button */}
-            <View className="relative shrink-0 min-w-[140px]">
-              <View
-                pointerEvents="none"
-                className="absolute inset-0 bg-brand-primary rounded-[8px] px-6 py-3 items-center justify-center"
-              >
-                <Text
-                  numberOfLines={1}
-                  className="text-damascus-text font-semibold"
-                >
-                  CLOCK IN
-                </Text>
-              </View>
-
-              {/* PrimaryButton: */}
-              <View className="opacity-0">
-                <PrimaryButton
-                  title="CLOCK IN"
-                  variant="primary"
-                  onPress={() => Alert.alert("Clock In pressed")}
-                  isLoading={false}
-                />
-              </View>
-            </View>
-          </View>
-
-          <Text className="mt-4 text-gray-400 text-sm">Not clocked in yet</Text>
-
-          {/* Scheduled sub-card */}
-          <View className="mt-4 bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 flex-row items-center justify-between">
-            <View>
-              <Text className="text-[10px] tracking-widest text-gray-400 font-semibold">
-                SCHEDULED
+            {/* View Schedule inside card */}
+            <Pressable onPress={() => router.push("/(tabs)/mySchedule")}>
+              <Text className="text-brand-secondary font-semibold text-sm">
+                View Schedule
               </Text>
-
-              <Text className="mt-2 text-xl font-semibold text-gray-800">
-                {scheduledTime}
-              </Text>
-            </View>
-
-            <View className="h-10 w-10 rounded-full bg-brand-primary/30 items-center justify-center">
-              <Text className="text-brand-secondary">🕒</Text>
-            </View>
+            </Pressable>
           </View>
 
           {/* ShiftStatusCard */}
           <View className="mt-4">
             <ShiftStatusCard
-              title={roleLabel}
-              subtitle={`${locationLabel}`}
-              status="approved"
+              title={getShiftPeriod(todayShift._start, todayShift._end)}
+              subtitle={`${formatTime(todayShift._start)} - ${formatTime(todayShift._end)}`}
             />
           </View>
 
-          {/* Placeholder for incomplete tasks */}
+          {/* Clock In Button */}
+          <View className="mt-4">
+            <Pressable
+              onPress={() => Alert.alert("Clock In pressed")}
+              className="bg-brand-secondary rounded-[8px] px-6 py-3 items-center justify-center"
+            >
+              <Text className="text-white font-semibold">CLOCK IN</Text>
+            </Pressable>
+          </View>
+
+          {/* Incomplete Tasks */}
           <View className="mt-4 flex-row items-center gap-2">
             <View className="h-5 w-5 rounded-full border border-gray-300 items-center justify-center">
               <Text className="text-gray-500 text-xs">✓</Text>
             </View>
-            <Text className="text-gray-500 text-sm">
-              You have 0 incomplete tasks.
-            </Text>
+            <Text className="text-gray-500 text-sm">You have 0 incomplete tasks.</Text>
           </View>
         </View>
       </View>
-
-      {/* Upcoming Shifts */}
-      <View className="px-6 pt-6">
-        <View className="flex-row items-center justify-between">
-          <Text className="text-damascus-text font-semibold text-base">
-            Your Upcoming Shifts
-          </Text>
-
-          <Pressable onPress={() => console.log("View All")}>
-            <Text className="text-brand-secondary font-semibold">View All</Text>
-          </Pressable>
-        </View>
-
-        <View className="mt-4">
-          <FlatList
-            data={upcomingShifts}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            ItemSeparatorComponent={() => <View className="h-3" />}
-            renderItem={({ item }) => (
-              <Pressable onPress={() => console.log("Navigate to Details")}>
-                <ShiftStatusCard
-                  title={item.title}
-                  subtitle={item.subtitle}
-                  status={item.status}
-                />
-              </Pressable>
-            )}
-          />
-        </View>
-      </View>
-    </View>
-
-  );
+    )}
+  </View>
+);
 }
