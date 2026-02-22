@@ -1,12 +1,11 @@
 import { useMemo } from "react";
-import { View, Text, Alert, FlatList, Pressable, Button } from "react-native";
-import { ShiftStatusCard, PrimaryButton } from "@vak/ui";
+import { View, Text, Alert, Pressable } from "react-native";
 import { MOCK_USER, MOCK_SHIFTS } from "../../constants/mockData";
 import { useRouter } from "expo-router";
+import { ShiftStatusCard } from "@vak/ui";
 
 export default function Index() {
-
-  const router = useRouter()
+  const router = useRouter();
 
   const firstName = useMemo(() => {
     const full = MOCK_USER.full_name || "";
@@ -16,17 +15,12 @@ export default function Index() {
   const now = useMemo(() => new Date(), []);
 
   const topDate = useMemo(() => {
-    const weekday = now
-      .toLocaleDateString("en-US", { weekday: "short" })
-      .toUpperCase();
-    const monthDay = now
-      .toLocaleDateString("en-US", { month: "short", day: "numeric" })
-      .toUpperCase();
+    const weekday = now.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
+    const monthDay = now.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
     return `${weekday}, ${monthDay}`;
   }, [now]);
 
   const todayShift = useMemo(() => {
-    // Make the first mock shift always be today so the demo always works
     const base = MOCK_SHIFTS[0];
     if (!base) return null;
 
@@ -46,172 +40,113 @@ export default function Index() {
 
   const hasShiftToday = !!todayShift;
 
-  const scheduledTime = useMemo(() => {
-    if (!todayShift) return "—";
-    const s = todayShift._start.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-    const e = todayShift._end.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-    return `${s} — ${e}`;
-  }, [todayShift]);
-
-  const summaryText = hasShiftToday
-    ? "You have one shift today."
-    : "No shifts today.";
-
-  const roleLabel = useMemo(() => {
-    const role = (todayShift as any)?.role_at_time_of_shift;
-    if (!role) return "Shift";
-    return String(role)
-      .toLowerCase()
-      .split("_")
-      .map((w: string) => w.slice(0, 1).toUpperCase() + w.slice(1))
-      .join(" ");
-  }, [todayShift]);
-
-  const locationLabel = useMemo(() => {
-    return (todayShift as any)?.location_id ?? "damascus-hq";
-  }, [todayShift]);
-
-  const upcomingShifts = useMemo(() => {
-    const rest = MOCK_SHIFTS.slice(1);
-
-    const mapped = rest.map((s, idx) => {
-      const srcStart = new Date(s.start_time);
-      const srcEnd = new Date(s.end_time);
-
-      const dayOffset = idx + 1;
-      const start = new Date(now);
-      start.setDate(now.getDate() + dayOffset);
-      start.setHours(srcStart.getHours(), srcStart.getMinutes(), 0, 0);
-
-      const end = new Date(now);
-      end.setDate(now.getDate() + dayOffset);
-      end.setHours(srcEnd.getHours(), srcEnd.getMinutes(), 0, 0);
-
-      if (end <= start) end.setDate(end.getDate() + 1);
-
-      const prettyDay = start.toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-      });
-
-      const prettyStart = start.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      });
-      const prettyEnd = end.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      });
-
-      const role = String((s as any)?.role_at_time_of_shift ?? "Shift")
-        .toLowerCase()
-        .split("_")
-        .map((w) => w.slice(0, 1).toUpperCase() + w.slice(1))
-        .join(" ");
-
-      const loc = (s as any)?.location_id ?? "damascus-hq";
-
-      return {
-        id: s.id ?? `upcoming-${idx}`,
-        title: role,
-        subtitle: `${prettyDay} • ${prettyStart} - ${prettyEnd} • ${loc}`,
-        status: "pending" as const,
-      };
-    });
-
-    return mapped.slice(0, 3);
-  }, [now]);
-
   const formatTime = (date: Date) =>
-  date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
-const getShiftPeriod = (start: Date, end: Date) => {
-  const hour = start.getHours();
-  if (hour < 12) return "Morning Shift";
-  if (hour < 17) return "Afternoon Shift";
-  return "Evening Shift";
-};
+  const getShiftPeriod = (start: Date) => {
+    const hour = start.getHours();
+    if (hour < 12) return "Morning Shift";
+    if (hour < 17) return "Afternoon Shift";
+    return "Evening Shift";
+  };
+
+  const getGreeting = () => {
+    const hour = now.getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
+  };
 
   return (
-  <View className="flex-1 bg-damascus-background">
-    {/* Header */}
-    <View className="bg-brand-secondaryLight px-6 pt-8 pb-10">
-      <View className="flex-row items-start gap-4">
-        <View className="h-16 w-16 rounded-full bg-white/35 items-center justify-center m-5">
-          <Text className="text-white text-xl">👤</Text>
-        </View>
-        <View className="flex-1">
-          <Text className="text-white text-2xl font-semibold">
-            Good morning, {firstName}.
-          </Text>
-          <View className="mt-5 flex-row items-center gap-3">
-            <Text className="text-white/60 text-xs tracking-widest">{topDate}</Text>
-            <Text className="text-white/60 text-xs">|</Text>
-            <Text className="text-white/60 text-xs">☁︎</Text>
-            <Text className="text-white/60 text-xs">15°C</Text>
-          </View>
-          <Text className="mt-3 text-white/70 text-base">
-            {todayShift ? "You have one shift today." : "No shifts today."}
-          </Text>
-        </View>
-      </View>
-    </View>
+    <View className="flex-1 bg-brand-background">
+        {/* ── Hero Header ── */}
+        <View className="bg-brand-secondary pb-[100px] overflow-hidden">
+          {/* Layered shapes */}
+          <View style={{ position: "absolute", top: -50, right: -50, width: 200, height: 200, borderRadius: 100, backgroundColor: "#1a3278", opacity: 0.55 }} />
+          <View style={{ position: "absolute", bottom: 30, left: -30, width: 130, height: 130, borderRadius: 65, backgroundColor: "#162550", opacity: 0.7 }} />
 
-    {/* Today's Shift Card */}
-    {todayShift && (
-      <View className="px-6 pt-8">
-        <View className="bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-5">
-          {/* Card Header */}
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-2 flex-1">
-              <View className="h-2 w-2 rounded-full bg-brand-primary" />
-              <Text className="text-xs tracking-widest text-gray-500 font-semibold">
-                TODAY&apos;S SHIFT
-              </Text>
+          <View className="px-6 pt-7">
+            {/* Avatar + greeting */}
+            <View className="flex-row items-center space-x-5 mb-[18px] p-2">
+              <View className="w-24 h-24 rounded-full bg-brand-primary/10 border-[1.5px] border-brand-primary border-white/22 items-center justify-center mr-2">
+                <Text className="text-[22px]">👤</Text>
+              </View>
+              <View className="flex-1">
+                <Text className ="text-[22px] font-semibold text-white/45 tracking-[1.3px] uppercase mb-2 ml-3">
+                  {getGreeting()}
+                </Text>
+                <Text className="text-[21px] font-bold text-white tracking-[0.2px] ml-3">
+                  {firstName} 👋
+                </Text>
+              </View>
             </View>
-            {/* View Schedule inside card */}
-            <Pressable onPress={() => router.push("/(tabs)/mySchedule")}>
-              <Text className="text-brand-secondary font-semibold text-sm">
-                View Schedule
-              </Text>
-            </Pressable>
-          </View>
 
-          {/* ShiftStatusCard */}
-          <View className="mt-4">
-            <ShiftStatusCard
-              title={getShiftPeriod(todayShift._start, todayShift._end)}
-              subtitle={`${formatTime(todayShift._start)} - ${formatTime(todayShift._end)}`}
-            />
+            {/* Pill tags */}
+            <View className="flex-row flex-wrap gap-5 ml-2">
+              <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2">
+                <Text className="text-white/65 text-[11px] font-medium">📅  {topDate}</Text>
+              </View>
+              <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2">
+                <Text className="text-white/65 text-[11px] font-medium">☁️  15°C</Text>
+              </View>
+              <View className={`flex-row items-center gap-1.5 rounded-[20px] px-3 py-1.5 border ${
+              hasShiftToday ? "bg-brand-success/15 border-brand-success/30" : "bg-white/10 border-white/10" }`}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: hasShiftToday ? "#4ade80" : "rgba(255,255,255,0.35)" }} />
+                <Text className={`text-[11px] font-semibold ${hasShiftToday ? "text-brand-success" : "text-white/65"}`}>
+                  {hasShiftToday ? "1 shift today" : "No shifts"}
+                </Text>
+              </View>
+            </View>
           </View>
+        </View>
 
-          {/* Clock In Button */}
-          <View className="mt-4">
+        {/* ── Card over header ── */}
+        {todayShift && (
+          <View className="-mt-12 px-4">
+            <View className="bg-white rounded-2xl px-5 pt-5 pb-5 mb-3" style={{ shadowColor: "#0d1b3e", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1,shadowRadius: 18,elevation: 6,}}>
+              {/* Card header */}
+              <View className="flex-row items-center justify-between mb-6 mt-2">
+                <View className="flex-row items-center gap-2">
+                  <View className="w-3 h-3 mr-2 rounded-[23px] bg-brand-success" />
+                  <Text  className="text-[12px] font-bold text-gray-500 tracking-[1.1px] uppercase">
+                    Today's Shift
+                  </Text>
+                </View>
+                <Pressable onPress={() => router.push("/(tabs)/mySchedule")}>
+                  <Text className="text-brand-secondaryLight text-[15px] font-semibold">View Schedule </Text>
+                </Pressable>
+              </View>
+
+              {/* ShiftStatusCard */}
+              <ShiftStatusCard
+                title={getShiftPeriod(todayShift._start)}
+                subtitle={`${formatTime(todayShift._start)} — ${formatTime(todayShift._end)}`}
+              />
+
+               {/* Clock In Button */}
+          <View className="pr-24 pl-24">
             <Pressable
               onPress={() => Alert.alert("Clock In pressed")}
-              className="bg-brand-secondary rounded-[8px] px-6 py-3 items-center justify-center"
+              className="bg-brand-secondaryLight rounded-[12px] px-6 py-5 items-center justify-center"
             >
               <Text className="text-white font-semibold">CLOCK IN</Text>
             </Pressable>
           </View>
 
-          {/* Incomplete Tasks */}
-          <View className="mt-4 flex-row items-center gap-2">
-            <View className="h-5 w-5 rounded-full border border-gray-300 items-center justify-center">
-              <Text className="text-gray-500 text-xs">✓</Text>
+              {/* Wrap Clock In + tasks to ensure visibility */}
+              <View>
+                {/* Task note */}
+                <View className="flex-row items-center gap-1.5 pt-4">
+                  <View className="w-4.5 h-4.5 rounded-full bg-green-100 items-center justify-center">
+                    <Text className="text-[10px] text-brand-success">✓</Text>
+                  </View>
+                  <Text className="text-[12px] text-gray-400">You have 0 incomplete tasks</Text>
+                </View>
+              </View>
+
             </View>
-            <Text className="text-gray-500 text-sm">You have 0 incomplete tasks.</Text>
           </View>
-        </View>
-      </View>
-    )}
-  </View>
-);
+        )}
+    </View>
+  );
 }
