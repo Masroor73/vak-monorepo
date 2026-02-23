@@ -59,83 +59,85 @@ export default function Index() {
 
   return (
     <View className="flex-1 bg-brand-background">
-        {/* ── Hero Header ── */}
-        <View className="bg-brand-secondary pb-[100px] overflow-hidden">
-          {/* Layered shapes */}
-          <View style={{ position: "absolute", top: -50, right: -50, width: 200, height: 200, borderRadius: 100, backgroundColor: "#1a3278", opacity: 0.55 }} />
-          <View style={{ position: "absolute", bottom: 30, left: -30, width: 130, height: 130, borderRadius: 65, backgroundColor: "#162550", opacity: 0.7 }} />
+      {/* ── Hero Header ── */}
+      <View className="bg-brand-secondary pb-[100px] overflow-hidden">
+        {/* Layered shapes */}
+        <View style={{ position: "absolute", top: -50, right: -50, width: 200, height: 200, borderRadius: 100, backgroundColor: "#1a3278", opacity: 0.55 }} />
+        <View style={{ position: "absolute", bottom: 30, left: -30, width: 130, height: 130, borderRadius: 65, backgroundColor: "#162550", opacity: 0.7 }} />
 
-          <View className="px-6 pt-7">
-            {/* Avatar + greeting */}
-            <View className="flex-row items-center space-x-5 mb-[18px] p-2">
-              <View className="w-24 h-24 rounded-full bg-brand-primary/10 border-[1.5px] border-brand-primary border-white/22 items-center justify-center mr-2">
-                <Text className="text-[22px]">👤</Text>
-              </View>
-              <View className="flex-1">
-                <Text className ="text-[22px] font-semibold text-white/45 tracking-[1.3px] uppercase mb-2 ml-3">
-                  {getGreeting()}
-                </Text>
-                <Text className="text-[21px] font-bold text-white tracking-[0.2px] ml-3">
-                  {firstName} 👋
-                </Text>
-              </View>
+        <View className="px-6 pt-7">
+          {/* Avatar + greeting */}
+          <View className="flex-row items-center space-x-5 mb-[18px] p-2">
+            <View className="w-24 h-24 rounded-full bg-brand-primary/10 border-[1.5px] border-brand-primary border-white/22 items-center justify-center mr-2">
+              <Text className="text-[22px]">👤</Text>
             </View>
+            <View className="flex-1">
+              <Text className="text-[22px] font-semibold text-white/45 tracking-[1.3px] uppercase mb-2 ml-3">
+                {getGreeting()}
+              </Text>
+              <Text className="text-[21px] font-bold text-white tracking-[0.2px] ml-3">
+                {firstName} 👋
+              </Text>
+            </View>
+          </View>
 
-            {/* Pill tags */}
-            <View className="flex-row flex-wrap gap-5 ml-2">
-              <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2">
-                <Text className="text-white/65 text-[11px] font-medium">📅  {topDate}</Text>
-              </View>
-              <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2">
-                <Text className="text-white/65 text-[11px] font-medium">☁️  15°C</Text>
-              </View>
-              <View className={`flex-row items-center gap-1.5 rounded-[20px] px-3 py-1.5 border ${
-              hasShiftToday ? "bg-brand-success/15 border-brand-success/30" : "bg-white/10 border-white/10" }`}>
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: hasShiftToday ? "#4ade80" : "rgba(255,255,255,0.35)" }} />
-                <Text className={`text-[11px] font-semibold ${hasShiftToday ? "text-brand-success" : "text-white/65"}`}>
-                  {hasShiftToday ? "1 shift today" : "No shifts"}
-                </Text>
-              </View>
+          {/* Pill tags */}
+          <View className="flex-row flex-wrap gap-5 ml-2">
+            <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2">
+              <Text className="text-white/65 text-[11px] font-medium">📅  {topDate}</Text>
+            </View>
+            <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2">
+              <Text className="text-white/65 text-[11px] font-medium">☁️  15°C</Text>
+            </View>
+            <View className={`flex-row items-center gap-1.5 rounded-[20px] px-3 py-1.5 border ${
+              hasShiftToday ? "bg-brand-success/15 border-brand-success/30" : "bg-white/10 border-white/10"}`}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: hasShiftToday ? "#4ade80" : "rgba(255,255,255,0.35)" }} />
+              <Text className={`text-[11px] font-semibold ${hasShiftToday ? "text-brand-success" : "text-white/65"}`}>
+                {hasShiftToday ? "1 shift today" : "No shifts"}
+              </Text>
             </View>
           </View>
         </View>
+      </View>
 
-        {/* ── Card over header ── */}
-        {todayShift && (
-          <View className="-mt-12 px-4">
-            <View className="bg-white rounded-2xl px-5 pt-5 pb-5 mb-3" style={{ shadowColor: "#0d1b3e", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1,shadowRadius: 18,elevation: 6,}}>
-              {/* Card header */}
-              <View className="flex-row items-center justify-between mb-6 mt-2">
-                <View className="flex-row items-center gap-2">
-                  <View className="w-3 h-3 mr-2 rounded-[23px] bg-brand-success" />
-                  <Text  className="text-[12px] font-bold text-gray-500 tracking-[1.1px] uppercase">
-                    Today's Shift
-                  </Text>
-                </View>
-                <Pressable onPress={() => router.push("/(tabs)/mySchedule")}>
-                  <Text className="text-brand-secondaryLight text-[15px] font-semibold">View Schedule </Text>
-                </Pressable>
-              </View>
+      {/* ── Card over header ── */}
+      <View className="-mt-12 px-4">
+        <View className="bg-white rounded-2xl px-5 pt-5 pb-5 mb-3" style={{ shadowColor: "#0d1b3e", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 18, elevation: 6 }}>
 
+          {/* Card header */}
+          <View className="flex-row items-center justify-between mb-6 mt-2">
+            <View className="flex-row items-center gap-2">
+              <View className={`w-3 h-3 mr-2 rounded-[23px] ${hasShiftToday ? "bg-brand-success" : "bg-gray-300"}`} />
+              <Text className="text-[12px] font-bold text-gray-500 tracking-[1.1px] uppercase">
+                Today's Shift
+              </Text>
+            </View>
+            <Pressable onPress={() => router.push("/(tabs)/mySchedule")}>
+              <Text className="text-brand-secondaryLight text-[15px] font-semibold">View Schedule </Text>
+            </Pressable>
+          </View>
+
+          {hasShiftToday && todayShift ? (
+            /* ── HAS SHIFT ── */
+            <>
               {/* ShiftStatusCard */}
               <ShiftStatusCard
                 title={getShiftPeriod(todayShift._start)}
                 subtitle={`${formatTime(todayShift._start)} — ${formatTime(todayShift._end)}`}
               />
 
-               {/* Clock In Button */}
-          <View className="pr-24 pl-24">
-            <Pressable
-              onPress={() => Alert.alert("Clock In pressed")}
-              className="bg-brand-secondaryLight rounded-[12px] px-6 py-5 items-center justify-center"
-            >
-              <Text className="text-white font-semibold">CLOCK IN</Text>
-            </Pressable>
-          </View>
+              {/* Clock In Button */}
+              <View className="pr-24 pl-24">
+                <Pressable
+                  onPress={() => Alert.alert("Clock In pressed")}
+                  className="bg-brand-secondaryLight rounded-[12px] px-6 py-5 items-center justify-center"
+                >
+                  <Text className="text-white font-semibold">CLOCK IN</Text>
+                </Pressable>
+              </View>
 
-              {/* Wrap Clock In + tasks to ensure visibility */}
+              {/* Task note */}
               <View>
-                {/* Task note */}
                 <View className="flex-row items-center gap-1.5 pt-4">
                   <View className="w-4.5 h-4.5 rounded-full bg-green-100 items-center justify-center">
                     <Text className="text-[10px] text-brand-success">✓</Text>
@@ -143,10 +145,27 @@ export default function Index() {
                   <Text className="text-[12px] text-gray-400">You have 0 incomplete tasks</Text>
                 </View>
               </View>
-
+            </>
+          ) : (
+            /* ── NO SHIFT ── */
+            <View className="items-center py-6 gap-3">
+              <View className="w-16 h-16 rounded-full bg-blue-50 items-center justify-center mb-1">
+                <Text className="text-[30px]">🌙</Text>
+              </View>
+              <Text className="text-[15px] font-bold text-gray-800">No shift today</Text>
+              <Text className="text-[12px] text-gray-400 text-center px-6">
+                You're off the clock — enjoy your day off!
+              </Text>
+              <Pressable
+                onPress={() => router.push("/(tabs)/mySchedule")}
+                className="mt-2 bg-blue-50 rounded-[12px] px-6 py-3"
+              >
+              </Pressable>
             </View>
-          </View>
-        )}
+          )}
+
+        </View>
+      </View>
     </View>
   );
 }
