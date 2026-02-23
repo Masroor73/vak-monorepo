@@ -10,13 +10,14 @@ type HeaderProps = {
 const Header = ({ title }: HeaderProps) => {
     const router = useRouter()
     return (
-        <View className="flex-row items-center px-4 pt-4 pb-3">
+        <View className="flex-row items-center justify-between px-4 pt-4 pb-3">
             <TouchableOpacity onPress={() => router.canGoBack()}>
                 <Ionicons name="arrow-back" size={24} color={"#063386"} />
             </TouchableOpacity>
             <View className='flex-1 items-center '>
-                <Text className='text-brand-secondary font-bold text-lg'>{title}</Text>
+                <Text className='text-brand-secondary font-bold text-xl text-center'>{title}</Text>
             </View>
+            <View className='w-4 h-4' />
         </View>
     )
 }

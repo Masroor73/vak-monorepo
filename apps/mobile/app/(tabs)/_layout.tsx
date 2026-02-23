@@ -25,6 +25,8 @@ export default function TabsLayout() {
         <Stack.Screen name="messages" />
         <Stack.Screen name="profile" />
         <Stack.Screen name="notifications" />
+        <Stack.Screen name="editProfile" />
+
       </Stack>
 
       {/* Drawer
