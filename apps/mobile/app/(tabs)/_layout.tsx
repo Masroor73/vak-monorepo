@@ -27,11 +27,11 @@ export default function TabsLayout() {
         <Stack.Screen name="notifications" />
       </Stack>
 
-      {/* Drawer */}
+      {/* Drawer
       <Drawer
         isOpen={isDrawerOpen}
         toggleDrawer={toggleDrawer}
-      />
+      /> */}
 
       {/* Bottom Navigation */}
       <BottomNavigation />
