@@ -8,10 +8,6 @@ import MessageCircle from "../../assets/MessageCircle.svg";
 import AccountCircle from "../../assets/AccountCircle.svg";
 
 // Blue SVGs
-import BlueGrid from "../../assets/BlueGrid.svg";
-import BlueAlert from "../../assets/BlueAlert.svg";
-import BlueMessageCircle from "../../assets/BlueMessageCircle.svg";
-import BlueAccountCircle from "../../assets/BlueAccountCircle.svg";
 import WhiteGrid from "../../assets/WhiteGrid.svg";
 import WhiteAlert from "../../assets/WhiteAlert.svg";
 import WhiteMessageCircle from "../../assets/WhiteMessageCircle.svg";
@@ -23,7 +19,7 @@ type Tab = {
   basePaths: string[];
   navigateTo: string;
   Svg: any;     
-  BlueSvg: any;  
+  WhiteSvg: any;  
 };
 
 export default function BottomNavigation() {
@@ -37,28 +33,28 @@ export default function BottomNavigation() {
       basePaths: ["/",  "/index", "/(tabs)"], // Include /index
       navigateTo: "/(tabs)",
       Svg: Grid,
-      BlueSvg: WhiteGrid,
+      WhiteSvg: WhiteGrid,
     },
     {
       key: "reports",
       basePaths: ["/(tabs)/report", "/report"],
       navigateTo: "/(tabs)/report",
       Svg: Alert,
-      BlueSvg: WhiteAlert,
+      WhiteSvg: WhiteAlert,
     },
     {
       key: "messages",
       basePaths: ["/(tabs)/messages", "/messages"],
       navigateTo: "/(tabs)/messages",
       Svg: MessageCircle,
-      BlueSvg: WhiteMessageCircle,
+      WhiteSvg: WhiteMessageCircle,
     },
     {
       key: "profile",
       basePaths: ["/(tabs)/profile", "/profile"],
       navigateTo: "/(tabs)/profile",
       Svg: AccountCircle,
-      BlueSvg: WhiteAccountCircle,
+      WhiteSvg: WhiteAccountCircle,
     },
   ];
 
@@ -73,7 +69,7 @@ export default function BottomNavigation() {
     <View className="w-full flex-row justify-around items-center bg-black " style={{ height: 100 }}>
       {tabs.map((tab: Tab) => {
         const isActive = isTabActive(tab);
-        const Icon = isActive ? tab.BlueSvg : tab.Svg;
+        const Icon = isActive ? tab.WhiteSvg : tab.Svg;
 
         return (
           <TouchableOpacity

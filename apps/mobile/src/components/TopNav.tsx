@@ -2,7 +2,6 @@ import { View, Pressable } from "react-native";
 import { useRouter, usePathname } from "expo-router";
 import Menu from "../../assets/Menu.svg";
 import Bell from "../../assets/Bell.svg";
-import BlueBell from "../../assets/BlueBell.svg";
 import WhiteBell from "../../assets/WhiteBell.svg";
 import WhiteMenu from "../../assets/WhiteMenu.svg";
 
