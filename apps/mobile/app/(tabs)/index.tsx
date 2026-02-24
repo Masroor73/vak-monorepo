@@ -154,13 +154,8 @@ export default function Index() {
               </View>
               <Text className="text-[15px] font-bold text-gray-800">No shift today</Text>
               <Text className="text-[12px] text-gray-400 text-center px-6">
-                You're off the clock — enjoy your day off!
+                You're off the clock — enjoy your time off!
               </Text>
-              <Pressable
-                onPress={() => router.push("/(tabs)/mySchedule")}
-                className="mt-2 bg-blue-50 rounded-[12px] px-6 py-3"
-              >
-              </Pressable>
             </View>
           )}
 
