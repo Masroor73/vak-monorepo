@@ -1,4 +1,4 @@
-import { Link, usePathname, useRouter } from "expo-router";
+import { Link, usePathname } from "expo-router";
 import { useState } from "react";
 import StatusModal from "./StatusModal";
 
@@ -13,74 +13,62 @@ const items = [
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const router = useRouter();
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<"success" | "error">("success");
 
-  const onLogout = () => {
-    try {
-      // ✅ if later you add real auth, call signOut() here
-      // await supabase.auth.signOut()
-
-      setModalType("success");
-      setModalOpen(true);
-    } catch {
-      setModalType("error");
-      setModalOpen(true);
-    }
-  };
-
-  const closeModal = () => {
-    setModalOpen(false);
-
-    // ✅ after dismiss, go to login
-    router.replace("/login"); // change if your login route is different
-    onNavigate?.(); // close drawer on mobile
+  const handleLogout = () => {
+    setModalOpen(true);
   };
 
   return (
-    <aside className="h-screen w-64 bg-black text-white flex flex-col p-5">
-      <div className="text-2xl font-bold mb-10">VAK</div>
+    <aside className="h-screen w-64 text-white flex flex-col p-5 bg-black border-r border-white/20">
+      {/* Logo */}
+      <div className="flex items-center gap-3 mb-10">
+        <div className="h-10 w-10 rounded-xl bg-[#62CCEF] flex items-center justify-center text-black font-bold">
+          🏰
+        </div>
+        <div>
+          <div className="text-lg font-semibold">Castle</div>
+          <div className="text-xs text-white/60">Manager</div>
+        </div>
+      </div>
 
+      {/* Navigation */}
       <nav className="flex flex-col gap-2 text-sm">
-        {items.map((it) => {
-          const active = pathname === it.href;
+        {items.map((item) => {
+          const active = pathname === item.href;
 
           return (
             <Link
-              key={it.href}
-              href={it.href}
+              key={item.href}
+              href={item.href}
               onPress={onNavigate}
-              className={`px-4 py-2 rounded-md transition
-                ${
-                  active
-                    ? "bg-[#62CCEF] text-black font-medium"
-                    : "text-white hover:bg-[#62CCEF]/20"
-                }`}
+              className={`px-4 py-3 rounded-xl transition border ${
+                active
+                  ? "bg-white/15 border-[#62CCEF]/50 text-[#62CCEF] font-semibold"
+                  : "border-transparent text-white/80 hover:bg-white/10"
+              }`}
             >
-              {it.label}
+              {item.label}
             </Link>
           );
         })}
       </nav>
 
+      {/* Logout */}
       <button
-        onClick={onLogout}
-        className="mt-auto bg-white text-black rounded-md px-4 py-3 text-sm"
+        onClick={handleLogout}
+        className="mt-auto bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3 text-sm hover:bg-white/20 transition"
       >
         Logout
       </button>
 
       <StatusModal
         open={modalOpen}
-        type={modalType}
-        message={
-          modalType === "success"
-            ? "Your operation was completed successfully."
-            : "Error processing request. Something went wrong. Please try again."
-        }
-        onClose={closeModal}
+        type="success"
+        title="Logged out"
+        message="Logout UI clicked (auth not implemented yet)."
+        onClose={() => setModalOpen(false)}
       />
     </aside>
   );

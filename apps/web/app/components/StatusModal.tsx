@@ -1,5 +1,3 @@
-import React from "react";
-
 type StatusModalProps = {
   open: boolean;
   type: "success" | "error";
@@ -21,19 +19,14 @@ export default function StatusModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
 
-      {/* Card */}
-      <div
-        className={`relative w-full max-w-3xl rounded-xl border bg-white p-8 md:p-10 shadow-lg`}
-      >
+      <div className="relative w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0F172A] p-6 md:p-8 shadow-xl">
         <div
-          className={`rounded-xl p-8 md:p-12 text-center ${
+          className={`rounded-2xl p-6 md:p-8 text-center ${
             isSuccess ? "bg-[#BFE3C1]" : "bg-white"
           }`}
         >
-          {/* Icon */}
           <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full">
             {isSuccess ? (
               <div className="h-20 w-20 rounded-full bg-green-600 flex items-center justify-center">
@@ -54,7 +47,7 @@ export default function StatusModal({
 
           <button
             onClick={onClose}
-            className="mx-auto block rounded-md bg-[#1E66F5] px-10 py-3 text-white font-medium"
+            className="mx-auto block rounded-xl bg-[#1E66F5] px-10 py-3 text-white font-medium"
           >
             Dismiss
           </button>
