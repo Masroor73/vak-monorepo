@@ -47,7 +47,7 @@ export const MOCK_SHIFTS: Shift[] = [
     clock_in_long: null
   },
   {
-    id: "shift-002",
+    id: "shift-003",
     employee_id: "user-123-uuid",
     manager_id: "mgr-999",
     start_time: "2026-02-25T12:00:00-07:00",
@@ -63,7 +63,7 @@ export const MOCK_SHIFTS: Shift[] = [
     clock_in_long: null
   },
   {
-    id: "shift-002",
+    id: "shift-004",
     employee_id: "user-123-uuid",
     manager_id: "mgr-999",
     start_time: "2026-02-26T12:00:00-07:00",
@@ -79,7 +79,7 @@ export const MOCK_SHIFTS: Shift[] = [
     clock_in_long: null
   },
   {
-    id: "shift-002",
+    id: "shift-005",
     employee_id: "user-123-uuid",
     manager_id: "mgr-999",
     start_time: "2026-03-3T12:00:00-07:00",
@@ -95,7 +95,7 @@ export const MOCK_SHIFTS: Shift[] = [
     clock_in_long: null
   },
   {
-    id: "shift-002",
+    id: "shift-006",
     employee_id: "user-123-uuid",
     manager_id: "mgr-999",
     start_time: "2026-03-4T12:00:00-07:00",
