@@ -3,11 +3,11 @@ import type { Profile } from "@vak/contract";
 import { getSupabase } from "../supabase";
 
 export function useEmployees() {
-  const supabase = getSupabase();
-
   return useQuery<Profile[], Error>({
     queryKey: ["employees"],
     queryFn: async () => {
+      const supabase = getSupabase();
+
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
@@ -15,8 +15,7 @@ export function useEmployees() {
         .order("full_name");
 
       if (error) throw new Error(error.message);
-
-      return data ?? [];
+      return data ?? []; // ✅ empty array, never null
     },
   });
 }

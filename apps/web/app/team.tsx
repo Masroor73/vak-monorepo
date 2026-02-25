@@ -1,6 +1,7 @@
 import type React from "react";
 import { Link } from "expo-router";
 import ManagerLayout from "./layouts/ManagerLayout";
+import { useEmployees } from "@vak/api";
 
 const ACCENT = "#62CCEF";
 
@@ -27,12 +28,6 @@ type Feedback = {
   date: string;
 };
 
-type Employee = {
-  id: string;
-  name: string;
-  role: string;
-};
-
 const leaveRequests: LeaveRequest[] = [
   { id: "lr-1", name: "Ahmad. K.", from: "Nov 19, 2025", to: "Nov 21, 2025", status: "Pending" },
 ];
@@ -51,17 +46,10 @@ const feedbacks: Feedback[] = [
   },
   {
     id: "f-2",
-    text:
-      "I just wanted to say thank you for posting the schedule early this week, it really helps with planning ahead",
+    text: "I just wanted to say thank you for posting the schedule early this week, it really helps with planning ahead",
     from: "Jane L.",
     date: "Nov 9, 2025",
   },
-];
-
-const employees: Employee[] = [
-  { id: "e-1", name: "Sarah Willis", role: "Supervisor" },
-  { id: "e-2", name: "Jacob Greens", role: "Stock Clerk" },
-  { id: "e-3", name: "Emma Owen", role: "Cashier" },
 ];
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
@@ -82,12 +70,14 @@ function Pill({ text, variant }: { text: string; variant: "pending" | "approved"
     variant === "approved"
       ? "bg-green-200 text-green-800"
       : variant === "declined"
-      ? "bg-red-200 text-red-800"
-      : "bg-yellow-200 text-yellow-900";
+        ? "bg-red-200 text-red-800"
+        : "bg-yellow-200 text-yellow-900";
   return <span className={`px-3 py-1 rounded-full text-xs font-medium ${cls}`}>{text}</span>;
 }
 
 export default function Team() {
+  const { data: employees = [], isLoading, error } = useEmployees();
+
   return (
     <ManagerLayout>
       <div
@@ -97,9 +87,7 @@ export default function Team() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* TOP ROW */}
           <Panel title="Review Leave Request">
-            <div className="text-xs text-gray-500 -mt-1 mb-3">
-              Review and manage employee leave requests
-            </div>
+            <div className="text-xs text-gray-500 -mt-1 mb-3">Review and manage employee leave requests</div>
 
             <div className="inline-flex items-center gap-2 bg-gray-100 border rounded-full px-3 py-1 text-xs mb-4">
               <span className="font-medium">Pending Requests</span>
@@ -134,9 +122,7 @@ export default function Team() {
           </Panel>
 
           <Panel title="Review Shift Swap Request">
-            <div className="text-xs text-gray-500 -mt-1 mb-4">
-              Review and manage employee shift swap requests
-            </div>
+            <div className="text-xs text-gray-500 -mt-1 mb-4">Review and manage employee shift swap requests</div>
 
             {swapRequests.map((sr) => (
               <MiniCard key={sr.id}>
@@ -175,9 +161,7 @@ export default function Team() {
                 <span>All staff</span>
               </div>
 
-              <div className="text-sm text-gray-700 mt-3">
-                Overall Food Wastage Has Reduced. Fantastic Work!
-              </div>
+              <div className="text-sm text-gray-700 mt-3">Overall Food Wastage Has Reduced. Fantastic Work!</div>
 
               <div className="flex gap-3 mt-4 justify-end">
                 <button className="border rounded-md px-4 py-1 text-sm">Edit</button>
@@ -215,23 +199,29 @@ export default function Team() {
             </div>
 
             <div className="mt-3 space-y-3">
-              {employees.map((e) => (
-                <div key={e.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-gray-200" />
-                    <div className="text-sm font-medium">{e.name}</div>
+              {isLoading ? (
+                <div className="text-sm text-gray-600 py-3">Loading employees…</div>
+              ) : error ? (
+                <div className="text-sm text-red-600 py-3">Failed to load employees.</div>
+              ) : employees.length === 0 ? (
+                <div className="text-sm text-gray-600 py-3">No employees found.</div>
+              ) : (
+                employees.map((e: any) => (
+                  <div key={e.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-gray-200" />
+                      <div className="text-sm font-medium">{e.full_name ?? "Unnamed"}</div>
+                    </div>
+                    <div className="text-sm text-gray-700 flex items-center gap-3">
+                      <span>{e.role ?? "EMPLOYEE"}</span>
+                      <span className="text-gray-400">›</span>
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-700 flex items-center gap-3">
-                    <span>{e.role}</span>
-                    <span className="text-gray-400">›</span>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
-            <button className="mt-6 w-full bg-[#0B2E6D] text-white rounded-lg py-2 text-sm">
-              See More
-            </button>
+            <button className="mt-6 w-full bg-[#0B2E6D] text-white rounded-lg py-2 text-sm">See More</button>
           </Panel>
         </div>
       </div>

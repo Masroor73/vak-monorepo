@@ -1,13 +1,23 @@
-import { Slot } from "expo-router";
 import "../global.css";
-import { AuthProvider } from "../context/AuthContext";
+import { Stack } from "expo-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { initSupabase } from "@vak/api";
+import { useMemo } from "react";
 
 export default function RootLayout() {
+  // init supabase once
+  useMemo(() => {
+    initSupabase(
+      process.env.EXPO_PUBLIC_SUPABASE_URL as string,
+      process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY as string
+    );
+  }, []);
+
+  const queryClient = useMemo(() => new QueryClient(), []);
+
   return (
-    <AuthProvider>
-      <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F5F5F5' }}>
-        <Slot />
-      </div>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <Stack screenOptions={{ headerShown: false }} />
+    </QueryClientProvider>
   );
 }

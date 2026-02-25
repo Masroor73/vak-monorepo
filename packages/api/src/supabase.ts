@@ -1,14 +1,20 @@
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-let supabase: SupabaseClient | null = null;
+let client: SupabaseClient | null = null;
 
 export function initSupabase(url: string, anonKey: string) {
-  supabase = createClient(url, anonKey);
+  if (!url || !anonKey) {
+    throw new Error("Missing Supabase URL or ANON key for initSupabase()");
+  }
+  if (!client) {
+    client = createClient(url, anonKey);
+  }
+  return client;
 }
 
 export function getSupabase() {
-  if (!supabase) {
+  if (!client) {
     throw new Error("Supabase not initialized. Call initSupabase first.");
   }
-  return supabase;
+  return client;
 }
