@@ -45,6 +45,70 @@ export const MOCK_SHIFTS: Shift[] = [
     actual_end_time: null,
     clock_in_lat: null,
     clock_in_long: null
-  }
+  },
+  {
+    id: "shift-002",
+    employee_id: "user-123-uuid",
+    manager_id: "mgr-999",
+    start_time: "2026-02-25T12:00:00-07:00",
+    end_time: "2026-02-25T22:00:00-07:00",
+    status: "PUBLISHED",
+    unpaid_break_minutes: 45,
+    is_holiday: false,
+    location_id: "damascus-hq",
+    role_at_time_of_shift: "SERVER", // FIXED: Was missing entirely
+    actual_start_time: null,
+    actual_end_time: null,
+    clock_in_lat: null,
+    clock_in_long: null
+  },
+  {
+    id: "shift-002",
+    employee_id: "user-123-uuid",
+    manager_id: "mgr-999",
+    start_time: "2026-02-26T12:00:00-07:00",
+    end_time: "2026-02-26T22:00:00-07:00",
+    status: "PUBLISHED",
+    unpaid_break_minutes: 45,
+    is_holiday: false,
+    location_id: "damascus-hq",
+    role_at_time_of_shift: "SERVER", // FIXED: Was missing entirely
+    actual_start_time: null,
+    actual_end_time: null,
+    clock_in_lat: null,
+    clock_in_long: null
+  },
+  {
+    id: "shift-002",
+    employee_id: "user-123-uuid",
+    manager_id: "mgr-999",
+    start_time: "2026-03-3T12:00:00-07:00",
+    end_time: "2026-03-3T22:00:00-07:00",
+    status: "PUBLISHED",
+    unpaid_break_minutes: 45,
+    is_holiday: false,
+    location_id: "damascus-hq",
+    role_at_time_of_shift: "SERVER", // FIXED: Was missing entirely
+    actual_start_time: null,
+    actual_end_time: null,
+    clock_in_lat: null,
+    clock_in_long: null
+  },
+  {
+    id: "shift-002",
+    employee_id: "user-123-uuid",
+    manager_id: "mgr-999",
+    start_time: "2026-03-4T12:00:00-07:00",
+    end_time: "2026-03-4T22:00:00-07:00",
+    status: "PUBLISHED",
+    unpaid_break_minutes: 45,
+    is_holiday: false,
+    location_id: "damascus-hq",
+    role_at_time_of_shift: "SERVER", // FIXED: Was missing entirely
+    actual_start_time: null,
+    actual_end_time: null,
+    clock_in_lat: null,
+    clock_in_long: null
+  },
 ];
  

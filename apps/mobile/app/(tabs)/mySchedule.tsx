@@ -138,7 +138,7 @@ export default function MySchedule() {
         <View className="flex-row items-center gap-4 mb-6 mt-3">
           {/* Week Type Pill */}
           <View
-            className={`rounded-full px-3 py-1 border ${
+            className={`rounded-full px-5 py-2 border ${
               weekType === "current"
                 ? "bg-brand-success/15 border-brand-success/30"
                 : weekType === "past"
@@ -164,7 +164,7 @@ export default function MySchedule() {
           </View>
 
           {/* Shifts This Week Pill */}
-          <View className={`rounded-full px-3 py-1 border ${weekShiftPill.bg} ${weekShiftPill.border}`}>
+          <View className={`rounded-full px-5 py-2 border ${weekShiftPill.bg} ${weekShiftPill.border}`}>
             <Text className={`text-xs font-semibold ${weekShiftPill.text}`}>
               {weekShiftCount > 0
                 ? `${weekShiftCount} shift${weekShiftCount !== 1 ? "s" : ""} this week`
