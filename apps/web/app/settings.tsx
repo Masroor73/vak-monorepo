@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import ManagerLayout from "./layouts/ManagerLayout";
 
 function Toggle({
@@ -34,22 +34,70 @@ export default function Settings() {
   const [announcements, setAnnouncements] = useState(true);
   const [issuesReported, setIssuesReported] = useState(true);
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  const handlePickAvatar = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file.");
+      e.target.value = "";
+      return;
+    }
+
+    // Optional size limit
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image is too large (max 5MB).");
+      e.target.value = "";
+      return;
+    }
+
+    const url = URL.createObjectURL(file);
+    setAvatarUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return url;
+    });
+  };
+
   return (
     <ManagerLayout>
       <div className="space-y-6">
-        {/* Profile Info */}
         <div className="bg-white rounded-lg p-6 border">
           <h2 className="text-xl font-semibold mb-6">Profile Information</h2>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             <div className="flex flex-col items-center gap-3">
-              <div className="h-28 w-28 rounded-full bg-gray-200 flex items-center justify-center text-3xl">
-                👤
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarSelected}
+              />
+
+              <div className="h-28 w-28 rounded-full bg-gray-200 flex items-center justify-center text-3xl overflow-hidden">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt="Avatar preview"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  "👤"
+                )}
               </div>
 
               <div className="flex gap-3">
-                <button className="border rounded px-4 py-2">Edit</button>
-                <button className="bg-blue-500 text-white rounded px-4 py-2">
+                <button className="border rounded px-4 py-2" onClick={handlePickAvatar} type="button">
+                  Edit
+                </button>
+                <button className="bg-blue-500 text-white rounded px-4 py-2" type="button">
                   Save
                 </button>
               </div>
@@ -84,7 +132,6 @@ export default function Settings() {
 
         {/* Lower cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Security */}
           <div className="bg-white rounded-lg p-6 border">
             <h3 className="text-lg font-semibold mb-4">Security</h3>
 
@@ -93,8 +140,10 @@ export default function Settings() {
               <input className="w-full border rounded px-3 py-2 mb-3" />
 
               <div className="flex gap-3">
-                <button className="border rounded px-4 py-2">Cancel</button>
-                <button className="bg-blue-500 text-white rounded px-4 py-2">
+                <button className="border rounded px-4 py-2" type="button">
+                  Cancel
+                </button>
+                <button className="bg-blue-500 text-white rounded px-4 py-2" type="button">
                   Reset Password
                 </button>
               </div>
