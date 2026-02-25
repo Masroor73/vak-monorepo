@@ -35,6 +35,8 @@ export default function LoginScreen() {
   const [activeTab, setActiveTab]   = useState<"signin" | "signup">("signin");
   const [rememberMe, setRememberMe] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  
+  const onForgotPassword = () => router.push("/(public)/forgetPassword");
 
   const signInForm = useForm<LoginInput>({
     resolver: zodResolver(LoginSchema),
@@ -196,8 +198,10 @@ export default function LoginScreen() {
                     <Text className="text-white text-sm">Remember me</Text>
                   </TouchableOpacity>
 
-                  <Pressable onPress={() => {}}>
-                    <Text className="text-brand-primary text-sm font-semibold">Forgot password?</Text>
+                  <Pressable onPress={onForgotPassword}>
+                    <Text className="text-brand-primary text-sm font-semibold">
+                      Forgot password?
+                    </Text>
                   </Pressable>
                 </View>
 
