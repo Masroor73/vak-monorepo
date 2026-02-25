@@ -16,8 +16,10 @@ module.exports = {
           text: "#212121",
         },
         brand: {
+          background: "#F5F5F5",
           primary: "#62CCEF",
-          secondary: "#063386",
+          secondary: "#0d1b3e",
+          secondaryLight: "#1a3278",
           success: "#05CC66",
         },
       },

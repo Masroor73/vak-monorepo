@@ -1,12 +1,11 @@
-import React, { useMemo } from "react";
-import { View, Text, Alert, FlatList, Pressable, Button } from "react-native";
-import { ShiftStatusCard, PrimaryButton } from "@vak/ui";
+import { useMemo } from "react";
+import { View, Text, Alert, Pressable } from "react-native";
 import { MOCK_USER, MOCK_SHIFTS } from "../../constants/mockData";
-import { useNavigation, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
+import { ShiftStatusCard } from "@vak/ui";
 
 export default function Index() {
-
-  const navigate = useRouter()
+  const router = useRouter();
 
   const firstName = useMemo(() => {
     const full = MOCK_USER.full_name || "";
@@ -16,17 +15,12 @@ export default function Index() {
   const now = useMemo(() => new Date(), []);
 
   const topDate = useMemo(() => {
-    const weekday = now
-      .toLocaleDateString("en-US", { weekday: "short" })
-      .toUpperCase();
-    const monthDay = now
-      .toLocaleDateString("en-US", { month: "short", day: "numeric" })
-      .toUpperCase();
+    const weekday = now.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
+    const monthDay = now.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
     return `${weekday}, ${monthDay}`;
   }, [now]);
 
   const todayShift = useMemo(() => {
-    // Make the first mock shift always be today so the demo always works
     const base = MOCK_SHIFTS[0];
     if (!base) return null;
 
@@ -46,229 +40,127 @@ export default function Index() {
 
   const hasShiftToday = !!todayShift;
 
-  const scheduledTime = useMemo(() => {
-    if (!todayShift) return "—";
-    const s = todayShift._start.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-    const e = todayShift._end.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-    return `${s} — ${e}`;
-  }, [todayShift]);
+  const formatTime = (date: Date) =>
+    date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
-  const summaryText = hasShiftToday
-    ? "You have one shift today."
-    : "No shifts today.";
+  const getShiftPeriod = (start: Date) => {
+    const hour = start.getHours();
+    if (hour < 12) return "Morning Shift";
+    if (hour < 17) return "Afternoon Shift";
+    return "Evening Shift";
+  };
 
-  const roleLabel = useMemo(() => {
-    const role = (todayShift as any)?.role_at_time_of_shift;
-    if (!role) return "Shift";
-    return String(role)
-      .toLowerCase()
-      .split("_")
-      .map((w: string) => w.slice(0, 1).toUpperCase() + w.slice(1))
-      .join(" ");
-  }, [todayShift]);
-
-  const locationLabel = useMemo(() => {
-    return (todayShift as any)?.location_id ?? "damascus-hq";
-  }, [todayShift]);
-
-  const upcomingShifts = useMemo(() => {
-    const rest = MOCK_SHIFTS.slice(1);
-
-    const mapped = rest.map((s, idx) => {
-      const srcStart = new Date(s.start_time);
-      const srcEnd = new Date(s.end_time);
-
-      const dayOffset = idx + 1;
-      const start = new Date(now);
-      start.setDate(now.getDate() + dayOffset);
-      start.setHours(srcStart.getHours(), srcStart.getMinutes(), 0, 0);
-
-      const end = new Date(now);
-      end.setDate(now.getDate() + dayOffset);
-      end.setHours(srcEnd.getHours(), srcEnd.getMinutes(), 0, 0);
-
-      if (end <= start) end.setDate(end.getDate() + 1);
-
-      const prettyDay = start.toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-      });
-
-      const prettyStart = start.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      });
-      const prettyEnd = end.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      });
-
-      const role = String((s as any)?.role_at_time_of_shift ?? "Shift")
-        .toLowerCase()
-        .split("_")
-        .map((w) => w.slice(0, 1).toUpperCase() + w.slice(1))
-        .join(" ");
-
-      const loc = (s as any)?.location_id ?? "damascus-hq";
-
-      return {
-        id: s.id ?? `upcoming-${idx}`,
-        title: role,
-        subtitle: `${prettyDay} • ${prettyStart} - ${prettyEnd} • ${loc}`,
-        status: "pending" as const,
-      };
-    });
-
-    return mapped.slice(0, 3);
-  }, [now]);
+  const getGreeting = () => {
+    const hour = now.getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
+  };
 
   return (
-    <View className="flex-1 bg-damascus-background">
-      {/* Header */}
-      <View className="bg-brand-primary px-6 pt-8 pb-10">
-        <View className="flex-row items-start gap-4">
-          <View className="h-12 w-12 rounded-full bg-white/35 items-center justify-center">
-            {/* Place holder for actual picture */}
-            <Text className="text-white text-xl">👤</Text>
+    <View className="flex-1 bg-brand-background">
+      {/* ── Hero Header ── */}
+      <View className="bg-brand-secondary pb-[100px] overflow-hidden">
+        {/* Layered shapes */}
+        <View style={{ position: "absolute", top: -50, right: -50, width: 200, height: 200, borderRadius: 100, backgroundColor: "#1a3278", opacity: 0.55 }} />
+        <View style={{ position: "absolute", bottom: 30, left: -30, width: 130, height: 130, borderRadius: 65, backgroundColor: "#162550", opacity: 0.7 }} />
+
+        <View className="px-6 pt-7">
+          {/* Avatar + greeting */}
+          <View className="flex-row items-center space-x-5 mb-[18px] p-2">
+            <View className="w-24 h-24 rounded-full bg-brand-primary/10 border-[1.5px] border-brand-primary border-white/22 items-center justify-center mr-2">
+              <Text className="text-[22px]">👤</Text>
+            </View>
+            <View className="flex-1">
+              <Text className="text-[22px] font-semibold text-white/45 tracking-[1.3px] uppercase mb-2 ml-3">
+                {getGreeting()}
+              </Text>
+              <Text className="text-[21px] font-bold text-white tracking-[0.2px] ml-3">
+                {firstName} 👋
+              </Text>
+            </View>
           </View>
 
-          <View className="flex-1">
-            <Text className="text-damascus-text text-2xl font-semibold">
-              Good morning, {firstName}.
-            </Text>
-
-            <View className="mt-5 flex-row items-center gap-3">
-              <Text className="text-damascus-text/60 text-xs tracking-widest">
-                {topDate}
-              </Text>
-              <Text className="text-damascus-text/50 text-xs">|</Text>
-              {/* Place holder for actual temperature */}
-              <Text className="text-damascus-text/60 text-xs">☁︎</Text>
-              <Text className="text-damascus-text/60 text-xs">15°C</Text>
+          {/* Pill tags */}
+          <View className="flex-row flex-wrap gap-5 ml-2">
+            <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2">
+              <Text className="text-white/65 text-[11px] font-medium">📅  {topDate}</Text>
             </View>
-
-            <Text className="mt-3 text-damascus-text/70 text-base">
-              {summaryText}
-            </Text>
+            <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2">
+              <Text className="text-white/65 text-[11px] font-medium">☁️  15°C</Text>
+            </View>
+            <View className={`flex-row items-center gap-1.5 rounded-[20px] px-3 py-1.5 border ${
+              hasShiftToday ? "bg-brand-success/15 border-brand-success/30" : "bg-white/10 border-white/10"}`}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: hasShiftToday ? "#4ade80" : "rgba(255,255,255,0.35)" }} />
+              <Text className={`text-[11px] font-semibold ${hasShiftToday ? "text-brand-success" : "text-white/65"}`}>
+                {hasShiftToday ? "1 shift today" : "No shifts"}
+              </Text>
+            </View>
           </View>
         </View>
       </View>
 
-      {/* Today's Shift Card */}
-      <View className="px-6 pt-8">
-        <View className="bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-5">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-2 flex-1">
-              <View className="h-2 w-2 rounded-full bg-brand-primary" />
-              <Text className="text-xs tracking-widest text-gray-500 font-semibold">
-                TODAY&apos;S SHIFT
+      {/* ── Card over header ── */}
+      <View className="-mt-12 px-4">
+        <View className="bg-white rounded-2xl px-5 pt-5 pb-5 mb-3" style={{ shadowColor: "#0d1b3e", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 18, elevation: 6 }}>
+
+          {/* Card header */}
+          <View className="flex-row items-center justify-between mb-6 mt-2">
+            <View className="flex-row items-center gap-2">
+              <View className={`w-3 h-3 mr-2 rounded-[23px] ${hasShiftToday ? "bg-brand-success" : "bg-gray-300"}`} />
+              <Text className="text-[12px] font-bold text-gray-500 tracking-[1.1px] uppercase">
+                Today's Shift
               </Text>
             </View>
+            <Pressable onPress={() => router.push("/(tabs)/mySchedule")}>
+              <Text className="text-brand-secondaryLight text-[15px] font-semibold">View Schedule </Text>
+            </Pressable>
+          </View>
 
-            {/* Clock In button */}
-            <View className="relative shrink-0 min-w-[140px]">
-              <View
-                pointerEvents="none"
-                className="absolute inset-0 bg-brand-primary rounded-[8px] px-6 py-3 items-center justify-center"
-              >
-                <Text
-                  numberOfLines={1}
-                  className="text-damascus-text font-semibold"
-                >
-                  CLOCK IN
-                </Text>
-              </View>
+          {hasShiftToday && todayShift ? (
+            /* ── HAS SHIFT ── */
+            <>
+              {/* ShiftStatusCard */}
+              <ShiftStatusCard
+                title={getShiftPeriod(todayShift._start)}
+                subtitle={`${formatTime(todayShift._start)} — ${formatTime(todayShift._end)}`}
+              />
 
-              {/* PrimaryButton: */}
-              <View className="opacity-0">
-                <PrimaryButton
-                  title="CLOCK IN"
-                  variant="primary"
+              {/* Clock In Button */}
+              <View className="pr-24 pl-24">
+                <Pressable
                   onPress={() => Alert.alert("Clock In pressed")}
-                  isLoading={false}
-                />
+                  className="bg-brand-secondaryLight rounded-[12px] px-6 py-5 items-center justify-center"
+                >
+                  <Text className="text-white font-semibold">CLOCK IN</Text>
+                </Pressable>
               </View>
-            </View>
-          </View>
 
-          <Text className="mt-4 text-gray-400 text-sm">Not clocked in yet</Text>
-
-          {/* Scheduled sub-card */}
-          <View className="mt-4 bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 flex-row items-center justify-between">
-            <View>
-              <Text className="text-[10px] tracking-widest text-gray-400 font-semibold">
-                SCHEDULED
+              {/* Task note */}
+              <View>
+                <View className="flex-row items-center gap-1.5 pt-4">
+                  <View className="w-4.5 h-4.5 rounded-full bg-green-100 items-center justify-center">
+                    <Text className="text-[10px] text-brand-success">✓</Text>
+                  </View>
+                  <Text className="text-[12px] text-gray-400">You have 0 incomplete tasks</Text>
+                </View>
+              </View>
+            </>
+          ) : (
+            /* ── NO SHIFT ── */
+            <View className="items-center py-6 gap-3">
+              <View className="w-16 h-16 rounded-full bg-blue-50 items-center justify-center mb-1">
+                <Text className="text-[30px]">🌙</Text>
+              </View>
+              <Text className="text-[15px] font-bold text-gray-800">No shift today</Text>
+              <Text className="text-[12px] text-gray-400 text-center px-6">
+                You're off the clock — enjoy your time off!
               </Text>
-
-              <Text className="mt-2 text-xl font-semibold text-gray-800">
-                {scheduledTime}
-              </Text>
             </View>
+          )}
 
-            <View className="h-10 w-10 rounded-full bg-brand-primary/30 items-center justify-center">
-              <Text className="text-brand-secondary">🕒</Text>
-            </View>
-          </View>
-
-          {/* ShiftStatusCard */}
-          <View className="mt-4">
-            <ShiftStatusCard
-              title={roleLabel}
-              subtitle={`${locationLabel}`}
-              status="approved"
-            />
-          </View>
-
-          {/* Placeholder for incomplete tasks */}
-          <View className="mt-4 flex-row items-center gap-2">
-            <View className="h-5 w-5 rounded-full border border-gray-300 items-center justify-center">
-              <Text className="text-gray-500 text-xs">✓</Text>
-            </View>
-            <Text className="text-gray-500 text-sm">
-              You have 0 incomplete tasks.
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Upcoming Shifts */}
-      <View className="px-6 pt-6">
-        <View className="flex-row items-center justify-between">
-          <Text className="text-damascus-text font-semibold text-base">
-            Your Upcoming Shifts
-          </Text>
-
-          <Pressable onPress={() => console.log("View All")}>
-            <Text className="text-brand-secondary font-semibold">View All</Text>
-          </Pressable>
-        </View>
-
-        <View className="mt-4">
-          <FlatList
-            data={upcomingShifts}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            ItemSeparatorComponent={() => <View className="h-3" />}
-            renderItem={({ item }) => (
-              <Pressable onPress={() => console.log("Navigate to Details")}>
-                <ShiftStatusCard
-                  title={item.title}
-                  subtitle={item.subtitle}
-                  status={item.status}
-                />
-              </Pressable>
-            )}
-          />
         </View>
       </View>
     </View>
-
   );
 }

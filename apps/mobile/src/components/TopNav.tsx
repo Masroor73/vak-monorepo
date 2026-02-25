@@ -2,7 +2,8 @@ import { View, Pressable } from "react-native";
 import { useRouter, usePathname } from "expo-router";
 import Menu from "../../assets/Menu.svg";
 import Bell from "../../assets/Bell.svg";
-import BlueBell from "../../assets/BlueBell.svg";
+import WhiteBell from "../../assets/WhiteBell.svg";
+import WhiteMenu from "../../assets/WhiteMenu.svg";
 
 type Props = {
   toggleDrawer: () => void;
@@ -26,24 +27,24 @@ export default function TopNavigation({ toggleDrawer }: Props) {
         height: 110,
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
         backgroundColor: "black",
         zIndex: 50,
       }}
     >
       {/* Menu Button */}
-      <Pressable onPress={toggleDrawer}>
-        <Menu width={32} height={32} />
+      <Pressable onPress={toggleDrawer}  style={{marginRight: 18, marginTop: 20 }}>
+        <Menu width={28} height={28} />
       </Pressable>
 
       <View style={{ flex: 1 }} />
 
       {/* Notifications Button */}
-      <Pressable onPress={() => router.push("/(tabs)/notifications")}>
+      <Pressable onPress={() => router.push("/(tabs)/notifications")}  style={{ marginTop: 20 }}>
         {isBellActive ? (
-          <BlueBell width={32} height={32} />
+          <WhiteBell width={28} height={28} />
         ) : (
-          <Bell width={32} height={32} />
+          <Bell width={28} height={28} />
         )}
       </Pressable>
     </View>
