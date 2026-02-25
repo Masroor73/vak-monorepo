@@ -7,9 +7,7 @@ export default function ManagerLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 768) {
-        setOpen(false);
-      }
+      if (window.innerWidth >= 768) setOpen(false);
     };
 
     handleResize();
@@ -18,14 +16,12 @@ export default function ManagerLayout({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div className="min-h-screen w-screen bg-[#0B1220] overflow-x-hidden">
+    <div className="min-h-screen w-screen bg-black overflow-x-hidden">
       <div className="flex w-full min-h-screen">
-        {/* Desktop Sidebar */}
         <div className="hidden md:block flex-shrink-0">
           <Sidebar />
         </div>
 
-        {/* Mobile Sidebar Drawer */}
         {open && (
           <div className="md:hidden fixed inset-0 z-50">
             <div
@@ -38,10 +34,11 @@ export default function ManagerLayout({ children }: { children: ReactNode }) {
           </div>
         )}
 
-        {/* Main Content */}
-        <main className="flex-1 min-w-0 bg-[#0B1220]">
+        <main className="flex-1 min-w-0 p-4 md:p-8">
           <Topbar onOpenSidebar={() => setOpen(true)} />
-          <div className="p-4 md:p-8 w-full">{children}</div>
+          <div className="mt-6 w-full rounded-[28px] bg-[#D9D9D9] shadow-2xl overflow-hidden">
+          <div className="p-6 md:p-8">{children}</div>
+        </div>
         </main>
       </div>
     </div>

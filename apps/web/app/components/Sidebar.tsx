@@ -22,7 +22,6 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <aside className="h-screen w-64 text-white flex flex-col p-5 bg-black border-r border-white/20">
-      {/* Logo */}
       <div className="flex items-center gap-3 mb-10">
         <div className="h-10 w-10 rounded-xl bg-[#62CCEF] flex items-center justify-center text-black font-bold">
           🏰
@@ -33,7 +32,6 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="flex flex-col gap-2 text-sm">
         {items.map((item) => {
           const active = pathname === item.href;
@@ -43,10 +41,11 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               key={item.href}
               href={item.href}
               onPress={onNavigate}
-              className={`px-4 py-3 rounded-xl transition border ${
-                active
-                  ? "bg-white/15 border-[#62CCEF]/50 text-[#62CCEF] font-semibold"
-                  : "border-transparent text-white/80 hover:bg-white/10"
+              className={`w-fit px-4 py-3 rounded-full transition flex items-center gap-3
+                ${
+                  active
+                    ? "bg-white text-black font-semibold"
+                    : "text-[#62CCEF] hover:bg-white/5"
               }`}
             >
               {item.label}
@@ -55,10 +54,9 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         })}
       </nav>
 
-      {/* Logout */}
       <button
         onClick={handleLogout}
-        className="mt-auto bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3 text-sm hover:bg-white/20 transition"
+        className="mt-auto bg-white text-black rounded-full px-5 py-3 text-sm font-medium hover:bg-white/90 transition"
       >
         Logout
       </button>

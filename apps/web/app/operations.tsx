@@ -88,10 +88,7 @@ export default function Operations() {
 
   return (
     <ManagerLayout>
-      <div
-        className="rounded-2xl border-2 p-6"
-        style={{ borderColor: ACCENT, backgroundColor: "#D9D9D9" }}
-      >
+      <div className="w-full rounded-[24px] p-6 md:p-8 bg-[#D9D9D9]">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* LEFT COLUMN */}
           <div className="space-y-6">

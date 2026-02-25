@@ -1,93 +1,229 @@
 import ManagerLayout from "./layouts/ManagerLayout";
 import { Link } from "expo-router";
 
-function Card({
+function Tile({
   title,
-  desc,
+  value,
+  icon,
   href,
 }: {
   title: string;
-  desc: string;
-  href: string;
+  value?: string | number;
+  icon: React.ReactNode;
+  href?: string;
+}) {
+  const content = (
+    <div className="bg-[#8DD4EC] rounded-2xl shadow-[0_10px_20px_rgba(0,0,0,0.18)] p-6 flex items-center justify-between">
+      <div>
+        <div className="text-[#0B2E6D] text-lg font-medium">{title}</div>
+        {value !== undefined ? (
+          <div className="text-[#0B2E6D] text-2xl font-semibold mt-2">
+            {value}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="h-12 w-12 rounded-xl bg-white/80 flex items-center justify-center text-[#0B2E6D]">
+        {icon}
+      </div>
+    </div>
+  );
+
+  return href ? <Link href={href}>{content}</Link> : content;
+}
+
+function Card({
+  title,
+  children,
+  className = "",
+}: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <Link
-      href={href}
-      className="bg-white border rounded-lg p-6 hover:shadow-md transition"
+    <section
+      className={[
+        "bg-white rounded-2xl border border-black/10 shadow-[0_6px_18px_rgba(0,0,0,0.12)]",
+        className,
+      ].join(" ")}
     >
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      <p className="text-sm text-gray-600">{desc}</p>
-      <p className="text-blue-600 mt-4">Open →</p>
-    </Link>
+      <div className="px-6 pt-5 text-lg font-semibold text-black">{title}</div>
+      <div className="px-6 pb-6 pt-3">{children}</div>
+    </section>
   );
 }
 
+function ChartPlaceholder({ height = 230 }: { height?: number }) {
+  return (
+    <div
+      className="rounded-2xl bg-[#F3F3F3] border border-black/10 flex items-center justify-center text-black/40"
+      style={{ height }}
+    >
+      Chart Placeholder
+    </div>
+  );
+}
+
+function ActionButton({
+  icon,
+  label,
+  href,
+}: {
+  icon: string;
+  label: string;
+  href?: string;
+}) {
+  const content = (
+    <div className="w-full bg-white rounded-2xl border border-black/10 shadow-[0_6px_18px_rgba(0,0,0,0.10)] px-6 py-5 flex items-center gap-4 hover:bg-black/5 transition">
+      <span className="text-2xl">{icon}</span>
+      <span className="text-lg font-medium text-black">{label}</span>
+    </div>
+  );
+
+  return href ? <Link href={href}>{content}</Link> : content;
+}
+
 export default function Dashboard() {
+  // Placeholder data
+  const staff = [
+    { name: "Sarah Willis", status: "active" as const },
+    { name: "Jacob Greens", status: "break" as const },
+    { name: "Emma Owen", status: "active" as const },
+  ];
+
+  const events = [
+    "Shift Swap Request — Sarah L. ↔ Daniel R.",
+    "Maintenance Update — Owen #2 (Temp Sensor Fault)",
+  ];
+
+  const onLeave = [
+    { name: "Ahmad. K.", role: "Supervisor" },
+    { name: "Alex", role: "Stock Clerk" },
+  ];
+
+  const performance = [
+    { name: "Sarah Wells", rate: "75%" },
+    { name: "Mae Rose", rate: "82%" },
+    { name: "Judy", rate: "87%" },
+    { name: "Elli", rate: "94%" },
+  ];
+
   return (
     <ManagerLayout>
-      <div className="space-y-6">
-        <div className="bg-white border rounded-lg p-6">
-          <h1 className="text-2xl font-bold">Manager Dashboard</h1>
-          <p className="text-gray-600 mt-2">
-            Welcome back. Use the quick links below to manage reports,
-            communication, and settings.
-          </p>
+      <div className="grid grid-cols-12 gap-x-6 gap-y-4 items-start">
+        <div className="col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Tile title="Total Employees" value={40} icon={"👥"} href="/team" />
+          <Tile
+            title="Pending shift assignment"
+            value={5}
+            icon={"🕒"}
+            href="/team"
+          />
+          <Tile title="Maintenance" icon={"🔧"} href="/operations" />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card
-            title="Analyze Reports"
-            desc="View labour cost dashboard and performance metrics."
-            href="/analyze-reports"
-          />
-          <Card
-            title="Communication"
-            desc="Create announcements and view direct messages."
-            href="/communication"
-          />
-          <Card
-            title="Settings"
-            desc="Update profile, security, and notification preferences."
-            href="/settings"
-          />
-        </div>
+        <div className="col-span-12 grid grid-cols-12 gap-x-6 gap-y-4 items-start">
+          <div className="col-span-12 lg:col-span-4">
+            <Card title="Staff Overview">
+              <div className="text-sm text-black/60 mb-4">
+                2 active and 2 on break out of 40 total
+              </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white border rounded-lg p-6">
-            <h2 className="text-lg font-semibold mb-3">Today’s Snapshot</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="border rounded p-4 text-center">
-                <p className="text-sm text-gray-600">Open Requests</p>
-                <p className="text-xl font-semibold">3</p>
+              <div className="space-y-4">
+                {staff.map((s) => (
+                  <div key={s.name} className="flex items-center gap-3">
+                    <span
+                      className={[
+                        "h-3 w-3 rounded-full",
+                        s.status === "active"
+                          ? "bg-green-500"
+                          : "bg-yellow-400",
+                      ].join(" ")}
+                    />
+                    <div className="h-10 w-10 rounded-full bg-black/10 border border-black/10" />
+                    <div className="text-base font-medium text-black">
+                      {s.name}
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="border rounded p-4 text-center">
-                <p className="text-sm text-gray-600">Employees</p>
-                <p className="text-xl font-semibold">24</p>
-              </div>
-              <div className="border rounded p-4 text-center">
-                <p className="text-sm text-gray-600">Teams</p>
-                <p className="text-xl font-semibold">4</p>
-              </div>
-              <div className="border rounded p-4 text-center">
-                <p className="text-sm text-gray-600">Alerts</p>
-                <p className="text-xl font-semibold">1</p>
-              </div>
-            </div>
+            </Card>
           </div>
 
-          <div className="bg-white border rounded-lg p-6">
-            <h2 className="text-lg font-semibold mb-3">Recent Activity</h2>
-            <ul className="space-y-3 text-sm">
-              <li className="border rounded p-3 bg-gray-50">
-                Approval request received from <b>Team 2</b>
-              </li>
-              <li className="border rounded p-3 bg-gray-50">
-                Announcement draft saved
-              </li>
-              <li className="border rounded p-3 bg-gray-50">
-                Notifications updated
-              </li>
-            </ul>
+          <div className="col-span-12 lg:col-span-5">
+            <Card title="Scheduled vs Actual hours worked">
+              <ChartPlaceholder height={230} />
+            </Card>
+          </div>
+
+          <div className="col-span-12 lg:col-span-3 lg:row-span-2 flex flex-col gap-6">
+            <ActionButton icon="📅" label="Edit Schedule" href="/operations" />
+            <ActionButton icon="⚠️" label="View issues" href="/operations" />
+
+            <Card title="Today’s Events">
+              <div className="space-y-2 text-sm text-black/70">
+                {events.map((e) => (
+                  <div key={e} className="flex items-start gap-2">
+                    <span className="mt-0.5">•</span>
+                    <span>{e}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card title="Employees on leave">
+              <div className="space-y-4">
+                {onLeave.map((p) => (
+                  <div
+                    key={p.name}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-[#FBC02D]/30 border border-black/10" />
+                      <div>
+                        <div className="text-base font-medium text-black">
+                          {p.name}
+                        </div>
+                        <div className="text-xs text-black/50">{p.role}</div>
+                      </div>
+                    </div>
+                    <span className="text-black/40 text-xl">›</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+
+          <div className="col-span-12 lg:col-span-9">
+            <Card title="Performance Overview">
+              <div className="grid grid-cols-2 text-sm text-black/60 border-b border-black/10 pb-2">
+                <span>Employee Name</span>
+                <span className="text-right">Task Completion Rate</span>
+              </div>
+
+              <div className="mt-4 space-y-4">
+                {performance.map((r) => (
+                  <div key={r.name} className="grid grid-cols-2">
+                    <span className="text-base text-black">{r.name}</span>
+                    <span className="text-base text-black text-right">
+                      {r.rate}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+
+          <div className="col-span-12 lg:col-span-9">
+            <Card title="Employees">
+              <div className="flex items-center justify-between text-xs mb-3">
+                <span className="text-[#2E90FA]">15 part Time</span>
+                <span className="text-[#22C55E]">20 Full Time</span>
+                <span className="text-[#EF4444]">5 Temporary</span>
+              </div>
+              <ChartPlaceholder height={230} />
+            </Card>
           </div>
         </div>
       </div>
