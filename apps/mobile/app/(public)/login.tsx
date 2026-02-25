@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { View, Alert, Pressable, Text, TouchableOpacity, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
-import { PrimaryButton, DarkTextField } from "@vak/ui";
+import { TextField } from "@vak/ui";
 import { useAuth } from "../../context/AuthContext";
 import { useForm, Controller } from "react-hook-form";
 import Logo from "../../assets/Logo.svg";
@@ -146,7 +146,8 @@ export default function LoginScreen() {
                   control={signInForm.control}
                   name="email"
                   render={({ field }) => (
-                    <DarkTextField
+                    <TextField
+                      variant="dark"
                       label="Email"
                       placeholder="Enter your email"
                       keyboardType="email-address"
@@ -163,7 +164,8 @@ export default function LoginScreen() {
                   name="password"
                   render={({ field }) => (
                     <>
-                      <DarkTextField
+                      <TextField
+                        variant="dark"
                         label="Password"
                         placeholder="Enter your password"
                         secureTextEntry={!showSignInPassword}
@@ -234,7 +236,8 @@ export default function LoginScreen() {
                   control={signUpForm.control}
                   name="full_name"
                   render={({ field: { value, onChange } }) => (
-                    <DarkTextField
+                    <TextField
+                      variant="dark"
                       label="Full Name"
                       placeholder="Enter your full name"
                       value={value}
@@ -248,7 +251,8 @@ export default function LoginScreen() {
                   control={signUpForm.control}
                   name="email"
                   render={({ field: { value, onChange } }) => (
-                    <DarkTextField
+                    <TextField
+                      variant="dark"
                       label="Email"
                       placeholder="Enter your email"
                       keyboardType="email-address"
@@ -264,7 +268,8 @@ export default function LoginScreen() {
                   control={signUpForm.control}
                   name="password"
                   render={({ field }) => (
-                    <DarkTextField
+                    <TextField
+                      variant="dark"
                       label="Password"
                       placeholder="Enter your password"
                       secureTextEntry={!showSignUpPassword}
@@ -286,7 +291,8 @@ export default function LoginScreen() {
                   control={signUpForm.control}
                   name="confirmPassword"
                   render={({ field }) => (
-                    <DarkTextField
+                    <TextField
+                      variant="dark"
                       label="Confirm Password"
                       placeholder="Enter password again"
                       secureTextEntry={!showConfirmPassword}
