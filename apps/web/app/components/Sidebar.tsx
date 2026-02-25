@@ -22,14 +22,12 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <aside className="h-screen w-64 text-white flex flex-col p-5 bg-black border-r border-white/20">
-      <div className="flex items-center gap-3 mb-10">
-        <div className="h-10 w-10 rounded-xl bg-[#62CCEF] flex items-center justify-center text-black font-bold">
-          🏰
-        </div>
-        <div>
-          <div className="text-lg font-semibold">Castle</div>
-          <div className="text-xs text-white/60">Manager</div>
-        </div>
+      <div className="flex items-center justify-center pt-6 pb-14">
+        <img
+          src="/logo.png"
+          alt="Logo"
+          className="h-28 w-28 object-contain"
+        />
       </div>
 
       <nav className="flex flex-col gap-2 text-sm">
