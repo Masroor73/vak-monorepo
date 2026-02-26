@@ -3,8 +3,6 @@ import { Link } from "expo-router";
 import ManagerLayout from "./layouts/ManagerLayout";
 import { useEmployees } from "@vak/api";
 
-const ACCENT = "#62CCEF";
-
 type LeaveRequest = {
   id: string;
   name: string;
@@ -90,65 +88,132 @@ function Panel({
   subtitle,
   children,
   headerRight,
+  footer,
 }: {
   title: string;
   subtitle?: string;
   headerRight?: React.ReactNode;
   children: React.ReactNode;
+  footer?: React.ReactNode;
 }) {
   return (
-    <section className="bg-white rounded-2xl border border-black/10 shadow-[0_6px_18px_rgba(0,0,0,0.12)] p-5 md:p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+    <section className="bg-white rounded-2xl border border-black/10 shadow-[0_6px_18px_rgba(0,0,0,0.12)] p-5 md:p-6 h-full flex flex-col">
+      <div className="relative">
+        {headerRight ? (
+          <div className="absolute right-0 top-0">{headerRight}</div>
+        ) : null}
+
+        <div className="pr-44">
           <h2 className="text-lg font-semibold text-black">{title}</h2>
           {subtitle ? (
             <div className="text-sm text-black/50 mt-1">{subtitle}</div>
           ) : null}
         </div>
-        {headerRight}
       </div>
 
-      <div className="mt-4">{children}</div>
+      <div className="mt-4 flex-1">{children}</div>
+
+      {footer ? <div className="pt-4">{footer}</div> : null}
     </section>
   );
 }
 
-function SoftCard({ children }: { children: React.ReactNode }) {
+/** Cards (sharp corners) */
+function Cards({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="bg-white rounded-2xl border border-black/10 shadow-[0_4px_12px_rgba(0,0,0,0.10)] p-4">
+    <div
+      className={`bg-white border border-black/10 shadow-[0_4px_12px_rgba(0,0,0,0.10)] p-4 ${className}`}
+    >
       {children}
     </div>
   );
 }
 
-function StatusPill({ text }: { text: string }) {
+function StateBadge({ text }: { text: string }) {
   return (
-    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#FFF2B8] text-[#6B4E00] border border-black/10">
+    <span className="px-4 py-1.5 text-sm font-semibold bg-[#FFF2B8] text-[#6B4E00] border border-black/10">
       {text}
     </span>
   );
 }
 
-function AccentPill({ text }: { text: string }) {
+function CountBadge({ text }: { text: string }) {
   return (
-    <span className="inline-flex items-center rounded-full bg-[#BFEAF7] px-4 py-2 text-sm font-medium text-black">
+    <span className="inline-flex items-center bg-[#BFEAF7] px-5 py-2 text-sm font-medium text-black">
       {text}
     </span>
+  );
+}
+
+/**
+ * Publish Feedback card
+ * - Height is dynamic (NO fixed CardHeight)
+ * - Buttons are always inside card (bottom-right)
+ * - Works for any number of future drafts
+ */
+function DraftCard({ draft }: { draft: DraftAnnouncement }) {
+  return (
+    <Cards className="relative p-6 flex flex-col">
+      <div className="absolute left-0 top-4 bottom-4 w-1 bg-green-500" />
+
+      <div className="pl-4">
+        <div className="text-lg font-semibold text-black">{draft.title}</div>
+
+        <div className="text-sm text-black/60 mt-2 flex items-center gap-2">
+          <span>{draft.date}</span>
+          <span>•</span>
+          <span>{draft.author}</span>
+        </div>
+
+        <div className="mt-3 inline-flex items-center bg-[#E6F7FF] px-5 py-2 text-sm font-semibold border border-black/10">
+          {draft.audienceLabel}
+        </div>
+
+        <div className="mt-4 text-base text-black/75">{draft.body}</div>
+      </div>
+
+      {/* Buttons always inside card */}
+      <div className="pl-4 mt-5 flex gap-4 justify-end">
+        <button className="px-7 py-2.5 rounded-full border border-black/15 text-sm font-semibold hover:bg-black/5 transition">
+          Edit
+        </button>
+        <button className="px-7 py-2.5 rounded-full border border-black/15 text-sm font-semibold hover:bg-black/5 transition">
+          Delete
+        </button>
+      </div>
+    </Cards>
   );
 }
 
 export default function Team() {
   const { data: employees = [], isLoading, error } = useEmployees();
 
+  // Fixed height ONLY for the other two top cards (Leave + Swap)
+  const CardHeight = "lg:h-[210px]";
+
   return (
     <ManagerLayout>
       <div className="w-full rounded-[24px] p-6 md:p-8 bg-[#D9D9D9]">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-2 gap-6 auto-rows-fr items-stretch">
+          {/* ───────── TOP ROW ───────── */}
           <Panel
             title="Review Leave Request"
-            subtitle="Review and manage employee leave requests"
             headerRight={
-              <AccentPill text={`Pending Requests (${leaveRequests.length})`} />
+              <CountBadge text={`Pending Requests (${leaveRequests.length})`} />
+            }
+            footer={
+              <Link
+                href="/team/leave-requests"
+                className="text-sm font-semibold text-[#0B2E6D]"
+              >
+                View All →
+              </Link>
             }
           >
             {leaveRequests.map((lr) => (
@@ -157,70 +222,58 @@ export default function Team() {
                 href={`/team/leave-requests/${lr.id}`}
                 className="block"
               >
-                <SoftCard>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-[#FBC02D]/30 border border-black/10 flex items-center justify-center text-sm font-bold text-black">
+                <Cards className={`${CardHeight} p-6`}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-full bg-[#FBC02D]/30 border border-black/10 flex items-center justify-center text-base font-bold text-black">
                         AK
                       </div>
-                      <div className="text-base font-semibold text-black">
+                      <div className="text-lg font-semibold text-black">
                         {lr.name}
                       </div>
                     </div>
-                    <StatusPill text={lr.status} />
+                    <StateBadge text={lr.status} />
                   </div>
 
-                  <div className="mt-4 space-y-2 text-sm text-black/70">
-                    <div className="flex items-center gap-2">
-                      <span className="text-base">📅</span>
+                  <div className="mt-5 space-y-3 text-base text-black/70">
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">📅</span>
                       <span className="font-medium">From:</span> {lr.from}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-base">📅</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">📅</span>
                       <span className="font-medium">To:</span> {lr.to}
                     </div>
                   </div>
-                </SoftCard>
+                </Cards>
               </Link>
             ))}
-
-            <div className="mt-4">
-              <Link
-                href="/team/leave-requests"
-                className="text-sm font-semibold text-[#0B2E6D]"
-              >
-                View All →
-              </Link>
-            </div>
           </Panel>
 
-          <Panel
-            title="Review Shift Swap Request"
-            subtitle="Review and manage employee shift swap requests"
-          >
+          <Panel title="Review Shift Swap Request">
             {swapRequests.map((sr) => (
-              <SoftCard key={sr.id}>
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-base font-semibold text-black">
+              <Cards key={sr.id} className={`${CardHeight} p-6`}>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="text-lg font-semibold text-black">
                     {sr.fromName} <span className="text-black/40">⇄</span>{" "}
                     {sr.toName}
                   </div>
 
                   <div className="flex -space-x-2">
-                    <div className="h-9 w-9 rounded-full bg-black/10 border-2 border-white" />
-                    <div className="h-9 w-9 rounded-full bg-black/15 border-2 border-white" />
+                    <div className="h-10 w-10 rounded-full bg-black/10 border-2 border-white" />
+                    <div className="h-10 w-10 rounded-full bg-black/15 border-2 border-white" />
                   </div>
                 </div>
 
-                <div className="mt-4 space-y-2 text-sm text-black/70">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">📅</span> {sr.date}
+                <div className="mt-5 space-y-3 text-base text-black/70">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">📅</span> {sr.date}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">📍</span> {sr.location}
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">📍</span> {sr.location}
                   </div>
                 </div>
-              </SoftCard>
+              </Cards>
             ))}
           </Panel>
 
@@ -231,58 +284,24 @@ export default function Team() {
             }
           >
             {draftAnnouncements.length === 0 ? (
-              <div className="text-sm text-black/60">
-                No draft announcements.
-              </div>
+              <div className="text-sm text-black/60">No draft announcements.</div>
             ) : (
               <div className="space-y-4">
-                {draftAnnouncements.map((d) => (
-                  <div
-                    key={d.id}
-                    className="relative rounded-2xl border border-black/10 bg-white shadow-[0_4px_12px_rgba(0,0,0,0.10)] p-4"
-                  >
-                    <div className="absolute left-0 top-3 bottom-3 w-1 rounded-full bg-green-500" />
-
-                    <div className="pl-3">
-                      <div className="text-sm font-semibold text-black">
-                        {d.title}
-                      </div>
-
-                      <div className="text-xs text-black/60 mt-1 flex items-center gap-2">
-                        <span>{d.date}</span>
-                        <span>•</span>
-                        <span>{d.author}</span>
-                      </div>
-
-                      <div className="mt-2 inline-flex items-center rounded-full bg-[#E6F7FF] px-4 py-2 text-xs font-semibold border border-black/10">
-                        {d.audienceLabel}
-                      </div>
-
-                      <div className="mt-3 text-sm text-black/75">{d.body}</div>
-
-                      {/* Buttons are present but not wired yet */}
-                      <div className="mt-4 flex gap-3 justify-end">
-                        <button className="px-6 py-2 rounded-full border border-black/15 text-sm font-semibold hover:bg-black/5 transition">
-                          Edit
-                        </button>
-                        <button className="px-6 py-2 rounded-full border border-black/15 text-sm font-semibold hover:bg-black/5 transition">
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                {draftAnnouncements.map((draft) => (
+                  <DraftCard key={draft.id} draft={draft} />
                 ))}
               </div>
             )}
           </Panel>
 
-          <div className="lg:col-span-2">
+          {/* ───────── BOTTOM ROW (unchanged) ───────── */}
+          <div className="lg:col-span-2 lg:row-start-2">
             <Panel title="Feedback Received From Employees">
               <div className="space-y-4">
                 {feedbacks.map((f) => (
                   <div
                     key={f.id}
-                    className="relative rounded-2xl border border-black/10 bg-white shadow-[0_4px_12px_rgba(0,0,0,0.10)] p-4"
+                    className="relative border border-black/10 bg-white shadow-[0_4px_12px_rgba(0,0,0,0.10)] p-4"
                   >
                     <div className="absolute left-0 top-3 bottom-3 w-1 rounded-full bg-green-500" />
 
@@ -302,55 +321,57 @@ export default function Team() {
             </Panel>
           </div>
 
-          <Panel title="List of Employees">
-            <div className="border-b border-black/10 pb-2 text-sm text-black/55 flex justify-between">
-              <span>Employee Name</span>
-              <span>Role</span>
-            </div>
+          <div className="lg:col-span-1 lg:row-start-2">
+            <Panel title="List of Employees">
+              <div className="border-b border-black/10 pb-2 text-sm text-black/55 flex justify-between">
+                <span>Employee Name</span>
+                <span>Role</span>
+              </div>
 
-            <div className="mt-3">
-              {isLoading ? (
-                <div className="text-sm text-black/60 py-3">
-                  Loading employees…
-                </div>
-              ) : error ? (
-                <div className="text-sm text-red-600 py-3">
-                  Failed to load employees.
-                </div>
-              ) : employees.length === 0 ? (
-                <div className="text-sm text-black/60 py-3">
-                  No employees found.
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {employees.slice(0, 7).map((e: any) => (
-                    <button
-                      key={e.id}
-                      className="w-full flex items-center justify-between rounded-xl px-3 py-3 hover:bg-black/5 transition"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-black/10 border border-black/10" />
-                        <div className="text-base font-semibold text-black">
-                          {e.full_name ?? "Unnamed"}
+              <div className="mt-3">
+                {isLoading ? (
+                  <div className="text-sm text-black/60 py-3">
+                    Loading employees…
+                  </div>
+                ) : error ? (
+                  <div className="text-sm text-red-600 py-3">
+                    Failed to load employees.
+                  </div>
+                ) : employees.length === 0 ? (
+                  <div className="text-sm text-black/60 py-3">
+                    No employees found.
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {employees.slice(0, 7).map((e: any) => (
+                      <button
+                        key={e.id}
+                        className="w-full flex items-center justify-between rounded-xl px-3 py-3 hover:bg-black/5 transition"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-black/10 border border-black/10" />
+                          <div className="text-base font-semibold text-black">
+                            {e.full_name ?? "Unnamed"}
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-3 text-sm text-black/70">
-                        <span>{e.role ?? "EMPLOYEE"}</span>
-                        <span className="text-black/40 text-xl"></span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                        <div className="flex items-center gap-3 text-sm text-black/70">
+                          <span>{e.role ?? "EMPLOYEE"}</span>
+                          <span className="text-black/40 text-xl">›</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-            <div className="mt-6 flex justify-center">
-              <button className="bg-[#0B2E6D] text-white rounded-full px-8 py-2 text-sm font-semibold hover:opacity-95 transition">
-                See More
-              </button>
-            </div>
-          </Panel>
+              <div className="mt-6 flex justify-center">
+                <button className="bg-[#0B2E6D] text-white rounded-full px-8 py-2 text-sm font-semibold hover:opacity-95 transition">
+                  See More
+                </button>
+              </div>
+            </Panel>
+          </div>
         </div>
       </div>
     </ManagerLayout>
