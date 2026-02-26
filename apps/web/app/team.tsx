@@ -118,7 +118,6 @@ function Panel({
   );
 }
 
-/** Cards (sharp corners) */
 function Cards({
   children,
   className = "",
@@ -151,12 +150,6 @@ function CountBadge({ text }: { text: string }) {
   );
 }
 
-/**
- * Publish Feedback card
- * - Height is dynamic (NO fixed CardHeight)
- * - Buttons are always inside card (bottom-right)
- * - Works for any number of future drafts
- */
 function DraftCard({ draft }: { draft: DraftAnnouncement }) {
   return (
     <Cards className="relative p-6 flex flex-col">
@@ -178,7 +171,6 @@ function DraftCard({ draft }: { draft: DraftAnnouncement }) {
         <div className="mt-4 text-base text-black/75">{draft.body}</div>
       </div>
 
-      {/* Buttons always inside card */}
       <div className="pl-4 mt-5 flex gap-4 justify-end">
         <button className="px-7 py-2.5 rounded-full border border-black/15 text-sm font-semibold hover:bg-black/5 transition">
           Edit
@@ -194,14 +186,12 @@ function DraftCard({ draft }: { draft: DraftAnnouncement }) {
 export default function Team() {
   const { data: employees = [], isLoading, error } = useEmployees();
 
-  // Fixed height ONLY for the other two top cards (Leave + Swap)
   const CardHeight = "lg:h-[210px]";
 
   return (
     <ManagerLayout>
       <div className="w-full rounded-[24px] p-6 md:p-8 bg-[#D9D9D9]">
         <div className="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-2 gap-6 auto-rows-fr items-stretch">
-          {/* ───────── TOP ROW ───────── */}
           <Panel
             title="Review Leave Request"
             headerRight={
@@ -270,7 +260,7 @@ export default function Team() {
                     <span className="text-lg">📅</span> {sr.date}
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-lg">📍</span> {sr.location}
+                     {sr.location}
                   </div>
                 </div>
               </Cards>
@@ -294,7 +284,6 @@ export default function Team() {
             )}
           </Panel>
 
-          {/* ───────── BOTTOM ROW (unchanged) ───────── */}
           <div className="lg:col-span-2 lg:row-start-2">
             <Panel title="Feedback Received From Employees">
               <div className="space-y-4">
