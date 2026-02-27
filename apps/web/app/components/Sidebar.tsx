@@ -13,7 +13,6 @@ const items = [
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-
   const [modalOpen, setModalOpen] = useState(false);
 
   const handleLogout = () => {
@@ -21,16 +20,12 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   };
 
   return (
-    <aside className="h-screen w-64 text-white flex flex-col p-5 bg-black border-r border-white/20">
-      <div className="flex items-center justify-center pt-6 pb-14">
-        <img
-          src="/logo.png"
-          alt="Logo"
-          className="h-28 w-28 object-contain"
-        />
+    <aside className="h-screen w-64 text-white flex flex-col px-5 py-6 bg-black border-r border-white/20">
+      <div className="flex items-center justify-center pt-4 pb-10">
+        <img src="/logo.png" alt="Logo" className="h-32 w-32 object-contain" />
       </div>
 
-      <nav className="flex flex-col gap-2 text-sm">
+      <nav className="flex flex-col gap-3 text-base">
         {items.map((item) => {
           const active = pathname === item.href;
 
@@ -39,14 +34,18 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               key={item.href}
               href={item.href}
               onPress={onNavigate}
-              className={`w-fit px-4 py-3 rounded-full transition flex items-center gap-3
-                ${
-                  active
-                    ? "bg-white text-black font-semibold"
-                    : "text-[#62CCEF] hover:bg-white/5"
-              }`}
+              className={[
+                "w-full px-5 py-4 rounded-full transition flex items-center gap-4",
+                active
+                  ? "bg-white text-black font-semibold"
+                  : "text-[#62CCEF] hover:bg-white/5",
+              ].join(" ")}
             >
-              {item.label}
+
+              <span className="h-6 w-6 flex items-center justify-center shrink-0">
+              </span>
+
+              <span className="text-lg">{item.label}</span>
             </Link>
           );
         })}

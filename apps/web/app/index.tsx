@@ -54,12 +54,9 @@ function Card({
     >
       <div className="px-5 pt-4 text-lg font-semibold text-black">{title}</div>
 
-      {/* slightly smaller padding + full height body */}
       <div
         className={[
-          "px-5 pb-4 pt-2 flex-1 min-h-0",
-          // only scroll when truly needed
-          "overflow-auto",
+          "px-5 pb-4 pt-2 flex-1 min-h-0 overflow-auto",
           bodyClassName,
         ].join(" ")}
       >
@@ -69,17 +66,12 @@ function Card({
   );
 }
 
-function ChartPlaceholder({
-  fill = false,
-  sharp = false,
-}: {
-  fill?: boolean;
-  sharp?: boolean;
-}) {
+function ChartPlaceholder({ fill = false }: { fill?: boolean }) {
   return (
     <div
       className={[
-        sharp ? "rounded-none" : "rounded-2xl",
+        // always sharp corners per request
+        "rounded-none",
         "bg-[#F3F3F3] border border-black/10 flex items-center justify-center text-black/40",
         fill ? "h-full w-full" : "h-[230px] w-full",
       ].join(" ")}
@@ -104,7 +96,6 @@ function ActionButton({
     <div
       className={[
         "w-full bg-white border border-black/10 shadow-[0_6px_18px_rgba(0,0,0,0.10)] px-5 py-4 flex items-center gap-4 hover:bg-black/5 transition",
-        // a bit shorter to save space
         "min-h-[64px]",
         sharp ? "rounded-none" : "rounded-2xl",
       ].join(" ")}
@@ -158,7 +149,6 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-
           <Card title="Staff Overview" className={CARD_H}>
             <div className="text-base text-black/70 mb-4">
               2 active and 2 on break out of 40 total
@@ -174,7 +164,9 @@ export default function Dashboard() {
                     ].join(" ")}
                   />
                   <div className="h-12 w-12 rounded-full bg-black/10 border border-black/10" />
-                  <div className="text-lg font-medium text-black">{s.name}</div>
+                  <div className="text-lg font-medium text-black">
+                    {s.name}
+                  </div>
                 </div>
               ))}
             </div>
@@ -185,8 +177,7 @@ export default function Dashboard() {
             className={CARD_H}
             bodyClassName="flex min-h-0"
           >
-
-            <ChartPlaceholder />
+            <ChartPlaceholder fill />
           </Card>
 
           <Card title="Employees on leave" className={CARD_H}>
@@ -196,7 +187,9 @@ export default function Dashboard() {
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 rounded-full bg-orange-600/30 border border-black/10" />
                     <div>
-                      <div className="text-lg font-medium text-black">{p.name}</div>
+                      <div className="text-lg font-medium text-black">
+                        {p.name}
+                      </div>
                       <div className="text-sm text-black/50">{p.role}</div>
                     </div>
                   </div>
@@ -211,22 +204,22 @@ export default function Dashboard() {
             className={CARD_H}
             bodyClassName="overflow-auto"
           >
-            <div className="text-base text-black/70">
-              <div className="grid grid-cols-2 text-base font-medium text-black/70 border-b border-black/10 pb-3">
-                <span>Employee Name</span>
-                <span className="text-right">Task Completion Rate</span>
-              </div>
+            <div className="grid grid-cols-2 text-base font-medium text-black/70 border-b border-black/10 pb-3">
+              <span>Employee Name</span>
+              <span className="text-right">Task Completion Rate</span>
+            </div>
 
-              <div className="mt-5 space-y-5">
-                {performance.map((r) => (
-                  <div key={r.name} className="grid grid-cols-2 items-center">
-                    <span className="text-lg font-medium text-black">{r.name}</span>
-                    <span className="text-lg font-semibold text-black text-right">
-                      {r.rate}
-                    </span>
-                  </div>
-                ))}
-              </div>
+            <div className="mt-5 space-y-5">
+              {performance.map((r) => (
+                <div key={r.name} className="grid grid-cols-2 items-center">
+                  <span className="text-lg font-medium text-black">
+                    {r.name}
+                  </span>
+                  <span className="text-lg font-semibold text-black text-right">
+                    {r.rate}
+                  </span>
+                </div>
+              ))}
             </div>
           </Card>
 
@@ -242,7 +235,7 @@ export default function Dashboard() {
             </div>
 
             <div className="flex-1 min-h-0">
-              <ChartPlaceholder fill sharp />
+              <ChartPlaceholder fill />
             </div>
           </Card>
 
