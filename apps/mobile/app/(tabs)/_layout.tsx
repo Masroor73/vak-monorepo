@@ -4,8 +4,15 @@ import TopNavigation from "../../src/components/TopNav";
 import { useAuth } from "../../context/AuthContext";
 import BottomNavigation from "../../src/components/BottomNav";
 import Drawer from "../../src/components/Drawer";
+import { useShiftsRealtimeSubscription } from "../../hooks/useShiftsRealtimeSubscription";
 
 import { useState, useEffect } from "react";
+
+/** Mounted when user is in tabs; subscribes to shifts INSERT and invalidates shift queries. */
+function ShiftsRealtimeListener() {
+  useShiftsRealtimeSubscription();
+  return null;
+}
 
 export default function TabsLayout() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -22,6 +29,7 @@ export default function TabsLayout() {
 
   return (
     <View style={{ flex: 1 }}>
+      <ShiftsRealtimeListener />
       {/* Stack Navigation */}
       <Stack
         screenOptions={{
