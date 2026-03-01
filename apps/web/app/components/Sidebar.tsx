@@ -5,11 +5,12 @@ import StatusModal from "./StatusModal";
 const items = [
   { label: "Dashboard", href: "/" },
   { label: "Team", href: "/team" },
+  { label: "Employee Page", href: "/employee-list" },
   { label: "Operations", href: "/operations" },
   { label: "Analyze Reports", href: "/analyze-reports" },
   { label: "Communication", href: "/communication" },
   { label: "Settings", href: "/settings" },
-];
+  ];
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();

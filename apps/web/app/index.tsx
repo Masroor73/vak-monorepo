@@ -124,6 +124,7 @@ export default function Dashboard() {
         </div>
 
         <div className="col-span-12 grid grid-cols-12 gap-x-6 gap-y-4 items-start">
+          {/* Staff Overview - We'll take this out later*/}
           <div className="col-span-12 lg:col-span-4">
             <Card title="Staff Overview">
               <div className="text-sm text-black/60 mb-4">

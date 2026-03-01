@@ -276,7 +276,7 @@ export default function Team() {
             )}
           </Panel>
 
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <Panel title="Feedback Received From Employees">
               <div className="space-y-4">
                 {feedbacks.map((f) => (
@@ -302,7 +302,7 @@ export default function Team() {
             </Panel>
           </div>
 
-          {/* <Panel title="List of Employees">
+          <Panel title="List of Employees">
             <div className="border-b border-black/10 pb-2 text-sm text-black/55 flex justify-between">
               <span>Employee Name</span>
               <span>Role</span>
@@ -350,7 +350,7 @@ export default function Team() {
                 See More
               </button>
             </div>
-          </Panel> */}
+          </Panel>
         </div>
       </div>
     </ManagerLayout>
