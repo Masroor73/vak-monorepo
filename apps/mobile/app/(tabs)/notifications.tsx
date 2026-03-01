@@ -62,7 +62,7 @@ const Notifications = () => {
 
   return (
     <View className="flex-1 bg-damascus-background p-4">
-      <Text className="text-blue-900 font-bold text-2xl text-center mb-4">
+      <Text className="text-brand-secondaryLight font-bold text-2xl text-center mb-4">
         Notifications
       </Text>
 

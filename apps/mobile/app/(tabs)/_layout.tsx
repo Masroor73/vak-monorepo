@@ -1,15 +1,24 @@
 import { View } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import TopNavigation from "../../src/components/TopNav";
+import { useAuth } from "../../context/AuthContext";
 import BottomNavigation from "../../src/components/BottomNav";
 import Drawer from "../../src/components/Drawer";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function TabsLayout() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-
   const toggleDrawer = () => setIsDrawerOpen(prev => !prev);
+  const { session, loading } = useAuth();
+  const router = useRouter();
+
+    useEffect(() => {
+    if (loading) return;
+    if (!session) {
+      router.replace("/(public)/login");
+    }
+  }, [session, loading]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -27,6 +36,7 @@ export default function TabsLayout() {
         <Stack.Screen name="notifications" />
         <Stack.Screen name="editProfile" />
 
+        <Stack.Screen name="mySchedule" />
       </Stack>
 
       {/* Drawer
