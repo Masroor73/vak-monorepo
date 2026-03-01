@@ -5,7 +5,7 @@ interface PrimaryButtonProps {
   onPress?: () => void;
   isLoading?: boolean;
   variant?: "primary" | "danger"; // optional variant, defaults to primary
-  className?: string;
+  className?: string
 }
 
 export const PrimaryButton = ({
@@ -13,7 +13,7 @@ export const PrimaryButton = ({
   onPress,
   isLoading = false,
   variant = "primary",
-  className,
+  className
 }: PrimaryButtonProps) => {
   const backgroundColor = variant === "danger" ? "bg-red-700" : "bg-black";
 

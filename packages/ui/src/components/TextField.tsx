@@ -36,10 +36,10 @@ export const TextField = ({
       border: errorText
         ? "border-red-400"
         : isFocused
-        ? "border-white"
-        : "border-white/70",
+          ? "border-white"
+          : "border-white/70",
       placeholder: "rgba(255,255,255,0.45)",
-      label: errorText ? "text-red-400" : "text-white/70",
+      label: errorText ? "text-red-400" : "text-white",
       borderRadius: "rounded-[15px]",
       paddingY: "py-1",
     },

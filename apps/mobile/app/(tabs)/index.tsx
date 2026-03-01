@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { View, Text, Alert, Pressable } from "react-native";
+import { View, Text, Alert, Pressable, Button } from "react-native";
 import { MOCK_USER, MOCK_SHIFTS } from "../../constants/mockData";
 import { useRouter } from "expo-router";
 import { ShiftStatusCard } from "@vak/ui";
@@ -89,8 +89,7 @@ export default function Index() {
             <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2">
               <Text className="text-white/65 text-[11px] font-medium">☁️  15°C</Text>
             </View>
-            <View className={`flex-row items-center gap-1.5 rounded-[20px] px-3 py-1.5 border ${
-              hasShiftToday ? "bg-brand-success/15 border-brand-success/30" : "bg-white/10 border-white/10"}`}>
+            <View className={`flex-row items-center gap-1.5 rounded-[20px] px-3 py-1.5 border ${hasShiftToday ? "bg-brand-success/15 border-brand-success/30" : "bg-white/10 border-white/10"}`}>
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: hasShiftToday ? "#4ade80" : "rgba(255,255,255,0.35)" }} />
               <Text className={`text-[11px] font-semibold ${hasShiftToday ? "text-brand-success" : "text-white/65"}`}>
                 {hasShiftToday ? "1 shift today" : "No shifts"}
@@ -160,6 +159,7 @@ export default function Index() {
           )}
 
         </View>
+        <Button title="Report" onPress={() => router.push("/(tabs)/report")} />
       </View>
     </View>
   );
