@@ -34,14 +34,16 @@ export default function TabsLayout() {
         <Stack.Screen name="messages" />
         <Stack.Screen name="profile" />
         <Stack.Screen name="notifications" />
+        <Stack.Screen name="editProfile" />
+
         <Stack.Screen name="mySchedule" />
       </Stack>
 
-      {/* Drawer */}
+      {/* Drawer
       <Drawer
         isOpen={isDrawerOpen}
         toggleDrawer={toggleDrawer}
-      />
+      /> */}
 
       {/* Bottom Navigation */}
       <BottomNavigation />
