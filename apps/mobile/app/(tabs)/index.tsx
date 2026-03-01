@@ -159,7 +159,6 @@ export default function Index() {
           )}
 
         </View>
-        <Button title="Report" onPress={() => router.push("/(tabs)/report")} />
       </View>
     </View>
   );
