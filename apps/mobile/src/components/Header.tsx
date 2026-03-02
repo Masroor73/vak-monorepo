@@ -11,7 +11,7 @@ const Header = ({ title }: HeaderProps) => {
     const router = useRouter()
     return (
         <View className="flex-row items-center justify-between px-4 pt-4 pb-3">
-            <TouchableOpacity onPress={() => router.canGoBack()}>
+            <TouchableOpacity onPress={() => router.back()}>
                 <Ionicons name="arrow-back" size={24} color={"#063386"} />
             </TouchableOpacity>
             <View className='flex-1 items-center '>

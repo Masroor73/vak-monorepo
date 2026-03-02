@@ -35,16 +35,15 @@ const tabs: Tab[] = [
   },
 
 ]
+function Tab({ icon, label, onPress }: Tab) {
+
+  return (<TouchableOpacity className='flex-row items-center py-5 border-b border-gray-600' onPress={onPress}>
+    <Ionicons name={icon} size={24} />
+    <Text className='ml-4'>{label}</Text>
+  </TouchableOpacity>)
+}
 
 const Profile = () => {
-
-  function Tab({ icon, label, onPress }: Tab) {
-
-    return (<TouchableOpacity className='flex-row items-center py-5 border-b border-gray-600' onPress={onPress}>
-      <Ionicons name={icon} size={24} />
-      <Text className='ml-4'>{label}</Text>
-    </TouchableOpacity>)
-  }
 
   return (
     <ScrollView className='flex-1 bg-white'>

@@ -13,7 +13,7 @@ export default function TabsLayout() {
   const { session, loading } = useAuth();
   const router = useRouter();
 
-    useEffect(() => {
+  useEffect(() => {
     if (loading) return;
     if (!session) {
       router.replace("/(public)/login");
@@ -39,11 +39,11 @@ export default function TabsLayout() {
         <Stack.Screen name="mySchedule" />
       </Stack>
 
-      {/* Drawer
+      {/* Drawer */}
       <Drawer
         isOpen={isDrawerOpen}
         toggleDrawer={toggleDrawer}
-      /> */}
+      />
 
       {/* Bottom Navigation */}
       <BottomNavigation />
