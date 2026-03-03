@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { View, Text, TextInput, TextInputProps, Pressable } from "react-native";
+import { View, Text, TextInput, TextInputProps } from "react-native";
 
 interface TextFieldProps extends TextInputProps {
   label?: string;
   errorText?: string;
   rightElement?: React.ReactNode;
-  variant?: "light" | "dark"; // optional variant, defaults to light
+  variant?: "light" | "dark";
 }
 
 export const TextField = ({
@@ -15,13 +15,14 @@ export const TextField = ({
   secureTextEntry = false,
   value,
   onChangeText,
+  onFocus,
+  onBlur,
   rightElement,
-  variant = "light", // default
+  variant = "light",
   ...props
 }: TextFieldProps) => {
   const [isFocused, setIsFocused] = useState(false);
 
-  // Variant-dependent colors
   const colors = {
     light: {
       text: "text-black",
@@ -34,12 +35,12 @@ export const TextField = ({
     dark: {
       text: "text-white",
       border: errorText
-        ? "border-red-400"
+        ? "border-red-500"
         : isFocused
-          ? "border-white"
-          : "border-white/70",
-      placeholder: "rgba(255,255,255,0.45)",
-      label: errorText ? "text-red-400" : "text-white",
+          ? "border-auth-accent"
+          : "border-white",
+      placeholder: "white",
+      label: errorText ? "text-red-500" : "text-white",
       borderRadius: "rounded-[15px]",
       paddingY: "py-1",
     },
@@ -61,8 +62,8 @@ export const TextField = ({
           secureTextEntry={secureTextEntry}
           value={value}
           onChangeText={onChangeText}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onFocus={(e) => { setIsFocused(true); onFocus?.(e); }} 
+          onBlur={(e) => { setIsFocused(false); onBlur?.(e); }}
           {...props}
         />
 
