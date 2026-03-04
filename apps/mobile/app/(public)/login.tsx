@@ -169,9 +169,6 @@ export default function LoginScreen() {
         <ScrollView
           key={activeTab}
           className="flex-1 mx-5 z-10"
-          contentContainerStyle={{ paddingBottom: 24 }}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
         >
           <View className="bg-auth-deep rounded-xl p-5 border-2 border-white/10">
             {activeTab === "signin" ? (
