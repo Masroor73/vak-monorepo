@@ -6,6 +6,7 @@ import { StatusBadge } from "@vak/ui";
 import { MOCK_SHIFTS } from "../../../constants/mockData";
 import WhiteArrow from "../../../assets/WhiteArrow.svg";
 import { Shift } from "@vak/contract";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 /* ───────── Helpers ───────── */
 function formatTime(dateStr: string) {
@@ -135,7 +136,8 @@ export default function ShiftDetails() {
               {/* ── Date ── */}
               <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
                 <View className="w-8 h-8 rounded-full bg-brand-secondary/10 items-center justify-center">
-                  <Text className="text-sm">📅</Text>
+                  {/* 📅 → calendar-outline */}
+                  <Ionicons name="calendar-outline" size={16} color="#3b82f6" />
                 </View>
                 <View>
                   <Text className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
@@ -150,7 +152,8 @@ export default function ShiftDetails() {
               {/* ── Time ── */}
               <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
                 <View className="w-8 h-8 rounded-full bg-brand-secondary/10 items-center justify-center">
-                  <Text className="text-sm">🕐</Text>
+                  {/* 🕐 → time-outline */}
+                  <Ionicons name="time-outline" size={16} color="#3b82f6" />
                 </View>
                 <View className="flex-1">
                   <Text className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
@@ -168,7 +171,8 @@ export default function ShiftDetails() {
               {/* ── Location ── */}
               <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
                 <View className="w-8 h-8 rounded-full bg-brand-secondary/10 items-center justify-center">
-                  <Text className="text-sm">📍</Text>
+                  {/* 📍 → location-outline */}
+                  <Ionicons name="location-outline" size={16} color="#3b82f6" />
                 </View>
                 <View>
                   <Text className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
@@ -184,7 +188,8 @@ export default function ShiftDetails() {
               {hasBreak && (
                 <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
                   <View className="w-8 h-8 rounded-full bg-brand-secondary/10 items-center justify-center">
-                    <Text className="text-sm">☕</Text>
+                    {/* ☕ → coffee-outline (MaterialCommunityIcons) */}
+                    <MaterialCommunityIcons name="coffee-outline" size={16} color="#3b82f6" />
                   </View>
                   <View>
                     <Text className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
@@ -206,14 +211,16 @@ export default function ShiftDetails() {
         <View className="absolute bottom-0 left-0 right-0 px-4 pb-6 pt-3 bg-brand-background border-t border-gray-100">
           {canClockIn ? (
             <Pressable className="bg-brand-secondary rounded-2xl py-5 items-center justify-center flex-row gap-2">
-              <Text className="text-base">🕐</Text>
+              {/* 🕐 → time-outline */}
+              <Ionicons name="time-outline" size={18} color="#fff" />
               <Text className="text-white font-bold text-sm tracking-widest uppercase">
                 Clock In
               </Text>
             </Pressable>
           ) : (
             <View className="bg-gray-100 rounded-2xl py-5 items-center justify-center flex-row gap-2">
-              <Text className="text-base">🔒</Text>
+              {/* 🔒 → lock-closed */}
+              <Ionicons name="lock-closed" size={18} color="#9ca3af" />
               <Text className="text-gray-400 font-bold text-sm tracking-widest uppercase">
                 {shift.status === "COMPLETED"
                   ? "Shift Completed"

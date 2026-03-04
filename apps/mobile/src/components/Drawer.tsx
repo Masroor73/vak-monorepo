@@ -3,6 +3,7 @@ import DrawerLogo from "../../assets/DrawerLogo.svg";
 import { useRouter, usePathname } from "expo-router";
 import { useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 
 const { height } = Dimensions.get("window");
 const DRAWER_WIDTH = 260;
@@ -18,20 +19,20 @@ const SECTIONS = (pendingTasksCount: number, newRecognitionCount: number) => [
   {
     label: "MAIN",
     items: [
-      { label: "Daily Tasks List", subtitle: "View today's tasks", route: "/(tabs)/dailyTasks", icon: "📋", badge: pendingTasksCount > 0 ? String(pendingTasksCount) : null, badgeRed: true,} ,
-      { label: "Recognition", subtitle: "View & give kudos", route: "/(tabs)/recognition", icon: "⭐", badge: newRecognitionCount > 0 ? "New" : null, badgeRed: false, },
+      { label: "Daily Tasks List", subtitle: "View today's tasks", route: "/(tabs)/dailyTasks", icon: <Ionicons name="clipboard-outline" size={18} color="brown" />, badge: pendingTasksCount > 0 ? String(pendingTasksCount) : null, badgeRed: true,} ,
+      { label: "Recognition", subtitle: "View & give kudos", route: "/(tabs)/recognition", icon: <Ionicons name="star" size={18} color="yellow" />, badge: newRecognitionCount > 0 ? "New" : null, badgeRed: false, },
     ],
   },
   {
     label: "SCHEDULING",
     items: [
-      { label: "Set Availability", subtitle: "Update your schedule", route: "/(tabs)/setAvailability", icon: "📅", badge: null, badgeRed: false },
+      { label: "Set Availability", subtitle: "Update your schedule", route: "/(tabs)/setAvailability", icon: <Ionicons name="calendar-outline" size={18} color="red" />, badge: null, badgeRed: false },
     ],
   },
   {
     label: "REPORTS",
     items: [
-      { label: "Report Food Wastage", subtitle: "Log waste incidents", route: "/(tabs)/foodWastage", icon: "🗑️", badge: null, badgeRed: false },
+      { label: "Report Food Wastage", subtitle: "Log waste incidents", route: "/(tabs)/foodWastage", icon: <Ionicons name="trash-outline" size={18} color="silver" />, badge: null, badgeRed: false },
     ],
   },
 ];
@@ -104,13 +105,13 @@ export default function Drawer({ isOpen, toggleDrawer, pendingTasksCount = 0, ne
               >
                 {/* Icon */}
                 <View style={s.iconBox}>
-                  <Text>{item.icon}</Text>
+                  {item.icon}
                 </View>
 
                 {/* Labels */}
                 <View className="flex-1 justify-center">
-                  <Text className="text-[13px] font-medium text-white/70">{item.label}</Text>
-                  <Text className="text-white/30 text-[11px]">{item.subtitle}</Text>
+                  <Text className="text-[13px] font-medium text-white">{item.label}</Text>
+                  <Text className="text-white/70 text-[11px]">{item.subtitle}</Text>
                 </View>
 
                 {/* Badge */}
@@ -132,7 +133,7 @@ export default function Drawer({ isOpen, toggleDrawer, pendingTasksCount = 0, ne
       <View className="px-8">
         <Pressable onPress={handleLogout} style={s.logoutBtn}>
           <View style={s.logoutIconBox}>
-            <Text>🚪</Text>
+            <MaterialIcons name="logout" size={18} color="#e74c3c" />
           </View>
           <Text className="text-red-400 text-sm font-semibold">Log Out</Text>
         </Pressable>
