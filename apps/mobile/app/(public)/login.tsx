@@ -11,16 +11,7 @@ import { LoginSchema, LoginInput, SignupSchema, SignupInput, PASSWORD_RULES } fr
 import EyeOpenIcon from "../../assets/eyeOpen.svg";
 import EyeClosedIcon from "../../assets/eyeClosed.svg";
 import {GoogleButton}  from "../../src/components/GoogleButton";
-
-const Circle = ({ className }: { className: string }) => (
-  <View className={`rounded-full absolute ${className}`} pointerEvents="none" />
-);
-const Ring = ({ className }: { className: string }) => (
-  <View className={`rounded-full absolute bg-transparent border ${className}`} pointerEvents="none" />
-);
-const Diamond = ({ className }: { className: string }) => (
-  <View className={`absolute rotate-45 ${className}`} pointerEvents="none" />
-);
+import { Circle, Ring, Diamond } from "../../src/components/Shapes";
 
 const PasswordRequirementsBox = ({
   password,
@@ -53,7 +44,7 @@ const PasswordRequirementsBox = ({
           <View className={`w-4 h-4 rounded-full items-center justify-center ${passwordsMatch ? "bg-green-500" : "bg-red-500"}`}>
             <Text className="text-white text-[9px] font-bold">{passwordsMatch ? "✓" : "✕"}</Text>
           </View>
-          <Text className={`text-xs ${passwordsMatch ? "text-green-400" : "text-red-400"}`}>
+          <Text className={`text-xs ${passwordsMatch ? "text-green-400" : "text-red-500"}`}>
             Passwords match
           </Text>
         </View>
