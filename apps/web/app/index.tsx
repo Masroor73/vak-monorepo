@@ -10,13 +10,11 @@ export default function Index() {
     if (loading) return;
 
     if (!session) {
-      // Not logged in - go to login
       router.replace('/(public)/login');
     } else {
-      // Logged in - go to dashboard
       router.replace('/(tabs)');
     }
   }, [session, loading]);
 
-  return null; // Nothing to show while redirecting
+  return null; 
 }
