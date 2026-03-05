@@ -200,7 +200,7 @@ export default function LoginScreen() {
               <button
                 type="button"
                 onClick={() => setAuthError("")}
-                className="text-red-400/60 hover:text-red-400 text-[10px] ml-3 leading-none mt-0.5"
+                className="text-red-400/60 hover:text-red-400 text-[10px] ml-3 leading-none"
               >
                 ✕
               </button>
