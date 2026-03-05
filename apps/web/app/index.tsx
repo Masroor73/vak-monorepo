@@ -1,14 +1,22 @@
-import { View, Text } from 'react-native';
+import { useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import { useAuth } from '../context/AuthContext';
 
 export default function Index() {
-  return (
-    <View className="flex-1 justify-center items-center bg-damascus-background">
-      <Text className="text-4xl font-bold text-damascus-primary">
-        Manager Dashboard
-      </Text>
-      <Text className="text-xl text-damascus-text mt-4">
-        Squad B: Operational
-      </Text>
-    </View>
-  );
+  const { session, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return;
+
+    if (!session) {
+      // Not logged in - go to login
+      router.replace('/(public)/login');
+    } else {
+      // Logged in - go to dashboard
+      router.replace('/(tabs)');
+    }
+  }, [session, loading]);
+
+  return null; // Nothing to show while redirecting
 }
