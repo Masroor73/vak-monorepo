@@ -1,21 +1,25 @@
-import { View, Text } from "react-native";
+import { View, Text, Pressable } from "react-native";
 
 interface TaskCardProps {
   title: string;
   priority: "low" | "medium" | "high";
+  onPress?: () => void;
 }
 
-export const TaskCard = ({ title, priority }: TaskCardProps) => {
+export const TaskCard = ({ title, priority, onPress }: TaskCardProps) => {
   // Left border color based on priority
   const borderColor =
     priority === "high"
       ? "red"
       : priority === "medium"
-      ? "orange"
-      : "green";
+        ? "orange"
+        : "green";
 
   return (
-    <View className="flex-row items-center rounded-xl mb-4 overflow-hidden border border-gray-400">
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center rounded-xl mb-4 overflow-hidden border border-gray-400"
+    >
       {/* Left colored bar */}
       <View
         className="h-full"
@@ -27,8 +31,8 @@ export const TaskCard = ({ title, priority }: TaskCardProps) => {
 
       {/* Content */}
       <View className="flex-1 px-5 py-5">
-        <Text className="text-base">{title}</Text>
+        <Text className="text-base text-gray-200">{title}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 };
