@@ -7,7 +7,7 @@
 
 > **The AI-Powered Operating System for High-Compliance Hospitality.**
 
-V.A.K is a vertical **Workforce Management System (WMS)** designed specifically for the low-margin, high-compliance restaurant industry. Unlike generic schedulers, V.A.K correlates labor data with inventory waste analytics to provide actionable operational intelligence.
+V.A.K is a vertical **Workforce Management Operating System (WMOS)** designed specifically for the low-margin, high-compliance restaurant industry. Unlike generic schedulers, V.A.K correlates labor data with inventory waste analytics to provide actionable operational intelligence.
 
 Built on a **Hybrid Serverless Microservices Architecture**, it enforces strict financial compliance via an isolated .NET Engine while delivering a fluid, mobile-first experience for staff.
 
@@ -42,6 +42,8 @@ The system is decoupled into three distinct layers to ensure scalability and fau
 3.  **The "Live" Schedule:** Real-time shift publishing via WebSockets (Zero-latency updates).
 4.  **P2P Shift Marketplace:** Automated shift swapping workflow with Manager approval queues.
 5.  **8/44 Compliance Engine:** Automated overtime calculation ensuring strict adherence to Alberta Labour Standards.
+6.  **AI Waste Log:** Computer Vision analysis of food waste photos. (Strech goal)
+7.	 **Natural Language Analytics:** "Ask your Data" feature for managers. (Stretch goal)
 
 ---
 

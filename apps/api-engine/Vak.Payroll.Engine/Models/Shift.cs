@@ -19,6 +19,22 @@ namespace Vak.Payroll.Engine.Models
         [JsonPropertyName("end_time")]
         public DateTime EndTime { get; set; }
 
+        [JsonPropertyName("actual_start_time")]
+        public DateTime? ActualStartTime { get; set; }
+
+        [JsonPropertyName("actual_end_time")]
+        public DateTime? ActualEndTime { get; set; }
+
+        [JsonPropertyName("clock_in_lat")]
+        public double? ClockInLat { get; set; }
+
+        [JsonPropertyName("clock_in_long")]
+        public double? ClockInLong { get; set; }
+
+        // Role at time of shift — matches contract JobRoleEnum: SERVER, BARTENDER, LINE_COOK, etc.
+        [JsonPropertyName("role_at_time_of_shift")]
+        public string? RoleAtTimeOfShift { get; set; }
+
         [JsonPropertyName("unpaid_break_minutes")]
         public double UnpaidBreakMinutes { get; set; } = 0;
 

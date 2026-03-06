@@ -1,27 +1,29 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./app/**/*.{js,jsx,ts,tsx}", 
-    "../../packages/ui/src/**/*.{js,jsx,ts,tsx}" 
+    "./app/**/*.{js,jsx,ts,tsx}",
+    "./src/**/*.{js,jsx,ts,tsx}",
+    "../../packages/ui/src/**/*.{js,jsx,ts,tsx}",
   ],
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
       colors: {
         damascus: {
-          primary: "#D32F2F", 
-          secondary: "#FBC02D", 
+          primary: "#D32F2F",
+          secondary: "#FBC02D",
           background: "#F5F5F5",
           text: "#212121",
         },
         brand: {
-          primary: '#62CCEF',
-          secondary: "#063386",
+          background: "#F5F5F5",
+          primary: "#62CCEF",
+          secondary: "#0d1b3e",
+          secondaryLight: "#1a3278",
           success: "#05CC66",
         },
       },
     },
   },
   plugins: [],
-}
-
+};

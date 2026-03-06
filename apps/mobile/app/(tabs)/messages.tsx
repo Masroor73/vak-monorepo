@@ -2,7 +2,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 
-const Alerts = () => {
+const Messages = () => {
   return (
     <View>
       <Text>Messages Page</Text>
@@ -10,4 +10,4 @@ const Alerts = () => {
   );
 };
 
-export default Alerts;
+export default Messages;
