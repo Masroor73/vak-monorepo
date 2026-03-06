@@ -195,12 +195,12 @@ export default function LoginScreen() {
 
           {/* Auth error banner */}
           {authError && (
-            <div className="flex items-start justify-between border border-red-500/30 bg-red-500/10 px-3 py-2 mt-2">
-              <p className="text-[11px] text-red-400">{authError}</p>
+            <div className="flex items-start justify-between border border-red-500/30 bg-red-500/10 px-3 py-3 mt-5">
+              <p className="text-[12px] text-red-400">{authError}</p>
               <button
                 type="button"
                 onClick={() => setAuthError("")}
-                className="text-red-400/60 hover:text-red-400 text-[10px] ml-3 leading-none"
+                className="text-red-400/50 hover:text-red-400 text-[12px] ml-3 leading-none mt-0.5"
               >
                 ✕
               </button>
