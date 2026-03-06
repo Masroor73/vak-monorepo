@@ -20,7 +20,7 @@ export default function TabsLayout() {
   const { session, loading } = useAuth();
   const router = useRouter();
 
-    useEffect(() => {
+  useEffect(() => {
     if (loading) return;
     if (!session) {
       router.replace("/(public)/login");
@@ -42,6 +42,8 @@ export default function TabsLayout() {
         <Stack.Screen name="messages" />
         <Stack.Screen name="profile" />
         <Stack.Screen name="notifications" />
+        <Stack.Screen name="editProfile" />
+
         <Stack.Screen name="mySchedule" />
       </Stack>
 

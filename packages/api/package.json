@@ -1,17 +1,19 @@
 {
   "name": "@vak/api",
   "version": "1.0.0",
+  "private": true,
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
     "generate": "orval --config ./orval.config.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.94.0",
     "axios": "^1.6.0"
   },
   "peerDependencies": {
-    "@tanstack/react-query": "^5.0.0",
-    "react": "^18.0.0"
+    "@tanstack/react-query": "^5.90.20",
+    "react": "*"
   },
   "devDependencies": {
     "orval": "^6.25.0",
