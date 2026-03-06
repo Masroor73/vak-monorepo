@@ -1,4 +1,3 @@
-//apps/mobile/app/index.tsx
 import { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
@@ -9,18 +8,25 @@ export default function IndexScreen() {
   const { session, loading } = useAuth();
 
   useEffect(() => {
-  if (loading) return;
+    if (loading) return;
 
-  if (!session) {
-    router.replace("/(public)/login");
-    return;
-  }
+    if (!session) {
+      router.replace("/(public)/login");
+    } else {
+      router.replace("/(tabs)");
+    }
+  }, [session, loading, router]);
 
-  router.replace("/(tabs)");
-}, [session, loading]);
   return (
-    <View className="flex-1 justify-center items-center bg-white">
-      <ActivityIndicator size="large" color="#000" />
+    <View
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#ffffff",
+      }}
+    >
+      <ActivityIndicator size="large" color="#000000" />
     </View>
   );
 }
