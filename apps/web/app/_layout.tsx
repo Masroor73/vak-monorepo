@@ -1,6 +1,7 @@
 import "../global.css";
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AuthProvider } from "../context/AuthContext";
 import { initSupabase } from "@vak/api";
 import { useEffect, useMemo } from "react";
 
@@ -16,7 +17,9 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
+       <AuthProvider>
       <Stack screenOptions={{ headerShown: false }} />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
