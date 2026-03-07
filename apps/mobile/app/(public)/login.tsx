@@ -24,7 +24,7 @@ const PasswordRequirementsBox = ({
 }) => {
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
   return (
-    <View className="bg-auth-deep border border-white/40 rounded-xl px-4 py-3 mb-3">
+    <View className="bg-auth-deep border border-white/40 rounded-xl px-4 py-3 mb-4 mr-4 ml-4">
       <Text className="text-white text-xs font-bold mb-2 uppercase tracking-wide">
         Password Requirements
       </Text>

@@ -239,7 +239,7 @@ export default function ResetPasswordScreen() {
               <Text className="text-red-500 text-xs text-center -mt-2 mb-3">{serverError}</Text>
             )}
 
-            <View className="flex-row items-center justify-between mt-6 gap-6 ml-5 mr-5">
+            <View className="flex-row items-center justify-between mt-6 gap-6">
               <View className="flex-1 h-[50px] rounded-xl border border-auth-accent/30 bg-brand-secondary/70">
                <PrimaryButton
                  title="Back"
