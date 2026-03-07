@@ -43,6 +43,20 @@ export const SignupSchema = LoginSchema.extend({
   { path: ["confirmPassword"], message: "Passwords do not match" }
 )
 
+export const ForgotPasswordSchema = z.object({
+  email: z.string()
+    .min(1, { message: "Please enter your email address." })
+    .email({ message: "Please enter a valid email address." }),
+});
+
+export const ResetPasswordSchema = z.object({
+  password: passwordSchema,
+  confirmPassword: z.string().min(1, { message: "Please confirm your password." }),
+}).refine(
+  (data) => data.password === data.confirmPassword,
+  { path: ["confirmPassword"], message: "Passwords do not match." }
+);
+
 export const ProfileSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
@@ -56,3 +70,5 @@ export const ProfileSchema = z.object({
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type Profile = z.infer<typeof ProfileSchema>;
 export type SignupInput = z.infer<typeof SignupSchema>;
+export type ForgotPasswordInput = z.infer<typeof ForgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;
