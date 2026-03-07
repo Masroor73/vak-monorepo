@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { View, Text, Alert, Pressable, } from "react-native";
+import { View, Text, Alert, Pressable, Button, } from "react-native";
 import { MOCK_USER, MOCK_SHIFTS } from "../../constants/mockData";
 import { useRouter } from "expo-router";
 import { ShiftStatusCard } from "@vak/ui";
@@ -170,6 +170,7 @@ export default function Index() {
           )}
 
         </View>
+        <Button title="profile" onPress={() => router.push("/(tabs)/profile")} />
       </View>
     </View>
   );
