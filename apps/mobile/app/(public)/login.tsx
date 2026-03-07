@@ -2,33 +2,71 @@
 import { useState, useEffect } from "react";
 import { View, Alert, Pressable, Text, TouchableOpacity, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
-import { TextField } from "@vak/ui";
+import { TextField, PrimaryButton } from "@vak/ui";
 import { useAuth } from "../../context/AuthContext";
 import { useForm, Controller } from "react-hook-form";
 import Logo from "../../assets/Logo.svg";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LoginSchema, LoginInput, SignupSchema, SignupInput } from "@vak/contract";
+import { LoginSchema, LoginInput, SignupSchema, SignupInput, PASSWORD_RULES } from "@vak/contract";
 import EyeOpenIcon from "../../assets/eyeOpen.svg";
 import EyeClosedIcon from "../../assets/eyeClosed.svg";
-import Google from "../../assets/Google.svg";
+import {GoogleButton}  from "../../src/components/GoogleButton";
+import { Circle, Ring, Diamond } from "../../src/components/Shapes";
 
-// ─── Geometric shape primitives ───────────────────────────────────────────────
-const Circle = ({ className }: { className: string }) => (
-  <View className={`rounded-full absolute ${className}`} pointerEvents="none" />
-);
-const Ring = ({ className }: { className: string }) => (
-  <View className={`rounded-full absolute bg-transparent border ${className}`} pointerEvents="none" />
-);
-const Diamond = ({ className }: { className: string }) => (
-  <View className={`absolute rotate-45 ${className}`} pointerEvents="none" />
-);
+const PasswordRequirementsBox = ({
+  password,
+  confirmPassword,
+  showMismatch,
+}: {
+  password: string;
+  confirmPassword: string;
+  showMismatch: boolean;
+}) => {
+  const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
+  return (
+    <View className="bg-auth-deep border border-white/40 rounded-xl px-4 py-3 mb-4 mr-4 ml-4">
+      <Text className="text-white text-xs font-bold mb-2 uppercase tracking-wide">
+        Password Requirements
+      </Text>
+      {PASSWORD_RULES.map((rule) => {
+        const met = rule.test(password);
+        return (
+          <View key={rule.label} className="flex-row items-center gap-2 mb-1">
+            <View className={`w-4 h-4 rounded-full items-center justify-center ${met ? "bg-green-500" : "bg-white/60"}`}>
+              {met && <Text className="text-white text-[9px] font-bold">✓</Text>}
+            </View>
+            <Text className={`text-xs ${met ? "text-green-500" : "text-white"}`}>{rule.label}</Text>
+          </View>
+        );
+      })}
+      {confirmPassword.length > 0 && (
+        <View className="flex-row items-center gap-2 mb-1">
+          <View className={`w-4 h-4 rounded-full items-center justify-center ${passwordsMatch ? "bg-green-500" : "bg-red-500"}`}>
+            <Text className="text-white text-[9px] font-bold">{passwordsMatch ? "✓" : "✕"}</Text>
+          </View>
+          <Text className={`text-xs ${passwordsMatch ? "text-green-400" : "text-red-500"}`}>
+            Passwords match
+          </Text>
+        </View>
+      )}
+      {showMismatch && (
+        <View className="flex-row items-center gap-2 mt-1">
+          <View className="w-4 h-4 rounded-full items-center justify-center bg-red-500">
+            <Text className="text-white text-[9px] font-bold">✕</Text>
+          </View>
+          <Text className="text-xs text-red-400">Passwords do not match</Text>
+        </View>
+      )}
+    </View>
+  );
+};
 
-// ─── Main Component ───────────────────────────────────────────────────────────
 export default function LoginScreen() {
   const router = useRouter();
   const [showSignInPassword, setShowSignInPassword]   = useState(false);
   const [showSignUpPassword, setShowSignUpPassword]   = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isPasswordFocused, setIsPasswordFocused]     = useState(false);
 
   const { session, loading, signUp, login } = useAuth();
   const [isLoading, setIsLoading]   = useState(false);
@@ -49,9 +87,13 @@ export default function LoginScreen() {
     mode: "onSubmit",
   });
 
+  const watchedPassword        = signUpForm.watch("password");
+  const watchedConfirmPassword = signUpForm.watch("confirmPassword");
+
   useEffect(() => {
     if (activeTab === "signup") signUpForm.reset({ email: "", password: "", full_name: "", confirmPassword: "" });
     if (activeTab === "signin") { signInForm.reset({ email: "", password: "" }); setLoginError(null); }
+    setIsPasswordFocused(false);
   }, [activeTab]);
 
   const onSignUp = async (data: SignupInput) => {
@@ -87,63 +129,46 @@ export default function LoginScreen() {
   }, [session, loading]);
 
   return (
-    <View className="flex-1 bg-brand-secondary">
-
-      {/* ── HERO ─────────────────────────────────────────────────────────── */}
-      <View className="bg-brand-secondary items-center overflow-hidden pt-14 pb-6">
-        <Circle  className="w-52 h-52 bg-brand-secondaryLight -top-20 -right-16" />
-        <Ring    className="w-36 h-36 border-brand-primary/25 top-2 -right-8" />
-        <Diamond className="w-7  h-7  bg-brand-primary/30 top-16 right-16" />
-        <Diamond className="w-6  h-6  bg-brand-primary/50 top-24 left-8" />
-
-        {/* ── Single circle, larger logo ── */}
-        <View className="z-10 items-center">
-          <View className="w-36 h-36 rounded-full bg-brand-secondaryLight items-center justify-center mt-8 mb-5">
+    <View className="flex-1">
+      <View className="bg-auth-primary items-center overflow-hidden pt-20 pb-3">
+        <Circle  className="w-52 h-52 bg-auth-mid -top-20 -right-10" />
+        <Ring    className="w-36 h-36 border-brand-primary top-20 -right-8" />
+        <Diamond className="w-5  h-5  bg-brand-primary top-16 right-24" />
+        <Diamond className="w-6  h-6  bg-auth-accent top-24 left-8" />
+          <View className="z-10 w-36 h-36 items-center justify-center mt-5">
             <Logo width={110} height={100} />
           </View>
-          <Text className="text-brand-primary text-[20px] font-extrabold tracking-[2px] uppercase">V.A.K</Text>
-        </View>
+          <Text className="text-auth-accent text-[20px] font-extrabold tracking-[2px] uppercase">V.A.K</Text>
       </View>
 
-      {/* ── BOTTOM PANEL ─────────────────────────────────────────────────── */}
-      <View className="flex-1 bg-brand-secondary overflow-hidden">
-        <Circle className="w-40 h-40 bg-brand-primary/5 -bottom-16 -right-10" />
-        <Circle className="w-24 h-24 bg-brand-secondaryLight/80 -bottom-1 -left-8" />
-
-        {/* Tab Switcher */}
-        <View className="flex-row mx-12 mb-6 bg-brand-secondary border-2 border-white/50 rounded-2xl p-1.5 z-10">
+      <View className="flex-1 bg-auth-primary overflow-hidden">
+        <View className="flex-row mx-12 mb-6 bg-auth-primary border border-white/80 rounded-2xl p-1.5 z-10">
           <Pressable
-            className={`flex-1 py-3 rounded-xl items-center ${activeTab === "signin" ? "bg-brand-primary/80" : "bg-transparent"}`}
+            className={`flex-1 py-3 rounded-xl items-center ${activeTab === "signin" ? "bg-auth-accent" : "bg-transparent"}`}
             onPress={() => setActiveTab("signin")}
           >
-            <Text className={`text-sm font-semibold ${activeTab === "signin" ? "text-brand-secondary" : "text-white/70"}`}>
-              Sign In
-            </Text>
+            <Text className="font-semibold text-white">Sign In</Text>
           </Pressable>
           <Pressable
-            className={`flex-1 py-3 rounded-xl items-center ${activeTab === "signup" ? "bg-brand-primary/80" : "bg-transparent"}`}
+            className={`flex-1 py-3 rounded-xl items-center ${activeTab === "signup" ? "bg-auth-accent" : "bg-transparent"}`}
             onPress={() => setActiveTab("signup")}
           >
-            <Text className={`text-sm font-semibold ${activeTab === "signup" ? "text-brand-secondary" : "text-white/70"}`}>
-              Sign Up
-            </Text>
+            <Text className="text-sm font-semibold text-white">Sign Up</Text>
           </Pressable>
         </View>
 
-        {/* Form Card */}
         <ScrollView
+          key={activeTab}
           className="flex-1 mx-5 z-10"
           contentContainerStyle={{ paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View className="bg-brand-secondaryLight/80 rounded-3xl p-5 border border-white/10">
-
+          <View className="bg-auth-deep rounded-xl p-5 border-2 border-white/10">
             {activeTab === "signin" ? (
               <>
                 <Text className="text-white text-lg font-bold mb-1">Welcome back</Text>
-                <Text className="text-white/40 text-xs mb-5">Sign in to clock in for your shift</Text>
-
+                <Text className="text-white text-l mb-5">Sign in to clock in for your shift</Text>
                 <Controller
                   control={signInForm.control}
                   name="email"
@@ -160,7 +185,6 @@ export default function LoginScreen() {
                     />
                   )}
                 />
-
                 <Controller
                   control={signInForm.control}
                   name="password"
@@ -176,9 +200,7 @@ export default function LoginScreen() {
                         errorText={signInForm.formState.errors.password?.message}
                         rightElement={
                           <Pressable onPress={() => setShowSignInPassword(!showSignInPassword)}>
-                            {showSignInPassword
-                              ? <EyeOpenIcon width={22} height={22} />
-                              : <EyeClosedIcon width={22} height={22} />}
+                            {showSignInPassword ? <EyeOpenIcon width={22} height={22} /> : <EyeClosedIcon width={22} height={22} />}
                           </Pressable>
                         }
                       />
@@ -188,50 +210,31 @@ export default function LoginScreen() {
                     </>
                   )}
                 />
-
-                {/* Remember me + Forgot password */}
                 <View className="flex-row items-center justify-between mb-5 mt-1 mr-5">
                   <TouchableOpacity onPress={() => setRememberMe(!rememberMe)} className="flex-row items-center">
-                    <View className={`w-5 h-5 rounded-md ml-5 m-2 items-center justify-center border ${rememberMe ? "bg-brand-primary border-brand-primary" : "bg-transparent border-brand-primary/70"}`}>
-                      {rememberMe && <Text className="text-brand-secondary font-bold text-xs leading-none">✓</Text>}
+                    <View className={`w-6 h-6 rounded-md ml-5 m-2 items-center justify-center border-2 ${rememberMe ? "bg-auth-accent border-auth-accent" : "bg-transparent border-auth-accent"}`}>
+                      {rememberMe && <Text className="text-brand-secondary font-extrabold text-xl leading-none">✓</Text>}
                     </View>
-                    <Text className="text-white text-sm">Remember me</Text>
+                    <Text className="text-white font-semibold ">Remember me</Text>
                   </TouchableOpacity>
-
                   <Pressable onPress={onForgotPassword}>
-                    <Text className="text-brand-primary text-sm font-semibold">
-                      Forgot password?
-                    </Text>
+                    <Text className="text-white font-semibold">Forgot password?</Text>
                   </Pressable>
                 </View>
-
-                 <Pressable
-                    onPress={signInForm.handleSubmit(onLogin)}
-                    disabled={isLoading}
-                    className="rounded-xl items-center justify-center bg-brand-primary/75 self-center"
-                    style={{ height: 50, width: 165 }}
-                  >
-                  <Text className="text-white font-semibold text-sm"> {isLoading ? "Loading..." : "Continue"} </Text>
-                </Pressable>
-
-                {/* Divider */}
+                <View className="bg-auth-accent rounded-[8px] h-[50px] w-[165px] self-center">
+                  <PrimaryButton
+                  title={isLoading ? "Loading..." : "Continue"}
+                  onPress={signInForm.handleSubmit(onLogin)}
+                  isLoading={isLoading}
+                  className=" h-full w-full bg-transparent"
+                  />
+                </View>
                 <View className="flex-row items-center m-8">
                   <View className="flex-1 h-px bg-white" />
                   <Text className="text-white text-xs mx-3">or</Text>
                   <View className="flex-1 h-px bg-white" />
                 </View>
-
-                {/* Google Sign In */}
-                <Pressable
-                  onPress={() => {}}
-                  className="flex-row items-center justify-center self-center border border-white/70 rounded-xl h-[52px] w-[200px] bg-brand-secondary"
-                >
-                  {/* Google "G" logo using coloured text blocks */}
-                  <View className="mr-3 w-5 h-5 items-center justify-center">
-                     <Google width={20} height={20} />
-                  </View>
-                  <Text className="text-white/80 text-sm font-semibold">Continue with Google</Text>
-                </Pressable>
+                <GoogleButton onPress={() => console.log("Google login clicked")} />
               </>
             ) : (
               <>
@@ -250,7 +253,6 @@ export default function LoginScreen() {
                     />
                   )}
                 />
-
                 <Controller
                   control={signUpForm.control}
                   name="email"
@@ -267,30 +269,37 @@ export default function LoginScreen() {
                     />
                   )}
                 />
-
                 <Controller
                   control={signUpForm.control}
                   name="password"
                   render={({ field }) => (
-                    <TextField
-                      variant="dark"
-                      label="Password"
-                      placeholder="Enter your password"
-                      secureTextEntry={!showSignUpPassword}
-                      value={field.value}
-                      onChangeText={field.onChange}
-                      errorText={signUpForm.formState.errors.password?.message}
-                      rightElement={
-                        <Pressable onPress={() => setShowSignUpPassword(!showSignUpPassword)}>
-                          {showSignUpPassword
-                            ? <EyeOpenIcon width={22} height={22} />
-                            : <EyeClosedIcon width={22} height={22} />}
-                        </Pressable>
-                      }
-                    />
+                    <>
+                      <TextField
+                        variant="dark"
+                        label="Password"
+                        placeholder="Enter your password"
+                        secureTextEntry={!showSignUpPassword}
+                        value={field.value}
+                        onChangeText={field.onChange}
+                        errorText={signUpForm.formState.errors.password?.message}
+                        onFocus={() => setIsPasswordFocused(true)}
+                        onBlur={() => setIsPasswordFocused(false)}
+                        rightElement={
+                          <Pressable onPress={() => setShowSignUpPassword(!showSignUpPassword)}>
+                            {showSignUpPassword ? <EyeOpenIcon width={22} height={22} /> : <EyeClosedIcon width={22} height={22} />}
+                          </Pressable>
+                        }
+                      />
+                      {isPasswordFocused && (
+                        <PasswordRequirementsBox
+                          password={watchedPassword}
+                          confirmPassword={watchedConfirmPassword}
+                          showMismatch={signUpForm.formState.errors.confirmPassword?.message === "Passwords do not match"}
+                        />
+                      )}
+                    </>
                   )}
                 />
-
                 <Controller
                   control={signUpForm.control}
                   name="confirmPassword"
@@ -305,40 +314,27 @@ export default function LoginScreen() {
                       errorText={signUpForm.formState.errors.confirmPassword?.message}
                       rightElement={
                         <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                          {showConfirmPassword
-                            ? <EyeOpenIcon width={22} height={22} />
-                            : <EyeClosedIcon width={22} height={22} />}
+                          {showConfirmPassword ? <EyeOpenIcon width={22} height={22} /> : <EyeClosedIcon width={22} height={22} />}
                         </Pressable>
                       }
                     />
                   )}
                 />
-                <Pressable
+                <View className="bg-auth-accent rounded-[8px] h-[50px] w-[165px] self-center">
+                  <PrimaryButton
+                  title={isLoading ? "Loading..." : "Continue"}
                   onPress={signUpForm.handleSubmit(onSignUp)}
-                  disabled={isLoading}
-                  className="rounded-xl items-center justify-center bg-brand-primary/75 self-center"
-                  style={{ height: 50, width: 165 }}
-                >
-                <Text className="text-white font-semibold text-sm"> {isLoading ? "Loading..." : "Continue"} </Text>
-                </Pressable>
-
-                {/* Divider */}
+                  isLoading={isLoading}
+                  className=" h-full w-full bg-transparent"
+                  />
+                </View>
+                
                 <View className="flex-row items-center my-4">
                   <View className="flex-1 h-px bg-white" />
                   <Text className="text-white text-xs mx-3">or</Text>
                   <View className="flex-1 h-px bg-white" />
                 </View>
-
-                {/* Google Sign Up */}
-                <Pressable
-                  onPress={() => {}}
-                  className="flex-row items-center justify-center border self-center border-white/70 rounded-xl h-[52px] w-[200px] bg-brand-secondary"
-                >
-                  <View className="mr-3 w-5 h-5 items-center justify-center">
-                    <Google width={20} height={20} />
-                  </View>
-                  <Text className="text-white/80 text-sm font-semibold">Continue with Google</Text>
-                </Pressable>
+                <GoogleButton onPress={() => console.log("Google login clicked")} />
               </>
             )}
           </View>
