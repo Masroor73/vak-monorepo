@@ -1,4 +1,4 @@
-import { Profile, Shift } from '@vak/contract';
+import { Profile, ProfileUpdateInput, Shift } from '@vak/contract';
 
 // 1. Mock User Profile
 
@@ -186,7 +186,7 @@ export const MOCK_TASKS: Task[] = [
 // 4. Profile Edit Form Fields
 
 export interface ProfileField {
-  name: string;
+  name: keyof ProfileUpdateInput;
   label: string;
   placeholder: string;
 }
