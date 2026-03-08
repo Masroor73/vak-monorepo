@@ -147,7 +147,7 @@ export default function LoginScreen() {
             className={`flex-1 py-3 rounded-xl items-center ${activeTab === "signin" ? "bg-auth-accent" : "bg-transparent"}`}
             onPress={() => setActiveTab("signin")}
           >
-            <Text className="font-semibold text-white">Sign In</Text>
+            <Text className="text-sm font-semibold text-white">Sign In</Text>
           </Pressable>
           <Pressable
             className={`flex-1 py-3 rounded-xl items-center ${activeTab === "signup" ? "bg-auth-accent" : "bg-transparent"}`}
@@ -228,7 +228,7 @@ export default function LoginScreen() {
                 </View>
                 <View className="flex-row items-center m-8">
                   <View className="flex-1 h-px bg-white" />
-                  <Text className="text-white text-xs mx-3">or</Text>
+                  <Text className="text-white text-md mx-3">or</Text>
                   <View className="flex-1 h-px bg-white" />
                 </View>
                 <GoogleButton onPress={() => console.log("Google login clicked")} />
@@ -328,7 +328,7 @@ export default function LoginScreen() {
                 
                 <View className="flex-row items-center my-4">
                   <View className="flex-1 h-px bg-white" />
-                  <Text className="text-white text-xs mx-3">or</Text>
+                  <Text className="text-white text-md mx-3">or</Text>
                   <View className="flex-1 h-px bg-white" />
                 </View>
                 <GoogleButton onPress={() => console.log("Google login clicked")} />
