@@ -20,20 +20,18 @@ export default function Index() {
   const router = useRouter();
 
   useEffect(() => {
-    if (loading) return;
-
-    if (!session) {
-      router.replace('/(public)/login');
-      return;
-    }
-
-    if (!isApproved) {
-      router.replace('/(public)/pendingApproval');
-      return;
-    }
-
-    router.replace('/(tabs)');
-  }, [session, profile, loading, isApproved]);
+  if (loading) return;
+  if (!session) {
+    router.replace('/(public)/login');
+    return;
+  }
+  if (!profile) return;
+  if (!isApproved) {
+    router.replace('/(public)/pendingApproval');
+    return;
+  }
+  router.replace('/(tabs)');
+}, [session, profile, loading, isApproved]);
 
   return null;
 }

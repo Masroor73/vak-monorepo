@@ -1,8 +1,10 @@
 import { useRouter } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useApprovalRealtimeSubscription } from "../../hooks/useApprovalRealtimeSubscription";
 
 export default function PendingApprovalScreen() {
+  useApprovalRealtimeSubscription(); 
   const router = useRouter();
   const { signOut } = useAuth();
 
@@ -60,8 +62,8 @@ export default function PendingApprovalScreen() {
             <div className="flex items-center justify-between">
               <span className="text-[11px] text-auth-textSecondary">Portal Access</span>
               <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-auth-textMuted" />
-                <span className="text-[11px] text-auth-textMuted font-semibold">Locked</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                <span className="text-[11px] text-red-400 font-semibold">Locked</span>
               </div>
             </div>
           </div>
