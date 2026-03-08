@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { LoginSchema, LoginInput } from "@vak/contract";
 import { supabase } from "../../lib/supabase";
 
-
 export default function LoginScreen() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
@@ -25,7 +24,6 @@ export default function LoginScreen() {
     reValidateMode: "onSubmit",
   });
 
-  // ── Auto-clear errors after 15s ──────────────────────────────────────────
   useEffect(() => {
     if (!authError && Object.keys(errors).length === 0) return;
     const t = setTimeout(() => {
@@ -35,7 +33,6 @@ export default function LoginScreen() {
     return () => clearTimeout(t);
   }, [authError, errors]);
 
-  // ── Clear errors when leaving the screen ─────────────────────────────────
   useEffect(() => {
     return () => {
       clearErrors();
@@ -43,7 +40,6 @@ export default function LoginScreen() {
     };
   }, []);
 
-  // ── Submit ────────────────────────────────────────────────────────────────
   const onLogin = async (data: LoginInput) => {
     setLoading(true);
     setAuthError("");
@@ -72,7 +68,7 @@ export default function LoginScreen() {
 
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, is_approved")
       .eq("id", authData.user.id)
       .single();
 
@@ -90,6 +86,13 @@ export default function LoginScreen() {
       setLoading(false);
       return;
     }
+
+    if (!profile.is_approved) {
+    await supabase.auth.signOut();
+    setAuthError("Your account is pending approval. Please wait for a manager to approve your access.");
+    setLoading(false);
+    return;
+}
 
     router.replace("/(tabs)");
     setLoading(false);
@@ -118,10 +121,8 @@ export default function LoginScreen() {
           </p>
 
           {/* Divider */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex-1 h-px bg-auth-divider" />
-            <span className="text-[10px] text-auth-textSecondary uppercase tracking-widest">or</span>
-            <div className="flex-1 h-px bg-auth-divider" />
+          <div className="flex items-center gap-6 mb-6">
+            <div className="flex-1 h-px  bg-auth-divider" />
           </div>
 
           {/* Email */}
@@ -236,6 +237,16 @@ export default function LoginScreen() {
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
+          <p className="text-center text-[12px] text-auth-textSecondary mt-3">
+            Don't have an account?{" "}
+            <button
+              type="button"
+              onClick={() => router.push("/(public)/SignUp")}
+              className="text-auth-white font-bold hover:text-auth-blue transition-colors"
+            >
+              Sign up
+            </button>
+          </p>
         </div>
 
         {/* ── RIGHT PANEL ── */}

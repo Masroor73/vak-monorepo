@@ -5,6 +5,8 @@ export default function PublicLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="login" />
       <Stack.Screen name="forgotPassword" />
+      <Stack.Screen name="signUp" />
+      <Stack.Screen name="pendingApproval" />
     </Stack>
   );
 }

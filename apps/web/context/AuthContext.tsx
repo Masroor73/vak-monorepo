@@ -10,6 +10,7 @@ type AuthContextType = {
   loading: boolean;
   isAdmin: boolean;
   isManager: boolean;
+  isApproved: boolean;
   signOut: () => Promise<void>;
 };
 
@@ -20,6 +21,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   isAdmin: false,
   isManager: false,
+  isApproved: false,
   signOut: async () => {},
 });
 
@@ -79,10 +81,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const isAdmin = profile?.role === 'OWNER';
   const isManager = profile?.role === 'MANAGER' || isAdmin;
+  const isApproved = profile?.is_approved ?? false;
 
   return (
     <AuthContext.Provider 
-      value={{ session, user, profile, loading, isAdmin, isManager, signOut }}
+      value={{ session, user, profile, loading, isAdmin, isManager, isApproved, signOut }}
     >
       {children}
     </AuthContext.Provider>
