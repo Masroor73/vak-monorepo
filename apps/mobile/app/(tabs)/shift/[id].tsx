@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { View, Text, Pressable, ScrollView, Image, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBadge } from "@vak/ui";
@@ -39,6 +40,8 @@ export default function ShiftDetails() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
+  const { user } = useAuth(); // ✅ added
+
   const shift = useMemo(
     () => MOCK_SHIFTS.find((s: Shift) => s.id === id),
     [id]
@@ -64,14 +67,12 @@ export default function ShiftDetails() {
   const dateLabel = formatDate(shift.start_time);
   const duration = getDurationHours(shift.start_time, shift.end_time);
 
-  const isHoliday = shift.is_holiday;
   const hasBreak = shift.unpaid_break_minutes > 0;
   const canClockIn = shift.status === "PUBLISHED";
 
   return (
     <View className="flex-1 bg-brand-background">
 
-      {/* HEADER */}
       <View className="bg-brand-secondary pt-6 pb-16 px-5">
 
         <View className="flex-row items-center mb-2">
@@ -90,15 +91,13 @@ export default function ShiftDetails() {
         </View>
       </View>
 
-
-      {/* CONTENT */}
       <View className="-mt-8 flex-1">
 
-     <ScrollView
-  className="flex-1"
-  contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 180 }}
-  showsVerticalScrollIndicator={false}
->
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 180 }}
+          showsVerticalScrollIndicator={false}
+        >
 
           <View className="bg-white rounded-3xl overflow-hidden shadow-xl">
 
@@ -160,15 +159,14 @@ export default function ShiftDetails() {
 
         </ScrollView>
 
-
-        {/* CLOCK IN AREA */}
         <View className="absolute bottom-0 left-0 right-0 px-4 pb-6 pt-3 bg-brand-background border-t border-gray-100">
 
           {canClockIn ? (
 
             <ClockInButton
-            shiftId={shift.id ?? "demo-shift"}   
-            onDone={() => {
+              shiftId={shift.id ?? "demo-shift"}
+              userId={user?.id ?? ""}
+              onDone={() => {
                 Alert.alert("Clock-In Successful");
               }}
             />

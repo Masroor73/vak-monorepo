@@ -14,10 +14,11 @@ import { supabase } from "../../lib/supabase";
 
 type Props = {
   shiftId: string;
+  userId: string;
   onDone: () => void;
 };
 
-export default function ClockInButton({ shiftId, onDone }: Props) {
+export default function ClockInButton({ shiftId, userId, onDone }: Props) {
   const [permission, requestPermission] = useCameraPermissions();
   const [hasLocationPerm, setHasLocationPerm] = useState(false);
   const [distance, setDistance] = useState<number | null>(null);
@@ -30,8 +31,6 @@ export default function ClockInButton({ shiftId, onDone }: Props) {
 
   const RESTAURANT_LAT = 51.0447;
   const RESTAURANT_LNG = -114.0719;
-
-  // Increase radius for testing
   const ALLOWED_RADIUS = 50;
 
   const calculateDistance = (
@@ -105,7 +104,6 @@ export default function ClockInButton({ shiftId, onDone }: Props) {
     if (!cameraRef.current) return;
 
     const photo = await cameraRef.current.takePictureAsync();
-
     setPreviewUri(photo.uri);
   };
 
@@ -119,13 +117,13 @@ export default function ClockInButton({ shiftId, onDone }: Props) {
       const blob = await resp.blob();
 
       const timestamp = Date.now();
-      const path = `${shiftId}/${timestamp}.jpg`;
+
+      const path = `${userId}/${timestamp}.jpg`;
 
       const { error } = await supabase.storage
         .from("shift-proofs")
         .upload(path, blob, {
           contentType: "image/jpeg",
-          upsert: true,
         });
 
       if (error) throw error;
@@ -157,13 +155,8 @@ export default function ClockInButton({ shiftId, onDone }: Props) {
 
   return (
     <View style={styles.container}>
-      {!permission?.granted && (
-        <Text>Camera permission required</Text>
-      )}
-
-      {!hasLocationPerm && (
-        <Text>Location permission required</Text>
-      )}
+      {!permission?.granted && <Text>Camera permission required</Text>}
+      {!hasLocationPerm && <Text>Location permission required</Text>}
 
       <View style={styles.statusRow}>
         {distance !== null && distance <= ALLOWED_RADIUS ? (
@@ -213,9 +206,7 @@ export default function ClockInButton({ shiftId, onDone }: Props) {
                 {uploading ? (
                   <ActivityIndicator size="large" />
                 ) : (
-                  <TouchableOpacity
-                    onPress={submitClockIn}
-                  >
+                  <TouchableOpacity onPress={submitClockIn}>
                     <Text style={styles.submit}>Submit</Text>
                   </TouchableOpacity>
                 )}
