@@ -6,76 +6,7 @@ import DropdownPill, {
   type DropdownOption,
 } from "../../src/components/DropdownPill";
 import Ionicons from "@expo/vector-icons/Ionicons";
-
-type Priority = "low" | "medium" | "high";
-
-type Status = "pending" | "completed";
-
-interface Task {
-  id: string;
-  title: string;
-  description: string;
-  priority: Priority;
-  area?: string;
-  status: Status;
-}
-
-const MOCK_TASKS: Task[] = [
-  {
-    id: "1",
-    title: "Check fridge temperatures",
-    description:
-      "Inspect and record the current temperature of all fridges and freezers in the kitchen and storage area.\nEnsure all units are operating below 4°C (40°F) for food safety compliance.\nReport any equipment showing abnormal readings immediately to your manager before beginning prep work.",
-    priority: "high",
-    area: "kitchen",
-    status: "pending",
-  },
-  {
-    id: "2",
-    title: "Prepare service counter",
-    description:
-      "Set up the service counter with all necessary utensils, napkins, and condiments.\nEnsure the counter is clean and sanitized before placing any items.\nCheck that all display items are properly labeled and arranged.",
-    priority: "medium",
-    area: "service",
-    status: "pending",
-  },
-  {
-    id: "3",
-    title: "Wipe prep surfaces",
-    description:
-      "Clean and sanitize all preparation surfaces using approved cleaning solution.\nPay special attention to cutting boards and stainless steel areas.\nAllow surfaces to air dry before use.",
-    priority: "high",
-    area: "kitchen",
-    status: "pending",
-  },
-  {
-    id: "4",
-    title: "Refill sauces and condiments",
-    description:
-      "Check all sauce bottles and condiment containers at each station.\nRefill any that are below half capacity using FIFO rotation.\nWipe down all containers after refilling.",
-    priority: "medium",
-    area: "service",
-    status: "pending",
-  },
-  {
-    id: "5",
-    title: "Log food waste if applicable",
-    description:
-      "Record any food waste from the shift in the waste log sheet.\nInclude item name, quantity, and reason for disposal.\nNotify the manager if waste exceeds normal levels.",
-    priority: "low",
-    area: "kitchen",
-    status: "completed",
-  },
-  {
-    id: "6",
-    title: "Turn off equipment",
-    description:
-      "Power down all kitchen equipment that is not needed for the next shift.\nCheck that ovens, grills, and fryers are properly turned off.\nEnsure all pilot lights are extinguished where applicable.",
-    priority: "high",
-    area: "kitchen",
-    status: "pending",
-  },
-];
+import { MOCK_TASKS, type Task } from "@/constants/mockData";
 
 const SORT_OPTIONS: DropdownOption[] = [
   { label: "All tasks", value: "all" },
