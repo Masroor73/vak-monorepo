@@ -40,7 +40,7 @@ export default function ShiftDetails() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { user } = useAuth(); // ✅ added
+  const { user } = useAuth();
 
   const shift = useMemo(
     () => MOCK_SHIFTS.find((s: Shift) => s.id === id),
@@ -72,11 +72,9 @@ export default function ShiftDetails() {
 
   return (
     <View className="flex-1 bg-brand-background">
-
+      {/* HEADER */}
       <View className="bg-brand-secondary pt-6 pb-16 px-5">
-
         <View className="flex-row items-center mb-2">
-
           <Pressable
             onPress={() => router.back()}
             className="w-10 h-10 rounded-full bg-white/10 items-center justify-center"
@@ -87,20 +85,16 @@ export default function ShiftDetails() {
           <Text className="text-white font-bold text-lg flex-1 text-center mr-10">
             Shift Details
           </Text>
-
         </View>
       </View>
 
       <View className="-mt-8 flex-1">
-
         <ScrollView
           className="flex-1"
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 180 }}
           showsVerticalScrollIndicator={false}
         >
-
           <View className="bg-white rounded-3xl overflow-hidden shadow-xl">
-
             <View className="w-full h-56 bg-blue-50 border-b border-gray-100 overflow-hidden">
               <Image
                 source={require("../../../assets/Map.png")}
@@ -110,7 +104,6 @@ export default function ShiftDetails() {
             </View>
 
             <View className="px-5 pt-5 pb-5">
-
               <View className="flex-row items-center justify-between mb-3">
                 <StatusBadge status={shift.status} />
 
@@ -152,17 +145,13 @@ export default function ShiftDetails() {
                   </Text>
                 </View>
               )}
-
             </View>
-
           </View>
-
         </ScrollView>
 
+        {/* CLOCK IN */}
         <View className="absolute bottom-0 left-0 right-0 px-4 pb-6 pt-3 bg-brand-background border-t border-gray-100">
-
           {canClockIn ? (
-
             <ClockInButton
               shiftId={shift.id ?? "demo-shift"}
               userId={user?.id ?? ""}
@@ -170,26 +159,19 @@ export default function ShiftDetails() {
                 Alert.alert("Clock-In Successful");
               }}
             />
-
           ) : (
-
             <View className="bg-gray-100 rounded-2xl py-5 items-center justify-center flex-row gap-2">
-              <Text className="text-base">🔒</Text>
+              <Text>🔒</Text>
               <Text className="text-gray-400 font-bold text-sm uppercase">
-
                 {shift.status === "COMPLETED"
                   ? "Shift Completed"
                   : shift.status === "VOID"
                   ? "Shift Cancelled"
                   : "Not Yet Published"}
-
               </Text>
             </View>
-
           )}
-
         </View>
-
       </View>
     </View>
   );

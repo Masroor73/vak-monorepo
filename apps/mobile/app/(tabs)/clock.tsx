@@ -18,8 +18,10 @@ export default function ClockScreen() {
 
       <ClockInButton
         shiftId="test-shift-1"
+        userId="demo-user-1"
         onDone={handleClockInDone}
       />
+
     </View>
   );
 }

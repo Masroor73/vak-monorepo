@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal, View, Text, Pressable } from "react-native";
+import { Modal, View, Text, Pressable, ScrollView } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 
@@ -11,6 +11,7 @@ type Props = {
 
 export default function SwapModal({ visible, onClose, shiftId }: Props) {
   const { user } = useAuth();
+
   const [eligibleShifts, setEligibleShifts] = useState<any[]>([]);
   const [selectedShift, setSelectedShift] = useState<string | null>(null);
 
@@ -33,7 +34,7 @@ export default function SwapModal({ visible, onClose, shiftId }: Props) {
     setEligibleShifts(data || []);
   }
 
-  async function requestSwap() {
+  async function sendSwapRequest() {
     if (!selectedShift) return;
 
     const { error } = await supabase
@@ -62,22 +63,26 @@ export default function SwapModal({ visible, onClose, shiftId }: Props) {
             Request Shift Swap
           </Text>
 
-          {eligibleShifts.map((shift) => (
-            <Pressable
-              key={shift.id}
-              className={`p-3 border mb-2 rounded ${
-                selectedShift === shift.id ? "bg-blue-100" : ""
-              }`}
-              onPress={() => setSelectedShift(shift.id)}
-            >
-              <Text>
-                {shift.start_time} - {shift.end_time}
-              </Text>
-            </Pressable>
-          ))}
+          <ScrollView className="max-h-60">
+
+            {eligibleShifts.map((shift) => (
+              <Pressable
+                key={shift.id}
+                onPress={() => setSelectedShift(shift.id)}
+                className={`p-3 border rounded mb-2 ${
+                  selectedShift === shift.id ? "bg-blue-100" : ""
+                }`}
+              >
+                <Text>
+                  {shift.start_time} - {shift.end_time}
+                </Text>
+              </Pressable>
+            ))}
+
+          </ScrollView>
 
           <Pressable
-            onPress={requestSwap}
+            onPress={sendSwapRequest}
             className="bg-blue-500 p-3 rounded mt-4"
           >
             <Text className="text-white text-center">

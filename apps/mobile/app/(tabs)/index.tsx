@@ -84,11 +84,12 @@ export default function Index() {
                 }}
               >
                 <ClockInButton
-                  shiftId={todayShift.id || "demo-shift"}
-                  onDone={() => {
-                    Alert.alert("Clock in successful");
+                userId={MOCK_USER.id}
+                shiftId={todayShift.id ?? "demo-shift"}
+                onDone={() => {
+                  Alert.alert("Clock in successful");
                   }}
-                />
+                  />
               </View>
 
               <Text style={{ marginTop: 10, color: "#9CA3AF" }}>
