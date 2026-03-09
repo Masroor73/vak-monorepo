@@ -42,7 +42,6 @@ export default function SignupScreen() {
   const {
     control,
     handleSubmit,
-    watch,
     formState: { errors },
     clearErrors,
   } = useForm<SignupInput>({
@@ -52,7 +51,6 @@ export default function SignupScreen() {
     reValidateMode: "onSubmit",
   });
 
-  const passwordValue = watch("password");
 
   useEffect(() => {
     if (!authError && Object.keys(errors).length === 0) return;
