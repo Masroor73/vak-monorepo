@@ -4,8 +4,10 @@ import { useAuth } from "../../context/AuthContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Logo from "../../assets/Logo.svg";
 import { Circle, Ring, Diamond } from "../../src/components/Shapes";
+import { useApprovalRealtimeSubscription } from "../../hooks/useApprovalRealtimeSubscription"; 
 
 export default function PendingApprovalScreen() {
+  useApprovalRealtimeSubscription();
   const router = useRouter();
   const { signOut } = useAuth();
 

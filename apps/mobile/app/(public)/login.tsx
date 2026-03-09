@@ -101,19 +101,18 @@ export default function LoginScreen() {
     try {
       const { error } = await signUp(data.email, data.password, data.full_name);
       if (error) Alert.alert("Error", error.message);
-      else Alert.alert("Success", "Please check your email to verify your account.", [
-        { text: "OK", onPress: () => setActiveTab("signin") },
-      ]);
+      else router.replace("/(public)/pendingApproval");
     } catch { Alert.alert("Error", "Something went wrong. Please try again."); }
-    finally { setIsLoading(false); }
+   finally { setIsLoading(false); }
   };
 
   const onLogin = async (data: LoginInput) => {
     setIsLoading(true); setLoginError(null);
     try {
-      const { error } = await login(data.email, data.password);
+      const { error,  pendingApproval } = await login(data.email, data.password);
       if (error === "INVALID_CREDENTIALS") { setLoginError("Invalid email or password"); return; }
       if (error === "ACCESS_DENIED")       { Alert.alert("Access Denied", "Only employees can access this app."); return; }
+      if (pendingApproval)                 { router.replace("/(public)/pendingApproval"); return; }
       if (error)                           { setLoginError("Something went wrong. Please try again."); return; }
       router.replace("/(tabs)");
     } finally { setIsLoading(false); }

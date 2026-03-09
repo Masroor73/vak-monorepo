@@ -13,7 +13,7 @@ type AuthContextType = {
   isEmployee: boolean;
   signOut: () => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
-  login: (email: string, password: string) => Promise<{ data?: any; error?: string }>;
+  login: (email: string, password: string) => Promise<{ data?: any; error?: string; pendingApproval?: boolean }>; // ← updated
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -91,6 +91,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
+    if (!data.is_approved) {
+      const { data: currentSession } = await supabase.auth.getSession();
+      setSession(currentSession.session ?? null);
+      setUser(currentSession.session?.user ?? null);
+      setProfile(data as Profile);
+      return;
+    }
+
     // Valid employee
     const { data: currentSession } = await supabase.auth.getSession();
 
@@ -158,6 +166,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return { error: "ACCESS_DENIED" };
     }
 
+    if (!profileData.is_approved) {
+      setSession(loginData.session);
+      setUser(loginData.user);
+      setProfile(profileData as Profile);
+      return { pendingApproval: true }; 
+    }
+
     setSession(loginData.session);
     setUser(loginData.user);
     setProfile(profileData as Profile);
@@ -170,8 +185,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 };
 
-
-  // -------------------- Role helpers --------------------
+// -------------------- Role helpers --------------------
   const isAdmin = profile?.role === 'OWNER';
   const isManager = profile?.role === 'MANAGER' || isAdmin;
   const isEmployee = profile?.role === "EMPLOYEE";
