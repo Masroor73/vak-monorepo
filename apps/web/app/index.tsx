@@ -1,6 +1,9 @@
 import ManagerLayout from "./_layout/ManagerLayout";
 import { Link } from "expo-router";
 
+import CreateShiftModal from "./components/shifts/CreateShiftModal";
+import AddEmployeeModal from "./components/employees/AddEmployeeModal";
+
 function Tile({
   title,
   value,
@@ -69,10 +72,12 @@ function ActionButton({
   icon,
   label,
   href,
+  onClick,
 }: {
   icon: string;
   label: string;
   href?: string;
+  onClick?: () => void;
 }) {
   const content = (
     <div className="w-full bg-white rounded-2xl border border-black/10 shadow-[0_6px_18px_rgba(0,0,0,0.10)] px-6 py-5 flex items-center gap-4 hover:bg-black/5 transition">
@@ -81,10 +86,21 @@ function ActionButton({
     </div>
   );
 
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className="w-full text-left">
+        {content}
+      </button>
+    );
+  }
+
   return href ? <Link href={href}>{content}</Link> : content;
 }
 
 export default function Dashboard() {
+  const [openShiftModal, setOpenShiftModal] = useState(false);
+  const [openAddEmployeeModal, setOpenAddEmployeeModal] = useState(false);
+
   // Placeholder data
   const staff = [
     { name: "Sarah Willis", status: "active" as const },
@@ -158,8 +174,36 @@ export default function Dashboard() {
           </div>
 
           <div className="col-span-12 lg:col-span-3 lg:row-span-2 flex flex-col gap-6">
-            <ActionButton icon="📅" label="Edit Schedule" href="/operations" />
+            {/* Create Shift */}
+            <ActionButton
+              icon="📅"
+              label="Edit Schedule (Create Shift)"
+              onClick={() => setOpenShiftModal(true)}
+            />
+
+            {/* ✅ NEW: Add Employee */}
+            <ActionButton
+              icon="👤➕"
+              label="Add Employee"
+              onClick={() => setOpenAddEmployeeModal(true)}
+            />
+
+            {/* Calendar view page */}
+            <ActionButton
+              icon="🗓️"
+              label="Schedule Calendar View"
+              href="/schedule"
+            />
+
+            {/* Issues */}
             <ActionButton icon="⚠️" label="View issues" href="/operations" />
+
+            {/* Quick test */}
+            <ActionButton
+              icon="➕"
+              label="Quick Add Shift (Test)"
+              onClick={() => setOpenShiftModal(true)}
+            />
 
             <Card title="Today’s Events">
               <div className="space-y-2 text-sm text-black/70">
@@ -227,6 +271,20 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <CreateShiftModal
+        open={openShiftModal}
+        onClose={() => setOpenShiftModal(false)}
+      />
+
+      <AddEmployeeModal
+        open={openAddEmployeeModal}
+        onClose={() => setOpenAddEmployeeModal(false)}
+        onCreated={() => {
+          // optional: trigger refresh later (invalidate query / refetch)
+        }}
+      />
     </ManagerLayout>
   );
 }
