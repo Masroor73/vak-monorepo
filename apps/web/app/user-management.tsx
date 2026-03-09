@@ -5,10 +5,10 @@ import { useAuth } from "../context/AuthContext";
 import ManagerLayout from "./layouts/ManagerLayout";
 import { Profile } from "@vak/contract";
 import { Toggle } from "./components/Toggle";
+import { useAuthGuard } from "../hooks/useAuthGuard";
 
 export default function UserManagement() {
-  // profile = the logged-in manager's own profile (from AuthContext, no extra fetch needed)
-  // isManager / isAdmin = derived booleans already computed in AuthContext
+  useAuthGuard();
   const { profile: currentUser, isManager, isAdmin, loading: authLoading } = useAuth();
   const router = useRouter();
 
@@ -28,7 +28,7 @@ export default function UserManagement() {
     }
     fetchUsers();
   }, [authLoading, isManager]);
-  
+
   const fetchUsers = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -91,9 +91,6 @@ export default function UserManagement() {
     return matchSearch && matchRole;
   });
 
-  // Managers can only assign roles up to their own level:
-  // - OWNER can assign OWNER / MANAGER / EMPLOYEE
-  // - MANAGER can only assign MANAGER / EMPLOYEE
   const assignableRoles: Profile["role"][] = isAdmin
     ? ["OWNER", "MANAGER", "EMPLOYEE"]
     : ["MANAGER", "EMPLOYEE"];
