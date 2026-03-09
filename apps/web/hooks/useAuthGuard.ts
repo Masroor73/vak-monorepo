@@ -27,7 +27,7 @@ export const useAuthGuard = () => {
       return;
     }
 
-    if (!profile) return; // ← add this
+    if (!profile) return; 
 
     if (!isApproved) {
       router.replace('/(public)/pendingApproval');
