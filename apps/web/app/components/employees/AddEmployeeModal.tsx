@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import type { z } from "zod";
+import { z } from "zod";  // ← named import, not `type z`
 
 import { ProfileSchema, JobRoleEnum } from "@vak/contract";
+
 import { supabase } from "../../../lib/supabase";
 
 type Props = {

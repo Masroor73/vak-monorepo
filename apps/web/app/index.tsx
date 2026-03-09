@@ -1,4 +1,4 @@
-import ManagerLayout from "./layouts/ManagerLayout";
+import ManagerLayout from "./_layout/ManagerLayout";
 import { Link } from "expo-router";
 
 function Tile({

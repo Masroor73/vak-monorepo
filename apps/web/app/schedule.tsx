@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import ManagerLayout from "./layouts/ManagerLayout";
+import ManagerLayout from "../../layouts/ManagerLayout";
 
 
 type ShiftStatus = "DRAFT" | "PUBLISHED";
