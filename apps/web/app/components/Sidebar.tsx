@@ -9,6 +9,7 @@ const items = [
   { label: "Analyze Reports", href: "/analyze-reports" },
   { label: "Communication", href: "/communication" },
   { label: "Settings", href: "/settings" },
+  { label: "User Management", href: "/user-management" },
 ];
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
