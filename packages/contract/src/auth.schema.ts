@@ -70,6 +70,9 @@ export const ProfileSchema = z.object({
   is_approved: z.boolean().default(false), 
 });
 
+export const AddEmployeeSchema = ProfileSchema.omit({ id: true, is_approved: true });
+export type AddEmployeeInput = z.infer<typeof AddEmployeeSchema>;
+
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type Profile = z.infer<typeof ProfileSchema>;
 export type SignupInput = z.infer<typeof SignupSchema>;
