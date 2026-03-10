@@ -13,7 +13,7 @@ export default function ForgotPasswordScreen() {
 
           <p className="text-xl font-black tracking-[0.22em] text-auth-white mb-10">
             V<span className="text-auth-blue">.</span>
-            A<span className="text-auth-blue">.</span>
+            A<span className="text-auth-pending">.</span>
             K
           </p>
 
@@ -44,7 +44,7 @@ export default function ForgotPasswordScreen() {
             SEND LINK
           </button>
 
-          <p className="text-[12px] text-auth-textSecondary text-center mt-3">
+          <p className="text-[12px] text-auth-textSecondary text-center mt-6">
             Remembered it?{" "}
             <button
               onClick={() => router.back()}
@@ -53,13 +53,6 @@ export default function ForgotPasswordScreen() {
               Back to sign in
             </button>
           </p>
-
-          <button
-            onClick={() => router.back()}
-            className="mt-auto text-[9px] font-semibold tracking-[0.2em] uppercase text-auth-textMuted hover:text-auth-white transition-colors text-left"
-          >
-            ← Back
-          </button>
         </div>
 
         {/* ── RIGHT PANEL ── */}
@@ -94,12 +87,12 @@ export default function ForgotPasswordScreen() {
           <div className="relative z-10 text-center">
             <p className="font-black text-auth-white mb-5 text-[92px]">
               V<span className="text-auth-blue">.</span>
-              A<span className="text-auth-blue">.</span>
+              A<span className="text-auth-pending">.</span>
               K
             </p>
             <div className="w-24 h-2 bg-auth-blue mx-auto mb-5" />
             <p className="text-[18px] tracking-[0.3em] uppercase text-auth-textSecondary font-bold mb-3">
-              Employee Management System
+              Workforce Management System
             </p>
             <p className="text-[18px] text-auth-textSecondary max-w-[300px] mx-auto leading-relaxed">
               We'll help you get back in securely.

@@ -24,7 +24,7 @@ export default function PendingApprovalScreen() {
           {/* Brand */}
           <p className="text-lg font-black tracking-[0.22em] text-auth-white mb-5">
             V<span className="text-auth-blue">.</span>
-            A<span className="text-auth-blue">.</span>
+            A<span className="text-auth-pending">.</span>
             K
           </p>
 
@@ -103,12 +103,12 @@ export default function PendingApprovalScreen() {
           <div className="relative z-10 text-center px-8">
             <p className="font-black text-auth-white mb-4 text-[72px]">
               V<span className="text-auth-blue">.</span>
-              A<span className="text-auth-blue">.</span>
+              A<span className="text-auth-pending">.</span>
               K
             </p>
             <div className="w-20 h-1.5 bg-auth-blue mx-auto mb-4" />
             <p className="text-[14px] tracking-[0.3em] uppercase text-auth-textSecondary font-bold mb-2">
-              Employee Management System
+              Workforce Management System
             </p>
             <p className="text-[14px] text-auth-textSecondary max-w-[260px] mx-auto leading-relaxed mb-6">
               Your request has been received. A manager will review and approve your access shortly.

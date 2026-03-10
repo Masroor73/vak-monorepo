@@ -109,7 +109,7 @@ export default function LoginScreen() {
           {/* Brand */}
           <p className="text-xl font-black tracking-[0.22em] text-auth-white mb-6">
             V<span className="text-auth-blue">.</span>
-            A<span className="text-auth-blue">.</span>
+            A<span className="text-auth-pending">.</span>
             K
           </p>
 
@@ -274,12 +274,12 @@ export default function LoginScreen() {
           <div className="relative z-10 text-center">
             <p className="font-black text-auth-white mb-5 text-[92px]">
               V<span className="text-auth-blue">.</span>
-              A<span className="text-auth-blue">.</span>
+              A<span className="text-auth-pending">.</span>
               K
             </p>
             <div className="w-24 h-2 bg-auth-blue mx-auto mb-5" />
-            <p className="text-[18px] tracking-[0.3em] uppercase text-auth-textSecondary font-bold mb-3">
-              Employee Management System
+            <p className="text-[18px] tracking-[0.1em] uppercase text-auth-textSecondary font-bold mb-3">
+              Workforce Management System
             </p>
             <p className="text-[18px] text-auth-textSecondary max-w-[300px] mx-auto leading-relaxed">
               Centralized workforce operations for modern organizations.
