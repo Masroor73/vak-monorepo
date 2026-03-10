@@ -22,8 +22,25 @@ module.exports = {
           secondaryLight: "#1a3278",
           success: "#05CC66",
         },
+        auth: {
+          primary: "#031245",
+          accent: "#3A9AFF",   
+          mid:    "#261CC1",   
+          deep:   "#0B1A6E",   
+        },
       },
     },
   },
   plugins: [],
 };
+// #09165E – slightly darker
+// #08124F – deeper
+// #061041 – rich navy depth
+// #050D36 – very deep
+// #040A2B – near midnight
+// #02061A – almost black-blue 
+// #04103D – subtle shift toward true blue
+// #031245 – deeper navy blue
+// #02154F – rich midnight blue
+// #011A5C – strong deep blue presence
+// #001F6E – very bold dark blue (cleanest blue shift)

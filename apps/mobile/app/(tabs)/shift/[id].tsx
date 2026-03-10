@@ -6,7 +6,7 @@ import { StatusBadge } from "@vak/ui";
 import { MOCK_SHIFTS } from "../../../constants/mockData";
 import WhiteArrow from "../../../assets/WhiteArrow.svg";
 import { Shift } from "@vak/contract";
-import ClockInButton from "../../../src/components/ClockInButton";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 function formatTime(dateStr: string) {
   return new Date(dateStr).toLocaleTimeString([], {
@@ -118,31 +118,71 @@ export default function ShiftDetails() {
                 {formatRole(shift.role_at_time_of_shift)}
               </Text>
 
-              <View className="bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100 mb-3">
-                <Text className="text-gray-400 text-xs">DATE</Text>
-                <Text className="text-gray-800 font-bold">{dateLabel}</Text>
+              {/* ── Date ── */}
+              <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
+                <View className="w-8 h-8 rounded-full bg-brand-secondary/10 items-center justify-center">
+                  {/* 📅 → calendar-outline */}
+                  <Ionicons name="calendar-outline" size={16} color="#3b82f6" />
+                </View>
+                <View>
+                  <Text className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
+                    Date
+                  </Text>
+                  <Text className="text-sm font-bold text-gray-800 mt-0.5">
+                    {dateLabel}
+                  </Text>
+                </View>
               </View>
 
-              <View className="bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100 mb-3">
-                <Text className="text-gray-400 text-xs">TIME</Text>
-                <Text className="text-gray-800 font-bold">
-                  {startTime} — {endTime} ({duration}h)
+              {/* ── Time ── */}
+              <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
+                <View className="w-8 h-8 rounded-full bg-brand-secondary/10 items-center justify-center">
+                  {/* 🕐 → time-outline */}
+                  <Ionicons name="time-outline" size={16} color="#3b82f6" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
+                    Time
+                  </Text>
+                  <Text className="text-sm font-bold text-gray-800 mt-0.5">
+                    {startTime} — {endTime}
+                  </Text>
+                </View>
+                <Text className="text-xs text-gray-400 font-semibold">
+                  {duration}h
                 </Text>
               </View>
 
-              <View className="bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100 mb-3">
-                <Text className="text-gray-400 text-xs">LOCATION</Text>
-                <Text className="text-gray-800 font-bold">
-                  {shift.location_id}
-                </Text>
+              {/* ── Location ── */}
+              <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
+                <View className="w-8 h-8 rounded-full bg-brand-secondary/10 items-center justify-center">
+                  {/* 📍 → location-outline */}
+                  <Ionicons name="location-outline" size={16} color="#3b82f6" />
+                </View>
+                <View>
+                  <Text className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
+                    Location
+                  </Text>
+                  <Text className="text-sm font-bold text-gray-800 mt-0.5">
+                    {shift.location_id}
+                  </Text>
+                </View>
               </View>
 
               {hasBreak && (
-                <View className="bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
-                  <Text className="text-gray-400 text-xs">BREAK</Text>
-                  <Text className="text-gray-800 font-bold">
-                    {shift.unpaid_break_minutes} minutes
-                  </Text>
+                <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
+                  <View className="w-8 h-8 rounded-full bg-brand-secondary/10 items-center justify-center">
+                    {/* ☕ → coffee-outline (MaterialCommunityIcons) */}
+                    <MaterialCommunityIcons name="coffee-outline" size={16} color="#3b82f6" />
+                  </View>
+                  <View>
+                    <Text className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
+                      Unpaid Break
+                    </Text>
+                    <Text className="text-sm font-bold text-gray-800 mt-0.5">
+                      {shift.unpaid_break_minutes} min
+                    </Text>
+                  </View>
                 </View>
               )}
             </View>
@@ -152,17 +192,18 @@ export default function ShiftDetails() {
         {/* CLOCK IN */}
         <View className="absolute bottom-0 left-0 right-0 px-4 pb-6 pt-3 bg-brand-background border-t border-gray-100">
           {canClockIn ? (
-            <ClockInButton
-              shiftId={shift.id ?? "demo-shift"}
-              userId={user?.id ?? ""}
-              onDone={() => {
-                Alert.alert("Clock-In Successful");
-              }}
-            />
+            <Pressable className="bg-brand-secondary rounded-2xl py-5 items-center justify-center flex-row gap-2">
+              {/* 🕐 → time-outline */}
+              <Ionicons name="time-outline" size={18} color="#fff" />
+              <Text className="text-white font-bold text-sm tracking-widest uppercase">
+                Clock In
+              </Text>
+            </Pressable>
           ) : (
             <View className="bg-gray-100 rounded-2xl py-5 items-center justify-center flex-row gap-2">
-              <Text>🔒</Text>
-              <Text className="text-gray-400 font-bold text-sm uppercase">
+              {/* 🔒 → lock-closed */}
+              <Ionicons name="lock-closed" size={18} color="#9ca3af" />
+              <Text className="text-gray-400 font-bold text-sm tracking-widest uppercase">
                 {shift.status === "COMPLETED"
                   ? "Shift Completed"
                   : shift.status === "VOID"

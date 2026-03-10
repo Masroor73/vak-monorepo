@@ -15,6 +15,21 @@ export default function Index() {
   }, []);
 
   const now = new Date();
+  // Greeting based on time
+const getGreeting = () => {
+  const hour = new Date().getHours();
+
+  if (hour < 12) return "Good Morning";
+  if (hour < 18) return "Good Afternoon";
+  return "Good Evening";
+};
+
+// Date format
+const topDate = now.toLocaleDateString("en-US", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+});
 
   const todayShift = useMemo(() => {
     const base = MOCK_SHIFTS[0];
@@ -49,35 +64,36 @@ export default function Index() {
         <View className="px-6 pt-7">
 
           <View className="flex-row items-center space-x-5 mb-[18px] p-2">
-
-            <View className="w-24 h-24 rounded-full bg-brand-primary/10 border-[1.5px] border-brand-primary items-center justify-center mr-2">
+            <View className="w-24 h-24 rounded-full bg-brand-primary/10 border-[1.5px] border-brand-primary border-white/22 items-center justify-center mr-2">
+              {/* 👤 → person */}
               <Ionicons name="person" size={36} color="#62CCEF" />
             </View>
 
             <View className="flex-1">
-
-              <Text className="text-[22px] font-semibold text-white/70 mb-2 ml-3">
-                Good Morning
+              <Text className="text-[22px] font-semibold text-white/45 tracking-[1.3px] uppercase mb-2 ml-3">
+                {getGreeting()}
               </Text>
-
+              {/* 👋 → hand-wave */}
               <View className="flex-row items-center ml-3">
-                <Text className="text-[21px] font-bold text-white">
+                <Text className="text-[21px] font-bold text-white tracking-[0.2px]">
                   {firstName}
                 </Text>
                 <MaterialCommunityIcons name="hand-wave" size={22} color="#eab308" style={{ marginLeft: 6 }} />
               </View>
-
             </View>
 
           </View>
 
           <View className="flex-row flex-wrap gap-5 ml-2">
-
+            {/* 📅 → calendar-outline */}
             <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2 gap-1.5">
-              <Ionicons name="calendar-outline" size={12} color="white" />
-              <Text className="text-white/65 text-[11px] font-medium">
-                {now.toDateString()}
-              </Text>
+              <Ionicons name="calendar-outline" size={12} color="red" />
+              <Text className="text-white/65 text-[11px] font-medium">{topDate}</Text>
+            </View>
+            {/* ☁️ → cloud-outline */}
+            <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2 gap-1.5">
+              <Ionicons name="cloud" size={12} color="white" />
+              <Text className="text-white/65 text-[11px] font-medium">15°C</Text>
             </View>
 
             <View className={`flex-row items-center gap-1.5 rounded-[20px] px-3 py-1.5 border ${hasShiftToday ? "bg-brand-success/15 border-brand-success/30" : "bg-white/10 border-white/10"}`}>
@@ -139,8 +155,8 @@ export default function Index() {
           ) : (
 
             <View className="items-center py-6 gap-3">
-
               <View className="w-24 h-24 rounded-full bg-yellow-50 items-center justify-center mb-1">
+                {/* 🌙 → moon-outline */}
                 <Ionicons name="moon-outline" size={35} color="#eab308" />
               </View>
 
