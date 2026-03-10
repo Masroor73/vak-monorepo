@@ -1,9 +1,9 @@
 import ManagerLayout from "./layouts/ManagerLayout";
 
-export default function Settings() {
+export default function Dashboard() {
   return (
     <ManagerLayout>
-      <h1 className="text-3xl font-bold">Settings</h1>
+      <h1 className="text-3xl font-bold">Dashboard</h1>
     </ManagerLayout>
   );
 }

@@ -1,4 +1,3 @@
-//web/app/layouts/ManagerLayout.tsx
 import { ReactNode, useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
@@ -13,34 +12,37 @@ export default function ManagerLayout({ children }: { children: ReactNode }) {
 
     handleResize();
     window.addEventListener("resize", handleResize);
+
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   return (
-    <div className="min-h-screen w-screen bg-black overflow-x-hidden">
+    <div className="min-h-screen w-screen bg-[#f5f6fa] overflow-x-hidden">
       <div className="flex w-full min-h-screen">
-        <div className="hidden md:block flex-shrink-0">
+
+        {/* Desktop Sidebar */}
+        <div className="hidden md:flex">
           <Sidebar />
         </div>
 
+        {/* Mobile Sidebar */}
         {open && (
-          <div className="md:hidden fixed inset-0 z-50">
-            <div
-              className="absolute inset-0 bg-black/60"
-              onClick={() => setOpen(false)}
-            />
-            <div className="absolute left-0 top-0 h-full w-72 bg-black border-r border-white/20">
-              <Sidebar onNavigate={() => setOpen(false)} />
+          <div className="fixed inset-0 z-40 bg-black/40 md:hidden">
+            <div className="w-64 bg-white h-full shadow-lg">
+              <Sidebar />
             </div>
           </div>
         )}
 
-        <main className="flex-1 min-w-0 p-4 md:p-8">
+        <div className="flex-1 flex flex-col">
+
           <Topbar onOpenSidebar={() => setOpen(true)} />
-          <div className="mt-6 w-full rounded-[28px] bg-[#D9D9D9] shadow-2xl overflow-hidden">
-          <div className="p-6 md:p-8">{children}</div>
+
+          <main className="flex-1 p-6">
+            {children}
+          </main>
+
         </div>
-        </main>
       </div>
     </div>
   );

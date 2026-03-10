@@ -1,53 +1,48 @@
-//web/app/components/Topbar.tsx
+import { usePathname } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+
+const ROUTE_LABELS: Record<string, string> = {
+  "/": "Dashboard",
+  "/shifts": "Shifts",
+  "/tasks": "Tasks & Waste",
+  "/swap-requests": "Swap Requests",
+  "/communication": "Communication",
+  "/user-management": "User Management",
+  "/settings": "Settings",
+};
+
 export default function Topbar({
   onOpenSidebar,
 }: {
   onOpenSidebar?: () => void;
 }) {
+  const pathname = usePathname();
+
+  const title = ROUTE_LABELS[pathname] ?? "Dashboard";
+
   return (
-    <header className="h-20 flex items-center justify-between px-5 md:px-8">
+    <div className="w-full h-16 bg-white border-b flex items-center justify-between px-6">
+
       <div className="flex items-center gap-3">
+
         <button
-          className="md:hidden h-11 w-11 rounded-2xl bg-white border border-black/10 shadow-sm"
           onClick={onOpenSidebar}
-          aria-label="Open menu"
+          className="md:hidden"
         >
-          <span className="text-lg">≡</span>
+          <Ionicons name="menu" size={26} />
         </button>
+
+        <h1 className="text-2xl font-semibold">
+          {title}
+        </h1>
+
       </div>
 
-      <div className="flex-1 flex justify-center px-4">
-        <div className="w-full max-w-xl">
-          <div className="h-12 w-full bg-white rounded-full border border-black/10 shadow-[0_6px_18px_rgba(0,0,0,0.10)] flex items-center px-5">
-            <input
-              type="text"
-              placeholder="Search..."
-              className="flex-1 bg-transparent outline-none text-sm text-black placeholder:text-black/40"
-            />
-            <span className="text-black/50">🔎</span>
-          </div>
-        </div>
+      <div className="flex items-center gap-4">
+        <Ionicons name="notifications-outline" size={22} />
+        <Ionicons name="person-circle-outline" size={28} />
       </div>
 
-      <div className="flex items-center">
-        <div className="h-12 px-3 rounded-full bg-[#62CCEF] flex items-center gap-2 shadow-[0_6px_18px_rgba(0,0,0,0.12)]">
-          <button
-            className="h-9 w-9 rounded-full bg-white/25 flex items-center justify-center"
-            aria-label="Notifications"
-            title="Notifications"
-          >
-            🔔
-          </button>
-
-          <div className="h-9 w-9 rounded-full bg-white flex items-center justify-center font-bold text-[#0B1220]">
-            M
-          </div>
-
-          <div className="h-9 px-4 rounded-full bg-white flex items-center">
-            <span className="text-[#0B1220] text-sm font-semibold">Manager</span>
-          </div>
-        </div>
-      </div>
-    </header>
+    </div>
   );
 }
