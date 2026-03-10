@@ -1,3 +1,4 @@
+//web/app/settings.tsx
 import { useRef, useState } from "react";
 import ManagerLayout from "./layouts/ManagerLayout";
 import { useAuthGuard } from "../hooks/useAuthGuard";

@@ -1,3 +1,4 @@
+//web/app/team.tsx
 import type React from "react";
 import { Link } from "expo-router";
 import ManagerLayout from "./layouts/ManagerLayout";

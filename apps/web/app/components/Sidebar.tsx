@@ -1,3 +1,4 @@
+//web/app/components/Sidebar.tsx
 import { Link, usePathname, useRouter } from "expo-router";
 import { useState } from "react";
 import StatusModal from "./StatusModal";

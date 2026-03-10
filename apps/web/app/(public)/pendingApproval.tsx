@@ -1,3 +1,4 @@
+//web/app/(public)/pendingApproval.tsx
 import { useRouter } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import { MaterialCommunityIcons } from '@expo/vector-icons';

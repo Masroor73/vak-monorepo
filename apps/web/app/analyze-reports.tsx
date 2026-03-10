@@ -1,3 +1,4 @@
+//web/app/analyze-reports.tsx
 import ManagerLayout from "./layouts/ManagerLayout";
 import { useAuthGuard } from "../hooks/useAuthGuard";
 

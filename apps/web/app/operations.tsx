@@ -1,3 +1,4 @@
+//web/app/operations.tsx
 import { useMemo, useState } from "react";
 import ManagerLayout from "./layouts/ManagerLayout";
 import { useAuthGuard } from "../hooks/useAuthGuard";
