@@ -7,14 +7,14 @@ import { PrimaryButton } from '@vak/ui'
 
 const EditProfile = () => {
     return (
-        <ScrollView className='flex-1 bg-white'>
+        <ScrollView className='flex-1 bg-brand-secondary'>
             <Header title='Edit Profile' />
             <View className='flex items-center mt-8'>
                 <Avatar />
             </View>
             <EditForm />
             <View className='items-center'>
-                <PrimaryButton className="bg-brand-secondary" title='Save Changes' />
+                <PrimaryButton className="bg-brand-secondaryLight" title='Save Changes' />
             </View>
         </ScrollView>
     )
