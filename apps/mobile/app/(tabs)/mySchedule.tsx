@@ -1,10 +1,11 @@
 // apps/mobile/app/(tabs)/mySchedule.tsx
 import { useMemo, useState } from "react";
-import { View, Text, Pressable, ScrollView } from "react-native";
+import { View, Text, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
-import { MOCK_SHIFTS } from "../../constants/mockData";
 import WhiteArrow from "../../assets/WhiteArrow.svg";
 import { Shift } from "@vak/contract";
+import { useAuth } from "../../context/AuthContext";
+import { useShifts } from "../../hooks/useShifts";
 
 /* ───────── Helpers ───────── */
 const WEEKDAY_SHORT = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
@@ -32,17 +33,16 @@ function isSameLocalDate(d1: Date, d2: Date) {
   );
 }
 
-function getShiftsForDate(date: Date) {
-  return MOCK_SHIFTS.filter((s) =>
-    isSameLocalDate(new Date(s.start_time), date)
-  );
-}
-
 /* ───────── Screen ───────── */
 export default function MySchedule() {
   const router = useRouter();
-  const today = useMemo(() => new Date(), []);
+  const { user } = useAuth();
+  
+  // Realtime hook injected here!
+  const { data: shifts, isLoading, isError, error } = useShifts(user?.id);
+  const liveShifts = shifts ?? [];
 
+  const today = useMemo(() => new Date(), []);
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDate, setSelectedDate] = useState(today);
 
@@ -54,9 +54,14 @@ export default function MySchedule() {
 
   const weekDays = useMemo(() => buildWeekDays(anchorDate), [anchorDate]);
 
+  // Helper updated to filter live data instead of mock data
+  const getShiftsForDate = (date: Date) => {
+    return liveShifts.filter((s) => isSameLocalDate(new Date(s.start_time), date));
+  };
+
   const weekShiftCount = useMemo(
     () => weekDays.reduce((sum, day) => sum + getShiftsForDate(day).length, 0),
-    [weekDays]
+    [weekDays, liveShifts]
   );
 
   const weekType = useMemo(() => {
@@ -70,34 +75,33 @@ export default function MySchedule() {
 
   const selectedDayShifts = useMemo(
     () => getShiftsForDate(selectedDate),
-    [selectedDate]
+    [selectedDate, liveShifts]
   );
 
   // ───────── Dynamic Shift Pill ─────────
   const weekShiftPill = useMemo(() => {
-  let bg = "bg-gray-200/20"; // default gray
-  let border = "border-gray-300/30";
-  let text = "text-gray-400";
+    let bg = "bg-gray-200/20"; 
+    let border = "border-gray-300/30";
+    let text = "text-gray-400";
 
-  if (weekShiftCount > 0) {
-    // Only assign color if there are shifts
-    if (weekType === "current") {
-      bg = "bg-brand-success/15";
-      border = "border-brand-success/30";
-      text = "text-brand-success";
-    } else if (weekType === "past") {
-      bg = "bg-red-500/15";
-      border = "border-red-500/30";
-      text = "text-red-400";
-    } else if (weekType === "future") {
-      bg = "bg-yellow-200/20";
-      border = "border-yellow-300/40";
-      text = "text-yellow-300";
+    if (weekShiftCount > 0) {
+      if (weekType === "current") {
+        bg = "bg-brand-success/15";
+        border = "border-brand-success/30";
+        text = "text-brand-success";
+      } else if (weekType === "past") {
+        bg = "bg-red-500/15";
+        border = "border-red-500/30";
+        text = "text-red-400";
+      } else if (weekType === "future") {
+        bg = "bg-yellow-200/20";
+        border = "border-yellow-300/40";
+        text = "text-yellow-300";
+      }
     }
-  }
 
-  return { bg, border, text };
-}, [weekType, weekShiftCount]);
+    return { bg, border, text };
+  }, [weekType, weekShiftCount]);
 
   const changeWeek = (direction: "prev" | "next") => {
     setWeekOffset((prev) => {
@@ -115,6 +119,24 @@ export default function MySchedule() {
       return next;
     });
   };
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-brand-background">
+        <ActivityIndicator size="large" color="#063386" />
+        <Text className="mt-4 text-gray-500 font-medium">Loading schedule...</Text>
+      </View>
+    );
+  }
+
+  if (isError) {
+    return (
+      <View className="flex-1 items-center justify-center bg-brand-background px-4">
+        <Text className="text-center text-red-500 font-bold text-lg">Error loading schedule</Text>
+        <Text className="mt-2 text-sm text-gray-500 text-center">{String(error?.message ?? error)}</Text>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-brand-background">
@@ -296,7 +318,7 @@ export default function MySchedule() {
                         </Text>
 
                         <Text className="text-xs text-gray-400 mt-0.5">
-                          {shift.location_id}
+                          Location: {shift.location_id}
                         </Text>
 
                         <Text className="text-sm text-gray-500 mt-1 font-medium">
