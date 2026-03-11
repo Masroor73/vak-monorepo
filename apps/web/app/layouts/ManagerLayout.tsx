@@ -1,3 +1,4 @@
+// web/app/layouts/ManagerLayout.tsx
 import { ReactNode, useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
@@ -9,10 +10,8 @@ export default function ManagerLayout({ children }: { children: ReactNode }) {
     const handleResize = () => {
       if (window.innerWidth >= 768) setOpen(false);
     };
-
     handleResize();
     window.addEventListener("resize", handleResize);
-
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
@@ -20,29 +19,32 @@ export default function ManagerLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen w-screen bg-[#f5f6fa] overflow-x-hidden">
       <div className="flex w-full min-h-screen">
 
-        {/* Desktop Sidebar */}
-        <div className="hidden md:flex">
+        {/* ── Desktop sidebar ── */}
+        <div className="hidden md:block flex-shrink-0">
           <Sidebar />
         </div>
 
-        {/* Mobile Sidebar */}
+        {/* ── Mobile sidebar overlay ── */}
         {open && (
-          <div className="fixed inset-0 z-40 bg-black/40 md:hidden">
-            <div className="w-64 bg-white h-full shadow-lg">
-              <Sidebar />
+          <div className="md:hidden fixed inset-0 z-50">
+            <div
+              className="absolute inset-0 bg-black/60"
+              onClick={() => setOpen(false)}
+            />
+            <div className="absolute left-0 top-0 h-full">
+              <Sidebar onNavigate={() => setOpen(false)} />
             </div>
           </div>
         )}
 
-        <div className="flex-1 flex flex-col">
-
+        {/* ── Main area ── */}
+        <div className="flex-1 min-w-0 flex flex-col min-h-screen">
           <Topbar onOpenSidebar={() => setOpen(true)} />
-
-          <main className="flex-1 p-6">
+          <main className="flex-1 p-5 md:p-7">
             {children}
           </main>
-
         </div>
+
       </div>
     </div>
   );
