@@ -108,7 +108,10 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
   };
 
   const submitClockIn = async () => {
-    if (!previewUri || !location) return;
+    if (!previewUri || !location) {
+      Alert.alert("Missing photo or location");
+      return;
+    }
 
     setUploading(true);
 
@@ -118,21 +121,23 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
 
       const timestamp = Date.now();
 
+      // ✅ RLS SAFE PATH
       const path = `${userId}/${timestamp}.jpg`;
 
-      const { error } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from("shift-proofs")
         .upload(path, blob, {
           contentType: "image/jpeg",
+          upsert: false,
         });
 
-      if (error) throw error;
+      if (uploadError) throw uploadError;
 
       const { data } = supabase.storage
         .from("shift-proofs")
         .getPublicUrl(path);
 
-      await supabase
+      const { error: updateError } = await supabase
         .from("shifts")
         .update({
           actual_start_time: new Date().toISOString(),
@@ -142,8 +147,9 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
         })
         .eq("id", shiftId);
 
-      Alert.alert("Clock-In successful");
+      if (updateError) throw updateError;
 
+      Alert.alert("Clock-In successful");
       onDone();
     } catch (err) {
       console.log(err);
@@ -224,16 +230,8 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    width: "100%",
-    padding: 10,
-  },
-
-  camera: {
-    height: 300,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
+  container: { width: "100%", padding: 10 },
+  camera: { height: 300, borderRadius: 12, overflow: "hidden" },
 
   captureButton: {
     position: "absolute",
@@ -244,10 +242,7 @@ const styles = StyleSheet.create({
     borderRadius: 40,
   },
 
-  captureText: {
-    color: "#fff",
-    fontWeight: "700",
-  },
+  captureText: { color: "#fff", fontWeight: "700" },
 
   preview: {
     width: "100%",
@@ -262,25 +257,12 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
 
-  cancel: {
-    color: "red",
-    fontWeight: "700",
-  },
+  cancel: { color: "red", fontWeight: "700" },
+  submit: { color: "green", fontWeight: "700" },
 
-  submit: {
-    color: "green",
-    fontWeight: "700",
-  },
+  tooFar: { color: "#D00", textAlign: "center", marginTop: 10 },
 
-  tooFar: {
-    color: "#D00",
-    textAlign: "center",
-    marginTop: 10,
-  },
-
-  statusRow: {
-    marginBottom: 12,
-  },
+  statusRow: { marginBottom: 12 },
 
   badgeInside: {
     backgroundColor: "#DCFCE7",
@@ -294,13 +276,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
 
-  badgeTextInside: {
-    color: "#166534",
-    fontWeight: "600",
-  },
-
-  badgeTextOutside: {
-    color: "#991B1B",
-    fontWeight: "600",
-  },
+  badgeTextInside: { color: "#166534", fontWeight: "600" },
+  badgeTextOutside: { color: "#991B1B", fontWeight: "600" },
 });
