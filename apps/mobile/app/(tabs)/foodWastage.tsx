@@ -1,18 +1,14 @@
-// apps/mobile/app/(tabs)/foodWastage.tsx
 import { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, Alert, ActivityIndicator } from 'react-native';
+import {
+  View, Text, TextInput, TouchableOpacity,
+  ScrollView, Image, ActivityIndicator, Modal,
+} from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from '../../context/AuthContext';
 import { WasteLogSchema } from '@vak/contract';
-
-interface FormState {
-  item_name: string;
-  estimated_cost: string;
-  photo_url: string | null;
-}
 
 interface FormErrors {
   item_name?: string;
@@ -24,103 +20,85 @@ interface FormErrors {
 export default function ReportFoodWastage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [form, setForm] = useState<FormState>({
-    item_name: '',
-    estimated_cost: '',
-    photo_url: null,
-  });
-  const [errors, setErrors] = useState<FormErrors>({});
+
+  const [itemName, setItemName] = useState('');
+  const [estimatedCost, setEstimatedCost] = useState('');
   const [localPhotoUri, setLocalPhotoUri] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [uploadError, setUploadError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const startErrorTimer = () => {
     if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
-    errorTimerRef.current = setTimeout(() => {
-      setErrors({});
-      setUploadError(false);
-    }, 20000);
+    errorTimerRef.current = setTimeout(() => setErrors({}), 20000);
   };
 
   const pickImage = async (source: 'library' | 'camera') => {
-    const permission =
-      source === 'camera'
-        ? await ImagePicker.requestCameraPermissionsAsync()
-        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permission = source === 'camera'
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-    if (!permission.granted) {
-      Alert.alert('Permission required', 'Please allow access to continue.');
-      return;
-    }
+    if (!permission.granted) return;
 
-    const result =
-      source === 'camera'
-        ? await ImagePicker.launchCameraAsync({ quality: 0.7 })
-        : await ImagePicker.launchImageLibraryAsync({ quality: 0.7 });
+    const result = source === 'camera'
+      ? await ImagePicker.launchCameraAsync({ quality: 0.7, mediaTypes: ImagePicker.MediaTypeOptions.Images })
+      : await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ImagePicker.MediaTypeOptions.Images });
 
     if (!result.canceled && result.assets[0]) {
       const uri = result.assets[0].uri;
       setLocalPhotoUri(uri);
-      setUploadError(false);
+      setUploadedPhotoUrl(null);
+      setErrors((prev) => ({ ...prev, photo_url: undefined }));
       await uploadPhoto(uri);
     }
   };
 
   const uploadPhoto = async (uri: string) => {
-  try {
-    setUploadingPhoto(true);
-    const fileName = `waste_${Date.now()}.jpg`;
+    try {
+      setUploadingPhoto(true);
+      const path = `${user!.id}/${Date.now()}.jpg`;
 
-    // Use FormData — most reliable for local URIs in React Native
-    const formData = new FormData();
-    formData.append('file', {
-      uri,
-      name: fileName,
-      type: 'image/jpeg',
-    } as any);
+      const formData = new FormData();
+      formData.append('file', { uri, name: path, type: 'image/jpeg' } as any);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error('No session');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No session');
 
-    const res = await fetch(
-      `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/waste-log-photos/${fileName}`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          'x-upsert': 'true',
-        },
-        body: formData,
+      const res = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/waste-log-photos/${path}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'x-upsert': 'true',
+          },
+          body: formData,
+        }
+      );
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Upload failed');
       }
-    );
 
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || 'Upload failed');
+      const { data: urlData } = supabase.storage.from('waste-log-photos').getPublicUrl(path);
+      setUploadedPhotoUrl(urlData.publicUrl);
+    } catch {
+      setUploadedPhotoUrl(null);
+      setErrors((prev) => ({ ...prev, photo_url: 'Upload failed. Remove and try again.' }));
+      startErrorTimer();
+    } finally {
+      setUploadingPhoto(false);
     }
-
-    const { data: urlData } = supabase.storage
-      .from('waste-log-photos')
-      .getPublicUrl(fileName);
-
-    setForm((prev) => ({ ...prev, photo_url: urlData.publicUrl }));
-  } catch (e) {
-    console.error('Upload error:', e);
-    setUploadError(true);
-    setLocalPhotoUri(null);
-    setForm((prev) => ({ ...prev, photo_url: null }));
-    startErrorTimer();
-  } finally {
-    setUploadingPhoto(false);
-  }
-};
+  };
 
   const removePhoto = () => {
     setLocalPhotoUri(null);
-    setUploadError(false);
-    setForm((prev) => ({ ...prev, photo_url: null }));
+    setUploadedPhotoUrl(null);
+    setErrors((prev) => ({ ...prev, photo_url: undefined }));
   };
 
   const validate = (): boolean => {
@@ -128,9 +106,9 @@ export default function ReportFoodWastage() {
 
     const result = WasteLogSchema.safeParse({
       reporter_id: user.id,
-      item_name: form.item_name.trim(),
-      estimated_cost: Number(form.estimated_cost),
-      photo_url: form.photo_url,
+      item_name: itemName.trim(),
+      estimated_cost: Number(estimatedCost),
+      photo_url: uploadedPhotoUrl ?? '',
     });
 
     if (result.success) {
@@ -142,7 +120,7 @@ export default function ReportFoodWastage() {
     for (const issue of result.error.issues) {
       const field = issue.path[0] as keyof FormErrors;
       if (field === 'item_name') newErrors.item_name = issue.message;
-      if (field === 'estimated_cost') newErrors.estimated_cost = 'Please enter a valid cost.';
+      if (field === 'estimated_cost') newErrors.estimated_cost = issue.message;
       if (field === 'photo_url') newErrors.photo_url = issue.message;
     }
     setErrors(newErrors);
@@ -155,23 +133,20 @@ export default function ReportFoodWastage() {
 
     try {
       setSubmitting(true);
+      if (!user) throw new Error('Not authenticated');
 
-      if (!user) throw new Error("Not authenticated");
-
-      const { error } = await supabase.from("waste_logs").insert({
+      const { error } = await supabase.from('waste_logs').insert({
         reporter_id: user.id,
-        item_name: form.item_name.trim(),
-        estimated_cost: Number(form.estimated_cost),
-        photo_url: form.photo_url,
+        item_name: itemName.trim(),
+        estimated_cost: Number(estimatedCost),
+        photo_url: uploadedPhotoUrl,
       });
 
       if (error) throw error;
-
-      router.back();
-
+      setShowSuccess(true);
     } catch (err: any) {
       setErrors((prev) => ({ ...prev, submit: err.message || 'Something went wrong. Please try again.' }));
-      startErrorTimer(); // ← this was missing, errors never cleared on submit failure
+      startErrorTimer();
     } finally {
       setSubmitting(false);
     }
@@ -179,6 +154,27 @@ export default function ReportFoodWastage() {
 
   return (
     <View className="flex-1 bg-brand-secondary">
+
+      {/* ── Success Modal ── */}
+      <Modal visible={showSuccess} transparent animationType="fade">
+        <View className="flex-1 items-center justify-center bg-black/50 px-8">
+          <View className="bg-white rounded-3xl px-8 py-10 items-center w-full">
+            <View className="w-16 h-16 rounded-full bg-green-100 items-center justify-center mb-4">
+              <Ionicons name="checkmark-circle" size={40} color="#22c55e" />
+            </View>
+            <Text className="text-gray-900 text-[18px] font-bold mb-2">Report Submitted!</Text>
+            <Text className="text-gray-500 text-[14px] text-center mb-6">
+              Thank you! Your food wastage report has been recorded successfully.
+            </Text>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="bg-brand-secondary rounded-2xl py-4 w-full items-center"
+            >
+              <Text className="text-white font-extrabold text-[13px] tracking-widest uppercase">Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* ── Header ── */}
       <View className="bg-brand-secondary pt-10 pb-14 px-5 flex-row items-center justify-between">
@@ -231,18 +227,16 @@ export default function ReportFoodWastage() {
               Item Name <Text className="text-red-500">*</Text>
             </Text>
             <TextInput
-              className={`bg-white border rounded-lg px-4 py-3.5 text-gray-900 text-[15px] mb-1 ${
-                errors.item_name ? 'border-red-500' : 'border-gray-400'
-              }`}
+              className={`bg-white border rounded-lg px-4 py-3.5 text-gray-900 text-[15px] mb-1 ${errors.item_name ? 'border-red-500' : 'border-gray-400'}`}
               placeholder="e.g. Chicken breast, Salad mix..."
               placeholderTextColor="#6B7280"
-              value={form.item_name}
-              onChangeText={(val) => setForm((prev) => ({ ...prev, item_name: val }))}
+              value={itemName}
+              onChangeText={setItemName}
             />
-            {errors.item_name && (
-              <Text className="text-red-500 text-[14px] font-semibold mb-3 ml-1">{errors.item_name}</Text>
-            )}
-            {!errors.item_name && <View className="mb-4" />}
+            {errors.item_name
+              ? <Text className="text-red-500 text-[14px] font-semibold mb-3 ml-1">{errors.item_name}</Text>
+              : <View className="mb-4" />
+            }
 
             <View className="h-px bg-gray-200 mb-5" />
 
@@ -250,23 +244,21 @@ export default function ReportFoodWastage() {
             <Text className="text-[13px] font-bold text-gray-600 uppercase tracking-widest mb-2">
               Estimated Cost <Text className="text-red-500">*</Text>
             </Text>
-            <View className={`flex-row items-center bg-white border rounded-lg px-4 mb-1 ${
-              errors.estimated_cost ? 'border-red-500' : 'border-gray-400'
-            }`}>
+            <View className={`flex-row items-center bg-white border rounded-lg px-4 mb-1 ${errors.estimated_cost ? 'border-red-500' : 'border-gray-400'}`}>
               <Text className="text-gray-600 text-[15px] font-semibold mr-2">$</Text>
               <TextInput
                 className="flex-1 py-3.5 text-gray-900 text-[15px]"
                 placeholder="0.00"
                 placeholderTextColor="#6B7280"
                 keyboardType="decimal-pad"
-                value={form.estimated_cost}
-                onChangeText={(val) => setForm((prev) => ({ ...prev, estimated_cost: val }))}
+                value={estimatedCost}
+                onChangeText={setEstimatedCost}
               />
             </View>
-            {errors.estimated_cost && (
-              <Text className="text-red-500 text-[14px] font-semibold mb-3 ml-1">{errors.estimated_cost}</Text>
-            )}
-            {!errors.estimated_cost && <View className="mb-4" />}
+            {errors.estimated_cost
+              ? <Text className="text-red-500 text-[14px] font-semibold mb-3 ml-1">{errors.estimated_cost}</Text>
+              : <View className="mb-4" />
+            }
 
             <View className="h-px bg-gray-200 mb-3" />
 
@@ -275,42 +267,44 @@ export default function ReportFoodWastage() {
               Photo <Text className="text-red-500">*</Text>
             </Text>
 
-            {/* Upload error inline */}
-            {uploadError && (
-              <View className="flex-row items-center gap-2 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mb-3">
-                <Ionicons name="alert-circle" size={16} color="#ef4444" />
-                <Text className="text-red-600 text-[14px] font-semibold flex-1">Upload failed. Please try again.</Text>
-              </View>
-            )}
-
             {localPhotoUri ? (
-              <View className="rounded-xl" style={{ overflow: 'hidden' }}>
+              <View className="rounded-xl border border-gray-200">
                 <Image
                   source={{ uri: localPhotoUri }}
-                  className="w-full h-44"
+                  style={{ width: '100%', height: 176, borderRadius: 12 }}
                   resizeMode="cover"
                 />
                 {uploadingPhoto ? (
-                  <View className="absolute inset-0 items-center justify-center bg-black/45">
-                    <ActivityIndicator color="#fff" size="large" />
-                    <Text className="text-white mt-2 text-sm">Uploading...</Text>
+                  <View className="flex-row items-center gap-2 px-4 py-3 bg-gray-50 border-t border-gray-200" style={{ borderBottomLeftRadius: 12, borderBottomRightRadius: 12 }}>
+                    <ActivityIndicator size="small" color="#374151" />
+                    <Text className="text-gray-600 text-[13px] font-semibold">Uploading photo...</Text>
                   </View>
                 ) : (
-                  <TouchableOpacity
-                    onPress={removePhoto}
-                    className="absolute top-3 right-3 bg-red-500 rounded-full w-8 h-8 items-center justify-center"
-                  >
-                    <Ionicons name="close" size={16} color="#fff" />
-                  </TouchableOpacity>
+                  <View className="flex-row items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-200" style={{ borderBottomLeftRadius: 12, borderBottomRightRadius: 12 }}>
+                    {uploadedPhotoUrl ? (
+                      <View className="flex-row items-center gap-1">
+                        <Ionicons name="checkmark-circle" size={16} color="#22c55e" />
+                        <Text className="text-green-600 text-[13px] font-semibold">Uploaded successfully</Text>
+                      </View>
+                    ) : (
+                      <View className="flex-row items-center gap-1">
+                        <Ionicons name="alert-circle" size={16} color="#ef4444" />
+                        <Text className="text-red-500 text-[13px] font-semibold">Upload failed</Text>
+                      </View>
+                    )}
+                    <TouchableOpacity
+                      onPress={removePhoto}
+                      className="flex-row items-center gap-1 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5"
+                    >
+                      <Ionicons name="trash-outline" size={14} color="#ef4444" />
+                      <Text className="text-red-500 text-[12px] font-semibold">Remove</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
             ) : (
               <View className={`border rounded-lg bg-gray-50 ${errors.photo_url ? 'border-red-500' : 'border-gray-400'}`}>
-                <TouchableOpacity
-                  onPress={() => pickImage('camera')}
-                  className="flex-row items-center gap-3 px-4 py-4"
-                  activeOpacity={0.7}
-                >
+                <TouchableOpacity onPress={() => pickImage('camera')} className="flex-row items-center gap-3 px-4 py-4" activeOpacity={0.7}>
                   <View className="w-9 h-9 rounded-xl items-center justify-center bg-brand-secondary">
                     <Ionicons name="camera-outline" size={18} color="#fff" />
                   </View>
@@ -323,11 +317,7 @@ export default function ReportFoodWastage() {
 
                 <View className="h-px bg-gray-200 mx-4" />
 
-                <TouchableOpacity
-                  onPress={() => pickImage('library')}
-                  className="flex-row items-center gap-3 px-4 py-4"
-                  activeOpacity={0.7}
-                >
+                <TouchableOpacity onPress={() => pickImage('library')} className="flex-row items-center gap-3 px-4 py-4" activeOpacity={0.7}>
                   <View className="w-9 h-9 rounded-xl items-center justify-center bg-brand-secondary">
                     <Ionicons name="image-outline" size={18} color="#fff" />
                   </View>
@@ -352,17 +342,12 @@ export default function ReportFoodWastage() {
         <TouchableOpacity
           onPress={handleSubmit}
           disabled={submitting || uploadingPhoto}
-          className={`rounded-2xl py-5 items-center justify-center ${
-            submitting || uploadingPhoto ? 'bg-gray-300' : 'bg-brand-secondary'
-          }`}
+          className={`rounded-2xl py-5 items-center justify-center ${submitting || uploadingPhoto ? 'bg-gray-300' : 'bg-brand-secondary'}`}
         >
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text className="text-white font-extrabold text-[13px] tracking-widest uppercase">
-              Submit Report
-            </Text>
-          )}
+          {submitting
+            ? <ActivityIndicator color="#fff" />
+            : <Text className="text-white font-extrabold text-[13px] tracking-widest uppercase">Submit Report</Text>
+          }
         </TouchableOpacity>
       </View>
 
