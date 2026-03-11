@@ -20,6 +20,7 @@
     "@vak/ui": "workspace:*",
     "expo": "~54.0.32",
     "expo-constants": "^18.0.13",
+    "expo-image-picker": "~17.0.10",
     "expo-linking": "^8.0.11",
     "expo-router": "^6.0.22",
     "expo-status-bar": "~3.0.9",

@@ -14,7 +14,7 @@ export const ShiftStatusCard = ({ title, subtitle, swapStatus }: ShiftStatusCard
     null;
 
   return (
-    <View className="flex-row h-24 w-[90%] max-w-md bg-white border-2 border-gray-300 rounded-s shadow-md mb-6 items-center overflow-hidden mx-auto">
+    <View className="flex-row h-24 w-[90%] max-w-md bg-white border-2 border-gray-300 rounded-xl shadow-md mb-6 items-center overflow-hidden mx-auto">
       
       {/* Content */}
       <View className="flex-1 px-5 justify-center">

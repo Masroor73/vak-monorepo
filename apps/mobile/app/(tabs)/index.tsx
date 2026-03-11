@@ -104,8 +104,8 @@ export default function Index() {
       </View>
 
       {/* ── Card over header ── */}
-      <View className="-mt-12 px-4">
-        <View className="bg-white rounded-xl px-5 pt-5 pb-5 mb-3" style={{ shadowColor: "#0d1b3e", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 18, elevation: 6 }}>
+      <View className="-mt-16 px-4">
+        <View className="bg-white rounded px-5 pt-5 pb-5 mb-3" style={{ shadowColor: "#0d1b3e", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 18, elevation: 6 }}>
 
           {/* Card header */}
           <View className="flex-row items-center justify-between mb-6 mt-2">
