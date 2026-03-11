@@ -2,43 +2,60 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
+import { RealtimeChannel } from "@supabase/supabase-js";
 
 const __DEV__ = process.env.NODE_ENV !== "production";
-const POLL_INTERVAL_MS = 15000;
 
+/**
+ * Subscribes to Supabase Realtime UPDATE events on the `profiles` table.
+ * When the current user's `is_approved` flips to true, redirects to the main app instantly.
+ *
+ * Why filtered subscription: We only care about the current user's profile row,
+ * so we filter by id=eq.userId to avoid processing other users' updates.
+ *
+ * Mount this once on the pending-approval screen so it cleans up on navigation away.
+ */
 export function useApprovalRealtimeSubscription() {
   const { user } = useAuth();
   const router = useRouter();
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     if (!user) return;
 
-    const checkApproval = async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("is_approved")
-        .eq("id", user.id)
-        .single();
+    const channel = supabase
+      .channel("approval")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+          filter: `id=eq.${user.id}`,
+        },
+        (payload) => {
+          if (__DEV__) {
+            console.log("[Approval Realtime] UPDATE", payload.new);
+          }
 
-      if (__DEV__) {
-        console.log("[Approval Poll] checked:", data?.is_approved, error?.message);
-      }
+          if (payload.new?.is_approved === true) {
+            if (__DEV__) console.log("[Approval Realtime] Approved! Redirecting...");
+            router.replace("/(tabs)");
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (__DEV__ && status === "SUBSCRIBED") {
+          console.log("[Approval Realtime] Channel subscribed");
+        }
+      });
 
-      if (!error && data?.is_approved === true) {
-        if (__DEV__) console.log("[Approval Poll] Approved! Redirecting...");
-        clearInterval(intervalRef.current!);
-        router.replace("/(tabs)");
-      }
-    };
-
-    checkApproval();
-    intervalRef.current = setInterval(checkApproval, POLL_INTERVAL_MS);
+    channelRef.current = channel;
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
       }
     };
   }, [user]);
