@@ -1,7 +1,9 @@
 import ManagerLayout from "./layouts/ManagerLayout";
 import DarkPage from "./components/DarkPage";
+import { useAuthGuard } from "../hooks/useAuthGuard";
 
 export default function Settings() {
+  useAuthGuard();
   return (
     <ManagerLayout>
       <DarkPage

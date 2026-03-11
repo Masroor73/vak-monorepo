@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import ManagerLayout from "./layouts/ManagerLayout";
 import { supabase } from "../lib/supabase";
+import { useAuthGuard } from "../hooks/useAuthGuard";
 
 type Employee = {
   id: string;
@@ -8,6 +9,7 @@ type Employee = {
 };
 
 export default function Communication() {
+  useAuthGuard();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [message, setMessage] = useState("");

@@ -1,5 +1,6 @@
 import ManagerLayout from "./layouts/ManagerLayout";
 import DarkPage from "./components/DarkPage";
+import { useAuthGuard } from "../hooks/useAuthGuard";
 
 const tasks = [
   { name: "Clean Storage Area", status: "Completed" },
@@ -8,6 +9,7 @@ const tasks = [
 ];
 
 export default function Tasks() {
+  useAuthGuard();
   return (
     <ManagerLayout>
       <DarkPage

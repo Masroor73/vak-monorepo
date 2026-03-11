@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import ManagerLayout from "./layouts/ManagerLayout";
 import { supabase } from "../lib/supabase";
+import { useAuthGuard } from "../hooks/useAuthGuard";
 
 type SwapRequest = {
   id: string;
@@ -17,6 +18,7 @@ type Profile = {
 };
 
 export default function SwapRequests() {
+  useAuthGuard();
   const [requests, setRequests] = useState<SwapRequest[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);

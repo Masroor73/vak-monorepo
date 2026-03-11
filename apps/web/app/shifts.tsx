@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import ManagerLayout from "./layouts/ManagerLayout";
 import DarkPage from "./components/DarkPage";
 import { supabase } from "../lib/supabase";
+import { useAuthGuard } from "../hooks/useAuthGuard";
 
 type Shift = {
   id: string;
@@ -11,6 +12,7 @@ type Shift = {
 };
 
 export default function Shifts() {
+    useAuthGuard();
   const [shifts, setShifts] = useState<Shift[]>([]);
 
   useEffect(() => {

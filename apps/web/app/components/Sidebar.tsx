@@ -29,7 +29,6 @@ const MAIN_NAV: NavItem[] = [
     href:       "/swap-requests",
     icon:       "swap-horizontal-outline",
     activeIcon: "swap-horizontal",
-    badge:      3,
   },
   {
     label:      "Communication",
