@@ -1,167 +1,358 @@
-import React, { useState } from "react";
-import { View, Text, FlatList, Modal, Pressable } from "react-native";
-import { TaskCard } from "@vak/ui";
-import { SafeAreaView } from "react-native-safe-area-context";
-import DropdownPill, {
-  type DropdownOption,
-} from "../../src/components/DropdownPill";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Pressable} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import WhiteArrow from "../../assets/WhiteArrow.svg";
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
-type Priority = "low" | "medium" | "high";
-
-type Status = "pending" | "completed";
+type Priority       = 'HIGH' | 'MEDIUM' | 'LOW';
+type Status         = 'Pending' | 'In Progress' | 'Done';
+type PriorityFilter = 'ALL' | Priority;
 
 interface Task {
-  id: string;
-  title: string;
-  description: string;
-  priority: Priority;
-  area?: string;
-  status: Status;
+  id:          string;
+  title:       string;
+  description: string | null;
+  due_date:    string | null;
+  priority:    Priority;
+  status:      Status;
+  assigned_by: string;
 }
 
-const MOCK_TASKS: Task[] = [
-  {
-    id: "1",
-    title: "Check fridge temperatures",
-    description:
-      "Inspect and record the current temperature of all fridges and freezers in the kitchen and storage area.\nEnsure all units are operating below 4°C (40°F) for food safety compliance.\nReport any equipment showing abnormal readings immediately to your manager before beginning prep work.",
-    priority: "high",
-    area: "kitchen",
-    status: "pending",
-  },
-  {
-    id: "2",
-    title: "Prepare service counter",
-    description:
-      "Set up the service counter with all necessary utensils, napkins, and condiments.\nEnsure the counter is clean and sanitized before placing any items.\nCheck that all display items are properly labeled and arranged.",
-    priority: "medium",
-    area: "service",
-    status: "pending",
-  },
-  {
-    id: "3",
-    title: "Wipe prep surfaces",
-    description:
-      "Clean and sanitize all preparation surfaces using approved cleaning solution.\nPay special attention to cutting boards and stainless steel areas.\nAllow surfaces to air dry before use.",
-    priority: "high",
-    area: "kitchen",
-    status: "pending",
-  },
-  {
-    id: "4",
-    title: "Refill sauces and condiments",
-    description:
-      "Check all sauce bottles and condiment containers at each station.\nRefill any that are below half capacity using FIFO rotation.\nWipe down all containers after refilling.",
-    priority: "medium",
-    area: "service",
-    status: "pending",
-  },
-  {
-    id: "5",
-    title: "Log food waste if applicable",
-    description:
-      "Record any food waste from the shift in the waste log sheet.\nInclude item name, quantity, and reason for disposal.\nNotify the manager if waste exceeds normal levels.",
-    priority: "low",
-    area: "kitchen",
-    status: "completed",
-  },
-  {
-    id: "6",
-    title: "Turn off equipment",
-    description:
-      "Power down all kitchen equipment that is not needed for the next shift.\nCheck that ovens, grills, and fryers are properly turned off.\nEnsure all pilot lights are extinguished where applicable.",
-    priority: "high",
-    area: "kitchen",
-    status: "pending",
-  },
+const STATUS_PROGRESS: Record<Status, number> = {
+  'Pending':     0,
+  'In Progress': 50,
+  'Done':        100,
+};
+
+const PRIORITY_META: Record<Priority, { label: string; barClass: string; bgClass: string; textClass: string }> = {
+  HIGH:   { label: 'HIGH',   barClass: 'bg-damascus-primary',   bgClass: 'bg-damascus-primary/10',   textClass: 'text-damascus-primary'   },
+  MEDIUM: { label: 'MEDIUM', barClass: 'bg-damascus-secondary', bgClass: 'bg-damascus-secondary/10', textClass: 'text-damascus-secondary' },
+  LOW:    { label: 'LOW',    barClass: 'bg-brand-success',      bgClass: 'bg-brand-success/10',      textClass: 'text-brand-success'      },
+};
+
+type ChipKey = 'ALL' | Priority | Status;
+interface Chip {
+  key: ChipKey; label: string; type: 'all' | 'priority' | 'status'; activeBgClass: string; activeBorderClass: string;
+}
+
+const CHIPS: Chip[] = [
+  { key: 'ALL',    label: 'All',    type: 'all',      activeBgClass: 'bg-brand-secondary',    activeBorderClass: 'border-brand-secondary'    },
+  { key: 'HIGH',   label: 'High',   type: 'priority', activeBgClass: 'bg-damascus-primary',   activeBorderClass: 'border-damascus-primary'   },
+  { key: 'MEDIUM', label: 'Medium', type: 'priority', activeBgClass: 'bg-damascus-secondary', activeBorderClass: 'border-damascus-secondary' },
+  { key: 'LOW',    label: 'Low',    type: 'priority', activeBgClass: 'bg-brand-success',      activeBorderClass: 'border-brand-success'      },
 ];
 
-const SORT_OPTIONS: DropdownOption[] = [
-  { label: "All tasks", value: "all" },
-  { label: "High Priority", value: "high", color: "#EF4444" },
-  { label: "Medium Priority", value: "medium", color: "#FBBF24" },
-  { label: "Low Priority", value: "low", color: "#10B981" },
-  { label: "Kitchen", value: "kitchen" },
-  { label: "Service Area", value: "service" },
-];
+function formatDueDate(dateStr: string | null): { text: string; overdue: boolean } {
+  if (!dateStr) return { text: '', overdue: false };
+  const due  = new Date(dateStr);
+  const now  = new Date();
+  now.setHours(0, 0, 0, 0);
+  const diff = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (diff < 0)   return { text: `${Math.abs(diff)}d overdue`, overdue: true  };
+  if (diff === 0) return { text: 'Due today',                  overdue: false };
+  if (diff === 1) return { text: 'Due tomorrow',               overdue: false };
+  return { text: `Due in ${diff}d`, overdue: false };
+}
 
-const FILTER_OPTIONS: DropdownOption[] = [
-  { label: "All tasks", value: "all" },
-  { label: "Completed", value: "completed" },
-  { label: "Pending", value: "pending" },
-];
+export default function MyTasksScreen() {
+  const router   = useRouter();
+  const { user } = useAuth();
+  const insets   = useSafeAreaInsets();
+  const [tasks,          setTasks]          = useState<Task[]>([]);
+  const [loading,        setLoading]        = useState(true);
+  const [refreshing,     setRefreshing]     = useState(false);
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('ALL');
+  const [updatingId,     setUpdatingId]     = useState<string | null>(null);
 
-export default function DailyTasks() {
-  const [sortBy, setSortBy] = useState("all");
-  const [filterBy, setFilterBy] = useState("all");
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const fetchTasks = async (isRefresh = false) => {
+    if (!user) return;
+    if (!isRefresh) setLoading(true);
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('id, title, description, due_date, priority, status, assigned_by')
+      .eq('assigned_to', user.id)
+      .order('due_date', { ascending: true, nullsFirst: false });
+    if (!error && data) setTasks(data as Task[]);
+    setLoading(false);
+    setRefreshing(false);
+  };
 
-  const sortedTasks = MOCK_TASKS.filter((task) => {
-    if (sortBy === "all") return true;
-    if (["high", "medium", "low"].includes(sortBy)) {
-      return task.priority === sortBy;
+  useEffect(() => {
+    fetchTasks();
+    let channel: RealtimeChannel;
+    if (user) {
+      channel = supabase
+        .channel('tasks-realtime')
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'tasks',
+          filter: `assigned_to=eq.${user.id}`,
+        }, () => fetchTasks())
+        .subscribe();
     }
-    return task.area === sortBy;
-  });
+    return () => { if (channel) supabase.removeChannel(channel); };
+  }, [user]);
 
-  const visibleTasks = sortedTasks.filter((task) => {
-    if (filterBy === "all") return true;
-    return task.status === filterBy;
-  });
+  const onRefresh = () => { setRefreshing(true); fetchTasks(true); };
 
-  return (
-    <SafeAreaView className="flex-1 bg-brand-secondary">
-      <Text className="mt-4 text-center text-2xl font-bold text-brand-primary">Today's Checklist</Text>
+  const cycleStatus = async (task: Task) => {
+    if (updatingId) return;
+    const next: Record<Status, Status> = {
+      'Pending': 'In Progress', 'In Progress': 'Done', 'Done': 'Pending',
+    };
+    const newStatus = next[task.status];
+    setUpdatingId(task.id);
+    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: newStatus } : t));
+    const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', task.id);
+    if (error) setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: task.status } : t));
+    setUpdatingId(null);
+  };
 
-      <View className="px-4">
-        <View className="w-full  mt-4 flex-row items-center justify-around rounded-full border border-gray-200 px-4 py-2">
-          <DropdownPill label="Sort By:" value={sortBy} options={SORT_OPTIONS} onSelect={setSortBy} />
-          <DropdownPill label="Filter By:" value={filterBy} options={FILTER_OPTIONS} onSelect={setFilterBy} />
+  const handleChip = (chip: Chip) => {
+    if (chip.type === 'all') setPriorityFilter('ALL');
+    else if (chip.type === 'priority') setPriorityFilter(p => p === chip.key ? 'ALL' : chip.key as PriorityFilter);
+  };
+
+  const isChipActive = (chip: Chip) => {
+    if (chip.type === 'all')      return priorityFilter === 'ALL';
+    if (chip.type === 'priority') return priorityFilter === chip.key;
+    return false;
+  };
+
+  const chipCount = (chip: Chip) => {
+    if (chip.type === 'all') return 0;
+    return tasks.filter(t => t.priority === chip.key).length;
+  };
+
+  const filtered = tasks.filter(t =>
+    (priorityFilter === 'ALL' || t.priority === priorityFilter)
+  );
+
+  const doneCount       = tasks.filter(t => t.status === 'Done').length;
+  const pendingCount    = tasks.filter(t => t.status === 'Pending').length;
+  const inProgressCount = tasks.filter(t => t.status === 'In Progress').length;
+
+  // ── Empty state ──────────────────────────────────────────────────────────────
+  const EmptyState = () => (
+    <View className="flex-1 items-center justify-center px-10 py-8">
+      {/* Illustrated clipboard */}
+      <View className="items-center justify-center mb-6 w-36 h-36">
+        {/* Decorative dots */}
+        <View className="absolute bg-brand-primary/50 top-5 left-2.5 w-2 h-2 rounded-full" />
+        <View className="absolute bg-brand-success/60 bottom-6 left-4 w-1.5 h-1.5 rounded-full" />
+        {/* Clipboard body */}
+        <View className="w-28 rounded-2xl items-center pt-3 pb-4 px-4 bg-white shadow-md">
+          <View className="w-10 h-3 rounded-full mb-3 bg-slate-200" />
+          {[100, 80, 90].map((w, i) => (
+            <View key={i} className="rounded-full mb-2 bg-slate-200 h-1.5" style={{ width: `${w}%` }} />
+          ))}
+        </View>
+        {/* Checkmark badge */}
+        <View className="absolute bottom-2 right-2 w-9 h-9 rounded-full items-center justify-center bg-brand-secondary shadow-md">
+          <Ionicons name="checkmark" size={18} color="#62CCEF" />
         </View>
       </View>
 
-      <FlatList
-        data={visibleTasks}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32 }}
-        renderItem={({ item }) => (
-          <TaskCard title={item.title} priority={item.priority} onPress={() => setSelectedTask(item)} />
-        )}
-        ListEmptyComponent={<Text className="mt-8 text-center text-gray-400">No tasks found.</Text>}
-      />
+      <Text className="text-[22px] font-black text-center mb-2 text-brand-secondary -tracking-tight">
+        {priorityFilter !== 'ALL'
+          ? `No ${priorityFilter.toLowerCase()} priority tasks`
+          : "You're all caught up!"}
+      </Text>
+      <Text className="text-[13px] text-center leading-5 mb-6 text-slate-400">
+        {priorityFilter !== 'ALL'
+          ? 'Nothing matches your current filters.\nTry a different selection.'
+          : 'No tasks have been assigned to you\nyet. Your manager will assign tasks\nwhen they\'re ready.'}
+      </Text>
+    </View>
+  );
 
-      <Modal visible={selectedTask !== null} transparent animationType="fade">
-        <Pressable
-          className="flex-1 items-center justify-center bg-black/40 px-5"
-          onPress={() => setSelectedTask(null)}
-        >
-          <View
-            className="w-full rounded-3xl bg-brand-secondary px-6 pb-8 pt-5"
-            style={{ elevation: 10 }}
-            onStartShouldSetResponder={() => true}
-          >
-            <View className="mb-4 flex-row items-center gap-3">
-              <Pressable onPress={() => setSelectedTask(null)}>
-                <Ionicons name="arrow-back" size={22} color="#62CCEF" />
-              </Pressable>
-              <Text className="flex-1 text-lg font-bold text-brand-primary">{selectedTask?.title}</Text>
+  // ── Task card ────────────────────────────────────────────────────────────────
+  const TaskCard = ({ task }: { task: Task }) => {
+    const pm         = PRIORITY_META[task.priority];
+    const due        = formatDueDate(task.due_date);
+    const isDone     = task.status === 'Done';
+    const isUpdating = updatingId === task.id;
+    const progress   = STATUS_PROGRESS[task.status];
+
+    const progressBarClass = isDone ? 'bg-brand-success' : pm.barClass;
+
+    return (
+      <View
+        className={`mx-4 mb-3 rounded-2xl overflow-hidden bg-white shadow-sm border ${isDone ? 'border-brand-success/20' : 'border-black/[0.04]'}`}
+      >
+        {/* Left priority bar */}
+        <View className={`absolute left-0 top-0 bottom-0 w-[3px] ${pm.barClass} ${isDone ? 'opacity-35' : 'opacity-100'}`} />
+
+        <View className="pl-5 pr-4 pt-4 pb-3">
+          {/* Title + toggle */}
+          <View className="flex-row items-start justify-between mb-1.5">
+            <View className="flex-1 mr-3">
+              <Text
+                className={`font-bold text-[15px] leading-[21px] -tracking-tight ${isDone ? 'text-slate-400 line-through' : 'text-brand-secondary'}`}
+              >
+                {task.title}
+              </Text>
+              {task.description ? (
+                <Text className="text-[12px] mt-1 leading-[18px] text-slate-400" numberOfLines={2}>
+                  {task.description}
+                </Text>
+              ) : null}
             </View>
 
-            <Text className="mb-2 text-sm font-semibold text-gray-300">Task description</Text>
-
-            <Text className="mb-6 text-base leading-6 text-gray-200">{selectedTask?.description}</Text>
-
-            {selectedTask?.status === "pending" && (
-              <View className="items-center">
-                <Pressable onPress={() => setSelectedTask(null)} className="rounded-full bg-brand-success px-10 py-3">
-                  <Text className="text-base font-bold text-white">Mark As Done</Text>
-                </Pressable>
-              </View>
-            )}
+            {/* Status cycle toggle */}
+            <TouchableOpacity
+              onPress={() => cycleStatus(task)}
+              disabled={!!updatingId}
+              activeOpacity={0.7}
+              className={`w-8 h-8 rounded-full items-center justify-center border-2 ${isDone ? 'bg-brand-success/10 border-brand-success' : 'bg-slate-100 border-slate-200'}`}
+            >
+              {isUpdating
+                ? <ActivityIndicator size="small" color={isDone ? '#05CC66' : '#94a3b8'} />
+                : <Ionicons
+                    name={isDone ? 'checkmark' : 'ellipse-outline'}
+                    size={isDone ? 14 : 17}
+                    color={isDone ? '#05CC66' : '#cbd5e1'}
+                  />
+              }
+            </TouchableOpacity>
           </View>
-        </Pressable>
-      </Modal>
-    </SafeAreaView>
+
+          {/* Due date row */}
+          {due.text !== '' && (
+            <View className="flex-row items-center mt-1 mb-2.5 gap-x-0.5">
+              <Ionicons name="calendar-outline" size={11} color={due.overdue ? '#D32F2F' : '#94a3b8'} />
+              <Text className={`text-[11px] font-medium ${due.overdue ? 'text-damascus-primary' : 'text-slate-400'}`}>
+                {due.text}
+              </Text>
+            </View>
+          )}
+
+          {/* Progress bar */}
+          <View className="mt-1">
+            <View className="flex-row items-center justify-between mb-1">
+              <Text className="text-[10px] font-semibold text-slate-400">Progress</Text>
+              <Text className={`text-[10px] font-bold ${isDone ? 'text-brand-success' : 'text-slate-400'}`}>
+                {progress}%
+              </Text>
+            </View>
+            <View className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+              <View
+                className={`h-full rounded-full ${progressBarClass}`}
+                style={{ width: `${progress}%` }}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Priority label top-right */}
+        <View className={`absolute top-3.5 right-4 px-2 py-0.5 rounded ${pm.bgClass}`}>
+          <Text className={`text-[10px] font-black tracking-wider ${pm.textClass}`}>
+            {pm.label}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <View className="flex-1 bg-brand-secondary">
+      {/* ── Dark header ── */}
+      <View className="bg-brand-secondary pt-6 pb-6 px-5">
+        <View className="flex-row items-center mb-5 pl-5">
+          <Pressable
+            onPress={() => router.back()}
+            className="w-10 h-10 rounded-full bg-white/10 items-center justify-center"
+          >
+            <WhiteArrow width={16} height={16} />
+          </Pressable>
+          <Text className="absolute left-0 right-0 text-center text-white font-bold text-lg tracking-wide">
+            My Tasks
+          </Text>
+        </View>
+      </View>
+
+      {/* ── Light content area ── */}
+      <View className="flex-1 bg-brand-background -mt-3">
+
+        {/* Stat tiles */}
+        <View className="px-6 pt-8 pb-6 flex-row gap-x-4">
+          {[
+            { label: 'TOTAL',  count: tasks.length,                   borderClass: 'border-brand-secondary',    textClass: 'text-brand-secondary'    },
+            { label: 'ACTIVE', count: inProgressCount + pendingCount, borderClass: 'border-damascus-secondary', textClass: 'text-damascus-secondary' },
+            { label: 'DONE',   count: doneCount,                      borderClass: 'border-brand-success',      textClass: 'text-brand-success'      },
+          ].map(s => (
+            <View
+              key={s.label}
+              className={`flex-1 bg-white rounded-xl pt-4 pb-3 px-3 items-center shadow border-b-[2.5px] ${s.borderClass}`}
+            >
+              {loading
+                ? <Ionicons name="ellipse" size={20} color="#e2e8f0" />
+                : <Text className={`font-black text-[26px] -tracking-widest ${s.textClass}`}>{s.count}</Text>
+              }
+              <Text className="text-[9px] font-black tracking-widest mt-0.5 text-slate-400">{s.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* ── Filter chips ── */}
+        <View className="pb-4 px-4">
+          <View className="flex-row justify-center gap-x-2">
+            {CHIPS.map(chip => {
+              const active = isChipActive(chip);
+              const count  = chipCount(chip);
+              return (
+                <TouchableOpacity
+                  key={chip.key}
+                  onPress={() => handleChip(chip)}
+                  activeOpacity={0.7}
+                  className={`flex-row items-center rounded-full px-5 py-2 border ${
+                    active
+                      ? `${chip.activeBgClass} ${chip.activeBorderClass} shadow-none`
+                      : 'bg-white border-slate-200 shadow-sm'
+                  }`}
+                >
+                  <Text className={`text-[13px] font-semibold ${active ? 'text-white' : 'text-slate-500'}`}>
+                    {chip.label}
+                  </Text>
+                  {count > 0 && (
+                    <Text className={`text-[12px] font-bold ml-1.5 ${active ? 'text-white/75' : 'text-slate-400'}`}>
+                      {count}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Tasks label + count */}
+        {!loading && filtered.length > 0 && (
+          <View className="flex-row items-center justify-between px-4 mb-2">
+            <Text className="text-[10px] font-black tracking-widest text-slate-400">TASKS</Text>
+            <Text className="text-[11px] font-bold text-brand-primary">{filtered.length} tasks</Text>
+          </View>
+        )}
+
+        {/* ── Task list ── */}
+        {loading ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator color="#62CCEF" size="large" />
+            <Text className="text-[13px] mt-3 text-slate-400">Loading tasks...</Text>
+          </View>
+        ) : (
+          <ScrollView
+            className="flex-1"
+            contentContainerStyle={{ paddingBottom: insets.bottom + 80, flexGrow: 1 }}
+            showsVerticalScrollIndicator={false}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#62CCEF" />}
+          >
+            {filtered.length === 0 ? <EmptyState /> : filtered.map(t => <TaskCard key={t.id} task={t} />)}
+          </ScrollView>
+        )}
+      </View>
+    </View>
   );
 }
