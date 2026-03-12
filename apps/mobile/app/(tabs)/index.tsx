@@ -5,6 +5,15 @@ import { useRouter } from "expo-router";
 import { ShiftStatusCard } from "@vak/ui";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
+/*
+ * Supabase query key structure (for when this tab switches to live data):
+ * - Query keys: see hooks/shiftsKeys.ts — SHIFTS_QUERY_KEY_BASE = ['shifts'], getShiftsQueryKey(userId) = ['shifts', userId]
+ * - To use live shifts here: useAuth() for user, then useShifts(user?.id) for data. Realtime INSERT
+ *   already invalidates those keys (useShiftsRealtimeSubscription in (tabs)/_layout), so UI would update automatically.
+ * - Today's shift from live data: list = shifts ?? []; base = list.find((s) => isSameDay(new Date(s.start_time), now));
+ *   then todayShiftCount = list.filter((s) => isSameDay(new Date(s.start_time), now)).length
+ */
+
 export default function Index() {
   const router = useRouter();
 
