@@ -116,7 +116,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
       {/* ── Logo ── */}
       <div className="px-3 mb-10">
-        <span className="text-[19px] font-black tracking-[0.22em] text-auth-white">
+        <span className="text-[45px] font-black text-auth-white">
           V<span className="text-auth-blue">.</span>
           A<span className="text-auth-pending">.</span>
           K
