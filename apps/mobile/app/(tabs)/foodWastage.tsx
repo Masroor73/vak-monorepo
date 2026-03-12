@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator, Modal,} from 'react-native';
+import { useState, useRef, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator, Modal, } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -14,6 +14,8 @@ interface FormErrors {
   submit?: string;
 }
 
+const MAX_FILE_SIZE_MB = 5;
+
 const FieldError = ({ message }: { message?: string }) =>
   message
     ? <Text className="text-red-500 text-[14px] font-semibold mb-3 ml-1">{message}</Text>
@@ -25,12 +27,17 @@ export default function ReportFoodWastage() {
   const [itemName, setItemName] = useState('');
   const [estimatedCost, setEstimatedCost] = useState('');
   const [localPhotoUri, setLocalPhotoUri] = useState<string | null>(null);
-  const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    };
+  }, []);
 
   const setErrorsWithTimer = (next: FormErrors) => {
     setErrors(next);
@@ -39,94 +46,116 @@ export default function ReportFoodWastage() {
   };
 
   const pickImage = async (source: 'library' | 'camera') => {
+    const permission = source === 'camera'
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-  const permission = source === 'camera'
-    ? await ImagePicker.requestCameraPermissionsAsync()
-    : await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-  if (!permission.granted) return;
-
-  const opts = { quality: 0.7, mediaTypes: ['images'] as ImagePicker.MediaType[], base64: true, };
-
-  const result = source === 'camera'
-    ? await ImagePicker.launchCameraAsync(opts)
-    : await ImagePicker.launchImageLibraryAsync(opts);
-
-  if (result.canceled || !result.assets[0]) return;
-
-  const { uri, base64 } = result.assets[0];
-  setLocalPhotoUri(uri);
-  setUploadedPhotoUrl(null);
-  setErrors((prev) => ({ ...prev, photo_url: undefined }));
-  await uploadPhoto(uri, base64!);
-};
-const uploadPhoto = async (uri: string, base64: string) => {
-  try {
-    setUploadingPhoto(true);
-    setUploadingPhoto(true);
-    const path = `${user!.id}/${Date.now()}.jpg`;
-
-    const binaryString = globalThis.atob
-      ? globalThis.atob(base64)      
-      : Buffer.from(base64, 'base64').toString('binary'); 
-
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
+    if (!permission.granted) {
+      setErrorsWithTimer({ photo_url: 'Permission denied. Please allow access in Settings.' });
+      return;
     }
 
-    const { error } = await supabase.storage
-      .from('waste-log-photos')
-      .upload(path, bytes, { contentType: 'image/jpeg', upsert: true });
+    const opts = { quality: 0.7, mediaTypes: ['images'] as ImagePicker.MediaType[] };
 
-    if (error) throw error;
+    const result = source === 'camera'
+      ? await ImagePicker.launchCameraAsync(opts)
+      : await ImagePicker.launchImageLibraryAsync(opts);
 
-    const { data } = supabase.storage.from('waste-log-photos').getPublicUrl(path);
-    setUploadedPhotoUrl(data.publicUrl);
-  } catch (err) {
-    console.log('Upload error:', JSON.stringify(err));
-    setUploadedPhotoUrl(null);
-    setErrorsWithTimer({ photo_url: 'Upload failed. Remove and try again.' });
-  } finally {
-    setUploadingPhoto(false);
-  }
-};
+    if (result.canceled || !result.assets?.[0]) return;
+
+    const { uri, fileSize } = result.assets[0];
+
+// Ensure we have a file size to enforce the limit
+let size = fileSize;
+if (!size) {
+  const response = await fetch(uri);
+  const blob = await response.blob();
+  size = blob.size;
+}
+
+if (size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+  setErrorsWithTimer({ photo_url: `Image must be under ${MAX_FILE_SIZE_MB}MB.` });
+  return;
+}
+
+setLocalPhotoUri(uri);
+setErrors((prev) => ({ ...prev, photo_url: undefined }));
+  };
+
+  const uploadPhoto = async (uri: string) => {
+    try {
+      setUploadingPhoto(true);
+
+      const response = await fetch(uri);
+      const arrayBuffer = await response.arrayBuffer();
+
+      const path = `${user!.id}/${Date.now()}.jpg`;
+
+      const { error } = await supabase.storage
+        .from('waste-log-photos')
+        .upload(path, arrayBuffer, { contentType: 'image/jpeg' });
+
+      if (error) throw error;
+
+      const { data } = supabase.storage
+        .from('waste-log-photos')
+        .getPublicUrl(path);
+
+      return data.publicUrl;
+    } catch (err: any) {
+      console.error('Upload error:', err?.message ?? JSON.stringify(err));
+      setErrorsWithTimer({ photo_url: 'Upload failed. Please try again.' });
+      return null;
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
 
   const removePhoto = () => {
     setLocalPhotoUri(null);
-    setUploadedPhotoUrl(null);
     setErrors((prev) => ({ ...prev, photo_url: undefined }));
   };
 
   const validate = (): boolean => {
     if (!user) return false;
+
     const result = WasteLogSchema.safeParse({
       reporter_id: user.id,
       item_name: itemName.trim(),
       estimated_cost: Number(estimatedCost),
-      photo_url: uploadedPhotoUrl ?? '',
+      photo_url: localPhotoUri ? 'https://placeholder.com' : '',
     });
 
     if (result.success) { setErrors({}); return true; }
+
     const newErrors: FormErrors = {};
     for (const { path, message } of result.error.issues) {
       const field = path[0] as keyof FormErrors;
-      if (field in newErrors === false) newErrors[field] = message;
+      if (!(field in newErrors)) newErrors[field] = message;
     }
     setErrorsWithTimer(newErrors);
     return false;
   };
+
   const handleSubmit = async () => {
     if (!validate()) return;
+
     try {
       setSubmitting(true);
+
+      const photoUrl = localPhotoUri
+        ? await uploadPhoto(localPhotoUri)
+        : null;
+
       const { error } = await supabase.from('waste_logs').insert({
         reporter_id: user!.id,
         item_name: itemName.trim(),
         estimated_cost: Number(estimatedCost),
-        photo_url: uploadedPhotoUrl,
+        photo_url: photoUrl,
       });
+
       if (error) throw error;
+
       setShowSuccess(true);
     } catch (err: any) {
       setErrorsWithTimer({ submit: err.message || 'Something went wrong. Please try again.' });
@@ -136,10 +165,10 @@ const uploadPhoto = async (uri: string, base64: string) => {
   };
 
   const isDisabled = submitting || uploadingPhoto;
+
   return (
     <View className="flex-1 bg-brand-secondary">
 
-      {/* ── Success Modal ── */}
       <Modal visible={showSuccess} transparent animationType="fade">
         <View className="flex-1 items-center justify-center bg-black/50 px-8">
           <View className="bg-white rounded-3xl px-8 py-10 items-center w-full">
@@ -160,19 +189,16 @@ const uploadPhoto = async (uri: string, base64: string) => {
         </View>
       </Modal>
 
-      {/* ── Header ── */}
       <View className="bg-brand-secondary pt-10 pb-14 px-5 flex-row items-center justify-between">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 rounded-full bg-white/10 items-center justify-center"
-        >
+          className="w-10 h-10 rounded-full bg-white/10 items-center justify-center">
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
         <Text className="text-white font-bold text-[17px] tracking-wide">Report Food Wastage</Text>
         <View className="w-10" />
       </View>
 
-      {/* ── Body ── */}
       <ScrollView
         className="-mt-5 flex-1 bg-brand-background rounded-3xl"
         keyboardShouldPersistTaps="handled"
@@ -183,7 +209,7 @@ const uploadPhoto = async (uri: string, base64: string) => {
           className="bg-white rounded-lg mt-5 mx-5"
           style={{ shadowColor: '#0d1b3e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 16, elevation: 6 }}
         >
-          {/* Banner */}
+
           <View className="flex-row items-center gap-3 px-5 py-4 rounded-lg bg-brand-primary/10 border-b border-brand-primary/20">
             <View className="w-10 h-10 rounded-xl items-center justify-center bg-brand-primary">
               <MaterialCommunityIcons name="food-off" size={18} color="#fff" />
@@ -202,6 +228,8 @@ const uploadPhoto = async (uri: string, base64: string) => {
               </View>
             )}
 
+            {/* ITEM NAME */}
+
             <Text className="text-[13px] font-bold text-gray-600 uppercase tracking-widest mb-2">
               Item Name <Text className="text-red-500">*</Text>
             </Text>
@@ -211,10 +239,14 @@ const uploadPhoto = async (uri: string, base64: string) => {
               placeholderTextColor="#6B7280"
               value={itemName}
               onChangeText={setItemName}
+              maxLength={100}
+              returnKeyType="next"
             />
             <FieldError message={errors.item_name} />
 
             <View className="h-px bg-gray-200 mb-5" />
+
+            {/* COST */}
 
             <Text className="text-[13px] font-bold text-gray-600 uppercase tracking-widest mb-2">
               Estimated Cost <Text className="text-red-500">*</Text>
@@ -228,11 +260,15 @@ const uploadPhoto = async (uri: string, base64: string) => {
                 keyboardType="decimal-pad"
                 value={estimatedCost}
                 onChangeText={setEstimatedCost}
+                maxLength={10}
+                returnKeyType="done"
               />
             </View>
             <FieldError message={errors.estimated_cost} />
 
             <View className="h-px bg-gray-200 mb-3" />
+
+            {/* PHOTO */}
 
             <Text className="text-[13px] font-bold text-gray-600 uppercase tracking-widest mb-3">
               Photo <Text className="text-red-500">*</Text>
@@ -240,25 +276,24 @@ const uploadPhoto = async (uri: string, base64: string) => {
 
             {localPhotoUri ? (
               <View className="rounded-xl border border-gray-200">
-                <Image source={{ uri: localPhotoUri }} style={{ width: '100%', height: 176, borderRadius: 12 }} resizeMode="cover" />
+                <Image
+                  source={{ uri: localPhotoUri }}
+                  style={{ width: '100%', height: 176, borderRadius: 12 }}
+                  resizeMode="cover"
+                />
                 <View
-                  className="flex-row items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-200"
+                  className="flex-row items-center justify-between px-2 py-3 bg-gray-50 border-t border-gray-200"
                   style={{ borderBottomLeftRadius: 12, borderBottomRightRadius: 12 }}
                 >
                   {uploadingPhoto ? (
-                    <>
+                    <View className="flex-row items-center gap-2">
                       <ActivityIndicator size="small" color="#374151" />
-                      <Text className="text-gray-600 text-[13px] font-semibold ml-2">Uploading photo...</Text>
-                    </>
-                  ) : uploadedPhotoUrl ? (
-                    <View className="flex-row items-center gap-1">
-                      <Ionicons name="checkmark-circle" size={16} color="#22c55e" />
-                      <Text className="text-green-600 text-[13px] font-semibold">Uploaded successfully</Text>
+                      <Text className="text-gray-600 text-[13px] font-semibold">Uploading...</Text>
                     </View>
                   ) : (
-                    <View className="flex-row items-center gap-1">
-                      <Ionicons name="alert-circle" size={16} color="#ef4444" />
-                      <Text className="text-red-500 text-[13px] font-semibold">Upload failed</Text>
+                    <View className="flex-row items-center">
+                      <Ionicons name="checkmark-circle" size={16} color="#22c55e" />
+                      <Text className="text-green-600 text-[13px] font-semibold">Photo uploaded successfully</Text>
                     </View>
                   )}
                   {!uploadingPhoto && (
@@ -277,7 +312,12 @@ const uploadPhoto = async (uri: string, base64: string) => {
                 {(['camera', 'library'] as const).map((source, i) => (
                   <View key={source}>
                     {i > 0 && <View className="h-px bg-gray-200 mx-4" />}
-                    <TouchableOpacity onPress={() => pickImage(source)} className="flex-row items-center gap-3 px-4 py-4" activeOpacity={0.7}>
+                    <TouchableOpacity
+                      onPress={() => pickImage(source)}
+                      className="flex-row items-center gap-3 px-4 py-4"
+                      activeOpacity={0.7}
+                      disabled={uploadingPhoto}
+                    >
                       <View className="w-9 h-9 rounded-xl items-center justify-center bg-brand-secondary">
                         <Ionicons name={source === 'camera' ? 'camera-outline' : 'image-outline'} size={18} color="#fff" />
                       </View>
@@ -295,6 +335,7 @@ const uploadPhoto = async (uri: string, base64: string) => {
                 ))}
               </View>
             )}
+
             {errors.photo_url && (
               <Text className="text-red-500 text-[14px] font-semibold mt-2 ml-1">{errors.photo_url}</Text>
             )}
@@ -307,6 +348,7 @@ const uploadPhoto = async (uri: string, base64: string) => {
         <TouchableOpacity
           onPress={handleSubmit}
           disabled={isDisabled}
+          activeOpacity={0.8}
           className={`rounded-2xl py-5 items-center justify-center ${isDisabled ? 'bg-gray-300' : 'bg-brand-secondary'}`}
         >
           {submitting
