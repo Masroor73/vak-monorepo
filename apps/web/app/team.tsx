@@ -2,6 +2,7 @@ import type React from "react";
 import { Link } from "expo-router";
 import ManagerLayout from "./layouts/ManagerLayout";
 import { useEmployees } from "@vak/api";
+import { useAuthGuard } from "../hooks/useAuthGuard";
 
 type LeaveRequest = {
   id: string;
@@ -184,6 +185,7 @@ function DraftCard({ draft }: { draft: DraftAnnouncement }) {
 }
 
 export default function Team() {
+  useAuthGuard();
   const { data: employees = [], isLoading, error } = useEmployees();
 
   const CardHeight = "lg:h-[210px]";

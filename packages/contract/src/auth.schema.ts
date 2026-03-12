@@ -31,7 +31,9 @@ const passwordSchema = z
   });
 
 export const LoginSchema = z.object({
-  email: z.string().email({ message: "Invalid email address" }),
+  email: z.string()
+  .min(1, { message: "Email is required" })
+  .email({ message: "Invalid email address" }),
   password: passwordSchema,
 });
 
@@ -65,7 +67,11 @@ export const ProfileSchema = z.object({
   phone_number: z.string().nullable().optional(),
   hourly_rate: z.number().min(0).default(15.00), 
   avatar_url: z.string().url().nullable().optional(),
+  is_approved: z.boolean().default(false), 
 });
+
+export const AddEmployeeSchema = ProfileSchema.omit({ id: true, is_approved: true });
+export type AddEmployeeInput = z.infer<typeof AddEmployeeSchema>;
 
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type Profile = z.infer<typeof ProfileSchema>;

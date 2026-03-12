@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import ManagerLayout from "./layouts/ManagerLayout";
+import { useAuthGuard } from "../hooks/useAuthGuard";
 
 function Toggle({
   value,
@@ -26,6 +27,7 @@ function Toggle({
 }
 
 export default function Settings() {
+  useAuthGuard();
   const [twoFA, setTwoFA] = useState(true);
 
   const [shiftChange, setShiftChange] = useState(true);

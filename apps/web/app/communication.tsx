@@ -1,6 +1,8 @@
 import ManagerLayout from "./layouts/ManagerLayout";
+import { useAuthGuard } from "../hooks/useAuthGuard";
 
 export default function Communication() {
+  useAuthGuard();
   return (
     <ManagerLayout>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

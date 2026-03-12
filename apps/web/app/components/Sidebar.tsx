@@ -1,6 +1,7 @@
-import { Link, usePathname } from "expo-router";
+import { Link, usePathname, useRouter } from "expo-router";
 import { useState } from "react";
 import StatusModal from "./StatusModal";
+import { useAuth } from "../../context/AuthContext";
 
 const items = [
   { label: "Dashboard", href: "/" },
@@ -9,14 +10,22 @@ const items = [
   { label: "Analyze Reports", href: "/analyze-reports" },
   { label: "Communication", href: "/communication" },
   { label: "Settings", href: "/settings" },
+  { label: "User Management", href: "/user-management" },
 ];
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const [modalOpen, setModalOpen] = useState(false);
+  const router = useRouter();
+  const { signOut } = useAuth();
 
-  const handleLogout = () => {
-    setModalOpen(true);
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      router.replace("/(public)/login");
+    } catch (e) {
+      console.error("Sign out failed:", e);
+    }
   };
 
   return (
@@ -28,7 +37,6 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       <nav className="flex flex-col gap-3 text-base">
         {items.map((item) => {
           const active = pathname === item.href;
-
           return (
             <Link
               key={item.href}
@@ -41,10 +49,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                   : "text-[#62CCEF] hover:bg-white/5",
               ].join(" ")}
             >
-
-              <span className="h-6 w-6 flex items-center justify-center shrink-0">
-              </span>
-
+              <span className="h-6 w-6 flex items-center justify-center shrink-0" />
               <span className="text-lg">{item.label}</span>
             </Link>
           );

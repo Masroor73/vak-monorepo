@@ -1,4 +1,5 @@
 import ManagerLayout from "./layouts/ManagerLayout";
+import { useAuthGuard } from "../hooks/useAuthGuard";
 
 function StatBox({ label, value }: { label: string; value: string }) {
   return (
@@ -14,6 +15,7 @@ function SectionHeader({ title }: { title: string }) {
 }
 
 export default function AnalyzeReports() {
+  useAuthGuard();
   return (
     <ManagerLayout>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
