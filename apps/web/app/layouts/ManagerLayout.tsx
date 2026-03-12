@@ -20,9 +20,11 @@ export default function ManagerLayout({ children }: { children: ReactNode }) {
       <div className="flex w-full min-h-screen">
 
         {/* ── Desktop sidebar ── */}
-        <div className="hidden md:block flex-shrink-0">
-          <Sidebar />
+        <div className="hidden md:block flex-shrink-0 sticky top-0 h-screen">
+         <Sidebar />
         </div>
+
+        
 
         {/* ── Mobile sidebar overlay ── */}
         {open && (

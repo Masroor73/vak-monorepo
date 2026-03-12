@@ -13,7 +13,7 @@ type NavItem = {
 
 const MAIN_NAV: NavItem[] = [
   {
-    label:      "Shifts",
+    label:      "Assign Shifts",
     href:       "/shifts",
     icon:       "calendar-outline",
     activeIcon: "calendar",
