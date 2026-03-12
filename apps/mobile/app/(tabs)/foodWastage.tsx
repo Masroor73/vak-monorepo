@@ -65,21 +65,20 @@ export default function ReportFoodWastage() {
 
     const { uri, fileSize } = result.assets[0];
 
-// Ensure we have a file size to enforce the limit
-let size = fileSize;
-if (!size) {
-  const response = await fetch(uri);
-  const blob = await response.blob();
-  size = blob.size;
-}
+    let size = fileSize;
+    if (!size) {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      size = blob.size;
+    }
 
-if (size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-  setErrorsWithTimer({ photo_url: `Image must be under ${MAX_FILE_SIZE_MB}MB.` });
-  return;
-}
+    if (size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      setErrorsWithTimer({ photo_url: `Image must be under ${MAX_FILE_SIZE_MB}MB.` });
+      return;
+    }
 
-setLocalPhotoUri(uri);
-setErrors((prev) => ({ ...prev, photo_url: undefined }));
+    setLocalPhotoUri(uri);
+    setErrors((prev) => ({ ...prev, photo_url: undefined }));
   };
 
   const uploadPhoto = async (uri: string) => {
@@ -119,10 +118,12 @@ setErrors((prev) => ({ ...prev, photo_url: undefined }));
   const validate = (): boolean => {
     if (!user) return false;
 
+    const costValue = estimatedCost.trim() === '' ? NaN : Number(estimatedCost);
+
     const result = WasteLogSchema.safeParse({
       reporter_id: user.id,
       item_name: itemName.trim(),
-      estimated_cost: Number(estimatedCost),
+      estimated_cost: costValue,
       photo_url: localPhotoUri ? 'https://placeholder.com' : '',
     });
 
@@ -133,6 +134,11 @@ setErrors((prev) => ({ ...prev, photo_url: undefined }));
       const field = path[0] as keyof FormErrors;
       if (!(field in newErrors)) newErrors[field] = message;
     }
+
+    if (isNaN(costValue) && !newErrors.estimated_cost) {
+      newErrors.estimated_cost = 'Please enter a valid number.';
+    }
+
     setErrorsWithTimer(newErrors);
     return false;
   };
@@ -146,6 +152,8 @@ setErrors((prev) => ({ ...prev, photo_url: undefined }));
       const photoUrl = localPhotoUri
         ? await uploadPhoto(localPhotoUri)
         : null;
+
+      if (localPhotoUri && !photoUrl) return;
 
       const { error } = await supabase.from('waste_logs').insert({
         reporter_id: user!.id,
@@ -227,9 +235,7 @@ setErrors((prev) => ({ ...prev, photo_url: undefined }));
                 <Text className="text-red-600 text-[13px] flex-1">{errors.submit}</Text>
               </View>
             )}
-
-            {/* ITEM NAME */}
-
+          
             <Text className="text-[13px] font-bold text-gray-600 uppercase tracking-widest mb-2">
               Item Name <Text className="text-red-500">*</Text>
             </Text>
@@ -245,8 +251,6 @@ setErrors((prev) => ({ ...prev, photo_url: undefined }));
             <FieldError message={errors.item_name} />
 
             <View className="h-px bg-gray-200 mb-5" />
-
-            {/* COST */}
 
             <Text className="text-[13px] font-bold text-gray-600 uppercase tracking-widest mb-2">
               Estimated Cost <Text className="text-red-500">*</Text>
@@ -267,8 +271,6 @@ setErrors((prev) => ({ ...prev, photo_url: undefined }));
             <FieldError message={errors.estimated_cost} />
 
             <View className="h-px bg-gray-200 mb-3" />
-
-            {/* PHOTO */}
 
             <Text className="text-[13px] font-bold text-gray-600 uppercase tracking-widest mb-3">
               Photo <Text className="text-red-500">*</Text>
@@ -336,9 +338,7 @@ setErrors((prev) => ({ ...prev, photo_url: undefined }));
               </View>
             )}
 
-            {errors.photo_url && (
-              <Text className="text-red-500 text-[14px] font-semibold mt-2 ml-1">{errors.photo_url}</Text>
-            )}
+            <FieldError message={errors.photo_url} />
 
           </View>
         </View>
@@ -357,7 +357,6 @@ setErrors((prev) => ({ ...prev, photo_url: undefined }));
           }
         </TouchableOpacity>
       </View>
-
     </View>
   );
 }
