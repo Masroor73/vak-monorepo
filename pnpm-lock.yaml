@@ -45,7 +45,7 @@ importers:
         version: 2.94.0
       '@tanstack/react-query':
         specifier: ^5.62.0
-        version: 5.90.20(react@19.1.0)
+        version: 5.90.21(react@19.1.0)
       '@vak/contract':
         specifier: workspace:*
         version: link:../../packages/contract
