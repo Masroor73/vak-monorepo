@@ -1,6 +1,9 @@
 import type React from "react";
+import { useState } from "react";
+import { useRouter, Link } from "expo-router";
 import ManagerLayout from "../layouts/ManagerLayout";
-import { Link } from "expo-router";
+import AddEmployeeModal from "../components/employees/AddEmployeeModal";
+import CreateShiftModal from "../components/shifts/CreateShiftModal";
 
 function Tile({
   title,
@@ -18,12 +21,9 @@ function Tile({
       <div>
         <div className="text-[#0B2E6D] text-lg font-medium">{title}</div>
         {value !== undefined ? (
-          <div className="text-[#0B2E6D] text-2xl font-semibold mt-2">
-            {value}
-          </div>
+          <div className="text-[#0B2E6D] text-2xl font-semibold mt-2">{value}</div>
         ) : null}
       </div>
-
       <div className="h-12 w-12 self-center rounded-xl bg-white/80 flex items-center justify-center text-[#0B2E6D]">
         {icon}
       </div>
@@ -53,13 +53,7 @@ function Card({
       ].join(" ")}
     >
       <div className="px-5 pt-4 text-lg font-semibold text-black">{title}</div>
-
-      <div
-        className={[
-          "px-5 pb-4 pt-2 flex-1 min-h-0 overflow-auto",
-          bodyClassName,
-        ].join(" ")}
-      >
+      <div className={["px-5 pb-4 pt-2 flex-1 min-h-0 overflow-auto", bodyClassName].join(" ")}>
         {children}
       </div>
     </section>
@@ -70,9 +64,7 @@ function ChartPlaceholder({ fill = false }: { fill?: boolean }) {
   return (
     <div
       className={[
-        // always sharp corners per request
-        "rounded-none",
-        "bg-[#F3F3F3] border border-black/10 flex items-center justify-center text-black/40",
+        "rounded-none bg-[#F3F3F3] border border-black/10 flex items-center justify-center text-black/40",
         fill ? "h-full w-full" : "h-[230px] w-full",
       ].join(" ")}
     >
@@ -86,30 +78,49 @@ function ActionButton({
   label,
   href,
   sharp = false,
+  onClick,
 }: {
   icon: string;
   label: string;
   href?: string;
   sharp?: boolean;
+  onClick?: () => void;
 }) {
-  const content = (
-    <div
-      className={[
-        "w-full bg-white border border-black/10 shadow-[0_6px_18px_rgba(0,0,0,0.10)] px-5 py-4 flex items-center gap-4 hover:bg-black/5 transition",
-        "min-h-[64px]",
-        sharp ? "rounded-none" : "rounded-2xl",
-      ].join(" ")}
-    >
+  const cls = [
+    "w-full bg-white border border-black/10 shadow-[0_6px_18px_rgba(0,0,0,0.10)] px-5 py-4 flex items-center gap-4 hover:bg-black/5 transition min-h-[64px]",
+    sharp ? "rounded-none" : "rounded-2xl",
+  ].join(" ");
+
+  if (onClick) {
+    return (
+      <button onClick={onClick} className={cls}>
+        <span className="text-2xl">{icon}</span>
+        <span className="text-lg font-medium text-black">{label}</span>
+      </button>
+    );
+  }
+
+  return href ? (
+    <Link href={href}>
+      <div className={cls}>
+        <span className="text-2xl">{icon}</span>
+        <span className="text-lg font-medium text-black">{label}</span>
+      </div>
+    </Link>
+  ) : (
+    <div className={cls}>
       <span className="text-2xl">{icon}</span>
       <span className="text-lg font-medium text-black">{label}</span>
     </div>
   );
-
-  return href ? <Link href={href}>{content}</Link> : content;
 }
 
 export default function Dashboard() {
   const CARD_H = "h-[360px]";
+  const router = useRouter();
+
+  const [addEmployeeOpen, setAddEmployeeOpen] = useState(false);
+  const [createShiftOpen, setCreateShiftOpen] = useState(false);
 
   const staff = [
     { name: "Sarah Willis", status: "active" as const },
@@ -139,12 +150,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 gap-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Tile title="Total Employees" value={40} icon={"👥"} href="/team" />
-          <Tile
-            title="Pending shift assignment"
-            value={5}
-            icon={"🕒"}
-            href="/team"
-          />
+          <Tile title="Pending shift assignment" value={5} icon={"🕒"} href="/team" />
           <Tile title="Maintenance" icon={"🔧"} href="/operations" />
         </div>
 
@@ -153,30 +159,18 @@ export default function Dashboard() {
             <div className="text-base text-black/70 mb-4">
               2 active and 2 on break out of 40 total
             </div>
-
             <div className="space-y-5">
               {staff.map((s) => (
                 <div key={s.name} className="flex items-center gap-4">
-                  <span
-                    className={[
-                      "h-3.5 w-3.5 rounded-full",
-                      s.status === "active" ? "bg-cyan-400" : "bg-black",
-                    ].join(" ")}
-                  />
+                  <span className={["h-3.5 w-3.5 rounded-full", s.status === "active" ? "bg-cyan-400" : "bg-black"].join(" ")} />
                   <div className="h-12 w-12 rounded-full bg-black/10 border border-black/10" />
-                  <div className="text-lg font-medium text-black">
-                    {s.name}
-                  </div>
+                  <div className="text-lg font-medium text-black">{s.name}</div>
                 </div>
               ))}
             </div>
           </Card>
 
-          <Card
-            title="Scheduled vs Actual hours worked"
-            className={CARD_H}
-            bodyClassName="flex min-h-0"
-          >
+          <Card title="Scheduled vs Actual hours worked" className={CARD_H} bodyClassName="flex min-h-0">
             <ChartPlaceholder fill />
           </Card>
 
@@ -187,9 +181,7 @@ export default function Dashboard() {
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 rounded-full bg-orange-600/30 border border-black/10" />
                     <div>
-                      <div className="text-lg font-medium text-black">
-                        {p.name}
-                      </div>
+                      <div className="text-lg font-medium text-black">{p.name}</div>
                       <div className="text-sm text-black/50">{p.role}</div>
                     </div>
                   </div>
@@ -199,41 +191,27 @@ export default function Dashboard() {
             </div>
           </Card>
 
-          <Card
-            title="Performance Overview"
-            className={CARD_H}
-            bodyClassName="overflow-auto"
-          >
+          <Card title="Performance Overview" className={CARD_H} bodyClassName="overflow-auto">
             <div className="grid grid-cols-2 text-base font-medium text-black/70 border-b border-black/10 pb-3">
               <span>Employee Name</span>
               <span className="text-right">Task Completion Rate</span>
             </div>
-
             <div className="mt-5 space-y-5">
               {performance.map((r) => (
                 <div key={r.name} className="grid grid-cols-2 items-center">
-                  <span className="text-lg font-medium text-black">
-                    {r.name}
-                  </span>
-                  <span className="text-lg font-semibold text-black text-right">
-                    {r.rate}
-                  </span>
+                  <span className="text-lg font-medium text-black">{r.name}</span>
+                  <span className="text-lg font-semibold text-black text-right">{r.rate}</span>
                 </div>
               ))}
             </div>
           </Card>
 
-          <Card
-            title="Employees"
-            className={CARD_H}
-            bodyClassName="flex flex-col min-h-0"
-          >
+          <Card title="Employees" className={CARD_H} bodyClassName="flex flex-col min-h-0">
             <div className="flex items-center justify-between text-xs mb-2">
               <span className="text-cyan-400">15 part Time</span>
               <span className="text-black">20 Full Time</span>
               <span className="text-red-500">5 Temporary</span>
             </div>
-
             <div className="flex-1 min-h-0">
               <ChartPlaceholder fill />
             </div>
@@ -241,24 +219,13 @@ export default function Dashboard() {
 
           <Card title="Quick Actions & Events" className={CARD_H}>
             <div className="flex flex-col gap-3">
-              <ActionButton
-                icon="📅"
-                label="Edit Schedule"
-                href="/operations"
-                sharp
-              />
-              <ActionButton
-                icon="⚠️"
-                label="View issues"
-                href="/operations"
-                sharp
-              />
+              <ActionButton icon="📅" label="Edit Schedule" onClick={() => router.push("/(tabs)/schedule")} sharp />
+              <ActionButton icon="👤" label="Add Employee" onClick={() => setAddEmployeeOpen(true)} sharp />
+              <ActionButton icon="⚡" label="Create Shift" onClick={() => setCreateShiftOpen(true)} sharp />
+              <ActionButton icon="⚠️" label="View Issues" onClick={() => router.push("/operations")} sharp />
 
               <div className="pt-1">
-                <div className="text-sm font-semibold text-black mb-2">
-                  Today’s Events
-                </div>
-
+                <div className="text-sm font-semibold text-black mb-2">Today's Events</div>
                 <div className="space-y-2 text-sm text-black/70">
                   {events.map((e) => (
                     <div key={e} className="flex items-start gap-2">
@@ -272,6 +239,17 @@ export default function Dashboard() {
           </Card>
         </div>
       </div>
+
+      <AddEmployeeModal
+        open={addEmployeeOpen}
+        onClose={() => setAddEmployeeOpen(false)}
+        onCreated={() => setAddEmployeeOpen(false)}
+      />
+      <CreateShiftModal
+        open={createShiftOpen}
+        onClose={() => setCreateShiftOpen(false)}
+        onCreated={() => setCreateShiftOpen(false)}
+      />
     </ManagerLayout>
   );
 }
