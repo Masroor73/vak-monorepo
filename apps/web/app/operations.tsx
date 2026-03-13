@@ -1,5 +1,7 @@
+//web/app/operations.tsx
 import { useMemo, useState } from "react";
 import ManagerLayout from "./layouts/ManagerLayout";
+import { useAuthGuard } from "../hooks/useAuthGuard";
 
 const ACCENT = "#62CCEF";
 
@@ -68,6 +70,7 @@ function Donut({
 }
 
 export default function Operations() {
+  useAuthGuard();
   const [tasks, setTasks] = useState<Task[]>([
     { id: "1", title: "Inform Staff about inventory", done: true },
     { id: "2", title: "", done: false },
