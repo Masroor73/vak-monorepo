@@ -10,7 +10,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 
 type Priority       = 'HIGH' | 'MEDIUM' | 'LOW';
 type Status         = 'Pending' | 'In Progress' | 'Done';
-type PriorityFilter = 'ALL' | Priority;
+type PriorityFilter = 'ALL' | 'DONE' | Priority;
 
 interface Task {
   id:          string;
@@ -40,9 +40,9 @@ const PRIORITY_META: Record<Priority, { label: string; barClass: string; bgClass
   LOW:    { label: 'LOW',    barClass: 'bg-brand-success',      bgClass: 'bg-brand-success/10',      textClass: 'text-brand-success'      },
 };
 
-type ChipKey = 'ALL' | Priority;
+type ChipKey = 'ALL' | Priority | 'DONE';
 interface Chip {
-  key: ChipKey; label: string; type: 'all' | 'priority'; activeBgClass: string; activeBorderClass: string;
+  key: ChipKey; label: string; type: 'all' | 'priority' | 'done'; activeBgClass: string; activeBorderClass: string;
 }
 
 const CHIPS: Chip[] = [
@@ -50,6 +50,7 @@ const CHIPS: Chip[] = [
   { key: 'HIGH',   label: 'High',   type: 'priority', activeBgClass: 'bg-damascus-primary',   activeBorderClass: 'border-damascus-primary'   },
   { key: 'MEDIUM', label: 'Medium', type: 'priority', activeBgClass: 'bg-damascus-secondary', activeBorderClass: 'border-damascus-secondary' },
   { key: 'LOW',    label: 'Low',    type: 'priority', activeBgClass: 'bg-brand-success',      activeBorderClass: 'border-brand-success'      },
+  { key: 'DONE',   label: 'Done',   type: 'done',     activeBgClass: 'bg-brand-success',      activeBorderClass: 'border-brand-success'      },
 ];
 
 function formatDueDate(dateStr: string | null): { text: string; overdue: boolean } {
@@ -235,25 +236,27 @@ export default function MyTasksScreen() {
   };
 
   const handleChip = (chip: Chip) => {
-    if (chip.type === 'all') setPriorityFilter('ALL');
+    if (chip.type === 'all')      setPriorityFilter('ALL');
+    else if (chip.type === 'done')     setPriorityFilter(p => p === 'DONE' ? 'ALL' : 'DONE');
     else if (chip.type === 'priority') setPriorityFilter(p => p === chip.key ? 'ALL' : chip.key as PriorityFilter);
   };
 
   const isChipActive = (chip: Chip) => {
     if (chip.type === 'all')      return priorityFilter === 'ALL';
+    if (chip.type === 'done')     return priorityFilter === 'DONE';
     if (chip.type === 'priority') return priorityFilter === chip.key;
     return false;
   };
 
-  const filtered        = tasks.filter(t => priorityFilter === 'ALL' || t.priority === priorityFilter);
-  const doneCount       = tasks.filter(t => t.status === 'Done').length;
-  const pendingCount    = tasks.filter(t => t.status === 'Pending').length;
-  const inProgressCount = tasks.filter(t => t.status === 'In Progress').length;
+  const filtered  = priorityFilter === 'DONE'
+    ? tasks.filter(t => t.status === 'Done')
+    : tasks.filter(t => t.status !== 'Done' && (priorityFilter === 'ALL' || t.priority === priorityFilter));
+  const doneCount = tasks.filter(t => t.status === 'Done').length;
 
   return (
     <View className="flex-1 bg-brand-secondary">
       {/* ── Dark header ── */}
-      <View className="bg-brand-secondary pt-7 pb-6 px-7">
+      <View className="bg-brand-secondary pt-7 pb-6 px-5 mr-5">
         <View className="flex-row items-center justify-between mb-5">
           <Pressable
             onPress={() => router.back()}
@@ -274,7 +277,7 @@ export default function MyTasksScreen() {
         <View className="px-6 pt-8 pb-6 flex-row gap-x-4">
           {[
             { label: 'TOTAL',  count: tasks.length,                   borderClass: 'border-brand-secondary',    textClass: 'text-brand-secondary'    },
-            { label: 'ACTIVE', count: inProgressCount + pendingCount, borderClass: 'border-damascus-secondary', textClass: 'text-damascus-secondary' },
+            { label: 'ACTIVE', count: tasks.length - doneCount, borderClass: 'border-damascus-secondary', textClass: 'text-damascus-secondary' },
             { label: 'DONE',   count: doneCount,                      borderClass: 'border-brand-success',      textClass: 'text-brand-success'      },
           ].map(s => (
             <View
