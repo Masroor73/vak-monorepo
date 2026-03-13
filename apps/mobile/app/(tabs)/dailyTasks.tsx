@@ -253,15 +253,15 @@ export default function MyTasksScreen() {
   return (
     <View className="flex-1 bg-brand-secondary">
       {/* ── Dark header ── */}
-      <View className="bg-brand-secondary pt-6 pb-6 px-5">
-        <View className="flex-row items-center mb-5 pl-5">
+      <View className="bg-brand-secondary pt-7 pb-6 px-7">
+        <View className="flex-row items-center justify-between mb-5">
           <Pressable
             onPress={() => router.back()}
             className="w-10 h-10 rounded-full bg-white/10 items-center justify-center"
           >
             <WhiteArrow width={16} height={16} />
           </Pressable>
-          <Text pointerEvents="none" className="absolute left-0 right-0 text-center text-white font-bold text-lg tracking-wide">
+          <Text className="text-white font-bold text-lg tracking-wide mr-36">
             My Tasks
           </Text>
         </View>
