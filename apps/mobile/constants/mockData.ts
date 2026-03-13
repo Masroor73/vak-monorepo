@@ -9,6 +9,7 @@ export const MOCK_USER: Profile = {
   role: "EMPLOYEE",
   hourly_rate: 18.50, 
   avatar_url: null,
+  is_approved: true,
 };
  
 // 2. Mock Shifts (Compliance & Geo-Fencing Ready)
