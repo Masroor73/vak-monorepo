@@ -1,6 +1,6 @@
 // web/app/(components)/AssignShiftModal.tsx
 import { useEffect, useMemo, useState } from "react";
-import { Profile } from "@vak/contract";
+import { Profile, JobRoleEnum } from "@vak/contract";
 import { supabase } from "../../lib/supabase";
 
 export interface Availability {
@@ -11,16 +11,6 @@ export interface Availability {
   end_time: string;
   is_available: boolean;
 }
-
-const JOB_ROLES = [
-  "SERVER",
-  "BARTENDER",
-  "LINE_COOK",
-  "PREP_COOK",
-  "DISHWASHER",
-  "HOST",
-  "MANAGER_ON_DUTY",
-] as const;
 
 function formatRole(role: string): string {
   return role.charAt(0) + role.slice(1).toLowerCase().replace(/_/g, " ");
@@ -55,7 +45,7 @@ export default function AssignShiftModal({
   const [date, setDate]             = useState(prefillDate ?? formatDate(weekDays[0]));
   const [startTime, setStartTime]   = useState("09:00");
   const [endTime, setEndTime]       = useState("17:00");
-  const [role, setRole]             = useState<typeof JOB_ROLES[number]>("SERVER");
+  const [role, setRole]             = useState<typeof JobRoleEnum._type>(JobRoleEnum.options[0]);
   const [locationId, setLocationId] = useState("damascus-hq");
   const [breakMins, setBreakMins]   = useState(0);
   const [isHoliday, setIsHoliday]   = useState(false);
@@ -167,9 +157,9 @@ export default function AssignShiftModal({
             <select
               className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={role}
-              onChange={(e) => setRole(e.target.value as typeof JOB_ROLES[number])}
+              onChange={(e) => setRole(e.target.value as typeof JobRoleEnum._type)}
             >
-              {JOB_ROLES.map((r) => (
+              {JobRoleEnum.options.map((r) => (
                 <option key={r} value={r}>{formatRole(r)}</option>
               ))}
             </select>

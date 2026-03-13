@@ -1,6 +1,6 @@
 // web/app/(components)/ViewShiftModal.tsx
 import { useState } from "react";
-import { Profile } from "@vak/contract";
+import { Profile, JobRoleEnum } from "@vak/contract";
 import { supabase } from "../../lib/supabase";
 
 export type ShiftStatus = "DRAFT" | "PUBLISHED" | "COMPLETED" | "VOID";
@@ -45,11 +45,6 @@ function toTimeInput(isoString: string): string {
 function formatRole(role: string): string {
   return role.charAt(0) + role.slice(1).toLowerCase().replace(/_/g, " ");
 }
-
-const JOB_ROLES = [
-  "SERVER", "BARTENDER", "LINE_COOK", "PREP_COOK",
-  "DISHWASHER", "HOST", "MANAGER_ON_DUTY",
-] as const;
 
 interface Props {
   shift: Shift;
@@ -211,7 +206,7 @@ export default function ViewShiftModal({ shift, employee, onClose, onSuccess }: 
               <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Role at Shift</label>
               <select className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={editRole} onChange={(e) => setEditRole(e.target.value)}>
-                {JOB_ROLES.map((r) => (
+                {JobRoleEnum.options.map((r) => (
                   <option key={r} value={r}>{formatRole(r)}</option>
                 ))}
               </select>
