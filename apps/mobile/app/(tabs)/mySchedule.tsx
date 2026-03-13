@@ -218,7 +218,7 @@ export default function MySchedule() {
                 <Pressable
                   key={day.toDateString()}
                   onPress={() => setSelectedDate(day)}
-                  className={`items-center py-2 px-3 rounded-2xl min-w-[44px] ${
+                  className={`items-center py-2 px-3 rounded-xl min-w-[44px] ${
                     isSelected ? "bg-white" : "bg-white/10"
                   }`}
                 >
@@ -259,10 +259,10 @@ export default function MySchedule() {
         </View>
 
         {/* Selected Date Label */}
-        <View className="mt-6">
+        <View className="mt-7">
           <View className="flex-row items-center gap-2">
             <View className="w-2 h-2 rounded-full bg-brand-primary" />
-            <Text className="text-xs font-bold text-white tracking-widest uppercase">
+            <Text className="text-s font-bold text-white tracking-widest uppercase">
               {selectedDate.toLocaleDateString([], {
                 weekday: "long",
                 month: "short",
@@ -274,27 +274,27 @@ export default function MySchedule() {
       </View>
 
       {/* ───────── Shift Sheet ───────── */}
-      <View className="-mt-8 flex-1">
+      <View className="-mt-9 flex-1 px-2">
         <ScrollView
           className="flex-1"
           contentContainerStyle={{
-            paddingHorizontal: 16,
+            paddingHorizontal: 20,
             paddingBottom: 32,
           }}
           showsVerticalScrollIndicator={false}
         >
-          <View className="bg-white rounded-3xl overflow-hidden shadow-xl">
+          <View className="bg-white rounded overflow-hidden shadow-xl">
             {selectedDayShifts.length === 0 ? (
               <View className="px-5 py-10 items-center">
-                <Text className="text-base font-bold text-gray-800 text-center">
+                <Text className="text-md font-bold text-gray-800 text-center">
                   No shifts scheduled
                 </Text>
-                <Text className="text-xs text-gray-400 text-center mt-2">
-                  Enjoy your day off — nothing on the clock!
+                <Text className="text-lg text-gray-600 text-center mt-2 tracking-wide">
+                  Enjoy your day off.. nothing on the clock!
                 </Text>
               </View>
             ) : (
-              <View className="px-5 py-5 gap-3">
+              <View className="px-5 py-5 gap-5">
                 {selectedDayShifts.map((shift: Shift, index: number) => {
                   const start = new Date(
                     shift.start_time
@@ -312,13 +312,13 @@ export default function MySchedule() {
 
                   return (
                     <View key={shift.id}>
-                      <View className="bg-gray-50 rounded-2xl px-4 py-4 border border-gray-200">
+                      <View className="bg-gray-50 rounded-xl p-4 border border-gray-400">
                         <Text className="text-base font-bold text-gray-800">
                           {shift.role_at_time_of_shift}
                         </Text>
 
-                        <Text className="text-xs text-gray-400 mt-0.5">
-                          Location: {shift.location_id}
+                        <Text className="text-s text-gray-700 mt-0.5">
+                          {shift.location_id}
                         </Text>
 
                         <Text className="text-sm text-gray-500 mt-1 font-medium">
@@ -328,7 +328,7 @@ export default function MySchedule() {
 
                       <Pressable
                         onPress={() => router.push(`/(tabs)/shift/${shift.id}`)}
-                        className="bg-brand-secondaryLight rounded-2xl py-5 items-center justify-center mt-3"
+                        className="bg-brand-secondaryLight rounded-xl py-5 items-center justify-center mt-5"
                       >
                         <Text className="text-white font-bold text-sm tracking-widest uppercase">
                           View Details
