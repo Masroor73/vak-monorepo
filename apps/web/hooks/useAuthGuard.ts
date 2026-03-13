@@ -1,3 +1,4 @@
+//web/hooks/useAuthGuard.ts
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
@@ -20,29 +21,25 @@ export const useAuthGuard = () => {
   const router = useRouter();
 
   useEffect(() => {
-    // Wait until auth state is resolved before making any redirect decision
     if (loading) return;
 
-    // No session at all → send to login
     if (!session) {
-      router.replace('/login');
+      router.replace('/(public)/login');
       return;
     }
 
-    // Session exists but account is pending admin approval
+    if (!profile) return; 
+
     if (!isApproved) {
-      router.replace('/pendingApproval');
+      router.replace('/(public)/pendingApproval');
       return;
     }
 
-    // Approved but EMPLOYEE role → belongs on mobile, not web dashboard
     if (profile?.role === 'EMPLOYEE') {
-      router.replace('/login');
+      router.replace('/(public)/login');
       return;
     }
 
-    // Approved + MANAGER or OWNER → allowed, do nothing
   }, [loading, session, isApproved, profile, router]);
-
-  return { loading, isApproved };
+  
 };

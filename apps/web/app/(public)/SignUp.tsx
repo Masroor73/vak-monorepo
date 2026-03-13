@@ -1,3 +1,4 @@
+//web/app/(public)/SignUp.tsx
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
@@ -42,7 +43,6 @@ export default function SignupScreen() {
   const {
     control,
     handleSubmit,
-    watch,
     formState: { errors },
     clearErrors,
   } = useForm<SignupInput>({
@@ -52,7 +52,6 @@ export default function SignupScreen() {
     reValidateMode: "onSubmit",
   });
 
-  const passwordValue = watch("password");
 
   useEffect(() => {
     if (!authError && Object.keys(errors).length === 0) return;
@@ -97,7 +96,7 @@ export default function SignupScreen() {
           {/* Brand */}
           <p className="text-lg font-black tracking-[0.22em] text-auth-white mb-4">
             V<span className="text-auth-blue">.</span>
-            A<span className="text-auth-blue">.</span>
+            A<span className="text-auth-pending">.</span>
             K
           </p>
 
@@ -305,12 +304,12 @@ export default function SignupScreen() {
           <div className="relative z-10 text-center">
             <p className="font-black text-auth-white mb-4 text-[72px] leading-none">
               V<span className="text-auth-blue">.</span>
-              A<span className="text-auth-blue">.</span>
+              A<span className="text-auth-pending">.</span>
               K
             </p>
             <div className="w-20 h-1.5 bg-auth-blue mx-auto mb-4" />
             <p className="text-[14px] tracking-[0.3em] uppercase text-auth-textSecondary font-bold mb-2">
-              Employee Management System
+              Workforce Management System
             </p>
             <p className="text-[14px] text-auth-textSecondary max-w-[260px] mx-auto leading-relaxed">
               You've been invited to join the V.A.K workforce platform.

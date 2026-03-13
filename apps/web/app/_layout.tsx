@@ -1,3 +1,4 @@
+//web/app/_layout.tsx
 import "../global.css";
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
