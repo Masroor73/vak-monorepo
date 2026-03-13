@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import ManagerLayout from "./layouts/ManagerLayout";
 import { supabase } from "../lib/supabase";
-import { useAuthGuard } from "../hooks/useAuthGuard";
 
 type Employee = {
   id: string;
@@ -9,7 +8,6 @@ type Employee = {
 };
 
 export default function Communication() {
-  useAuthGuard();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [message, setMessage] = useState("");
@@ -63,30 +61,21 @@ export default function Communication() {
     setLoading(false);
   }
 
-//web/app/communication.tsx
-import ManagerLayout from "./layouts/ManagerLayout";
-import { useAuthGuard } from "../hooks/useAuthGuard";
-
-export default function Communication() {
-  useAuthGuard();
   return (
     <ManagerLayout>
       <div className="p-8 max-w-3xl">
-
         <h1 className="text-2xl font-semibold mb-6">
           Communication
         </h1>
 
         <div className="bg-white border rounded-lg p-6 space-y-6">
 
-          {/* Select employees */}
           <div>
             <label className="text-sm font-medium">
               Select Employees
             </label>
 
             <div className="mt-2 border rounded p-3 max-h-40 overflow-y-auto space-y-2">
-
               {employees.map((emp) => (
                 <label
                   key={emp.id}
@@ -100,11 +89,9 @@ export default function Communication() {
                   {emp.email}
                 </label>
               ))}
-
             </div>
           </div>
 
-          {/* Message type */}
           <div>
             <label className="text-sm font-medium">
               Message Type
@@ -121,7 +108,6 @@ export default function Communication() {
             </select>
           </div>
 
-          {/* Message */}
           <div>
             <label className="text-sm font-medium">
               Message
@@ -135,9 +121,7 @@ export default function Communication() {
             />
           </div>
 
-          {/* Send */}
           <div className="flex justify-end">
-
             <button
               onClick={sendMessage}
               disabled={loading}
@@ -145,11 +129,9 @@ export default function Communication() {
             >
               {loading ? "Sending..." : "Send Message"}
             </button>
-
           </div>
 
         </div>
-
       </div>
     </ManagerLayout>
   );
