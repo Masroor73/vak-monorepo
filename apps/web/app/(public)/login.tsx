@@ -89,8 +89,12 @@ export default function LoginScreen() {
     }
 
     if (!profile.is_approved) {
+<<<<<<< HEAD
     await supabase.auth.signOut();
     setAuthError("Your account is pending approval. Please wait for a manager to approve your access.");
+=======
+    router.replace("/(public)/pendingApproval");
+>>>>>>> origin/main
     setLoading(false);
     return;
 }

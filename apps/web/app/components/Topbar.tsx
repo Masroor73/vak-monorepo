@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { usePathname } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,6 +12,9 @@ const ROUTE_LABELS: Record<string, string> = {
   "/settings": "Settings",
 };
 
+=======
+//web/app/components/Topbar.tsx
+>>>>>>> origin/main
 export default function Topbar({
   onOpenSidebar,
 }: {

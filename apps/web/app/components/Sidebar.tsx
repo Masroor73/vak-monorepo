@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // web/app/components/Sidebar.tsx
 import { Link, usePathname, useRouter } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
@@ -51,11 +52,32 @@ const ADMIN_NAV: NavItem[] = [
     icon:       "settings-outline",
     activeIcon: "settings",
   },
+=======
+//web/app/components/Sidebar.tsx
+import { Link, usePathname, useRouter } from "expo-router";
+import { useState } from "react";
+import StatusModal from "./StatusModal";
+import { useAuth } from "../../context/AuthContext";
+
+const items = [
+  { label: "Dashboard", href: "/" },
+  { label: "Team", href: "/team" },
+  { label: "Operations", href: "/operations" },
+  { label: "Analyze Reports", href: "/analyze-reports" },
+  { label: "Communication", href: "/communication" },
+  { label: "Settings", href: "/settings" },
+  { label: "User Management", href: "/user-management" },
+>>>>>>> origin/main
 ];
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+<<<<<<< HEAD
   const router   = useRouter();
+=======
+  const [modalOpen, setModalOpen] = useState(false);
+  const router = useRouter();
+>>>>>>> origin/main
   const { signOut } = useAuth();
 
   const handleLogout = async () => {
@@ -65,6 +87,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     } catch (e) {
       console.error("Sign out failed:", e);
     }
+<<<<<<< HEAD
   };
 
   const NavLink = ({ item }: { item: NavItem }) => {
@@ -109,6 +132,8 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         )}
       </Link>
     );
+=======
+>>>>>>> origin/main
   };
 
   return (
