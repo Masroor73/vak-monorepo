@@ -1,11 +1,9 @@
-<<<<<<< HEAD
 import ManagerLayout from "./layouts/ManagerLayout";
 import DarkPage from "./components/DarkPage";
 import { useAuthGuard } from "../hooks/useAuthGuard";
 
 export default function Settings() {
   useAuthGuard();
-=======
 //web/app/settings.tsx
 import { useRef, useState } from "react";
 import ManagerLayout from "./layouts/ManagerLayout";
@@ -76,7 +74,6 @@ export default function Settings() {
     });
   };
 
->>>>>>> origin/main
   return (
     <ManagerLayout>
       <DarkPage

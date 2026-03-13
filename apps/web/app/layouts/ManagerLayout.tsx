@@ -1,8 +1,5 @@
-<<<<<<< HEAD
 // web/app/layouts/ManagerLayout.tsx
-=======
 //web/app/layouts/ManagerLayout.tsx
->>>>>>> origin/main
 import { ReactNode, useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";

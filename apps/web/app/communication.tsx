@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useEffect, useState } from "react";
 import ManagerLayout from "./layouts/ManagerLayout";
 import { supabase } from "../lib/supabase";
@@ -64,14 +63,12 @@ export default function Communication() {
     setLoading(false);
   }
 
-=======
 //web/app/communication.tsx
 import ManagerLayout from "./layouts/ManagerLayout";
 import { useAuthGuard } from "../hooks/useAuthGuard";
 
 export default function Communication() {
   useAuthGuard();
->>>>>>> origin/main
   return (
     <ManagerLayout>
       <div className="p-8 max-w-3xl">
