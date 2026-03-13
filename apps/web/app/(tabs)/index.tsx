@@ -1,3 +1,4 @@
+//web/app/(tabs)/index.tsx
 import type React from "react";
 import ManagerLayout from "../layouts/ManagerLayout";
 import { Link } from "expo-router";

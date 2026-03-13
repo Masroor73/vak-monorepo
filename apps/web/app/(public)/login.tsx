@@ -1,10 +1,10 @@
+//web/app/(public)/login.tsx
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoginSchema, LoginInput } from "@vak/contract";
 import { supabase } from "../../lib/supabase";
-
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -25,7 +25,6 @@ export default function LoginScreen() {
     reValidateMode: "onSubmit",
   });
 
-  // ── Auto-clear errors after 15s ──────────────────────────────────────────
   useEffect(() => {
     if (!authError && Object.keys(errors).length === 0) return;
     const t = setTimeout(() => {
@@ -35,7 +34,6 @@ export default function LoginScreen() {
     return () => clearTimeout(t);
   }, [authError, errors]);
 
-  // ── Clear errors when leaving the screen ─────────────────────────────────
   useEffect(() => {
     return () => {
       clearErrors();
@@ -43,7 +41,6 @@ export default function LoginScreen() {
     };
   }, []);
 
-  // ── Submit ────────────────────────────────────────────────────────────────
   const onLogin = async (data: LoginInput) => {
     setLoading(true);
     setAuthError("");
@@ -72,7 +69,7 @@ export default function LoginScreen() {
 
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, is_approved")
       .eq("id", authData.user.id)
       .single();
 
@@ -91,6 +88,12 @@ export default function LoginScreen() {
       return;
     }
 
+    if (!profile.is_approved) {
+    router.replace("/(public)/pendingApproval");
+    setLoading(false);
+    return;
+}
+
     router.replace("/(tabs)");
     setLoading(false);
   };
@@ -105,7 +108,7 @@ export default function LoginScreen() {
           {/* Brand */}
           <p className="text-xl font-black tracking-[0.22em] text-auth-white mb-6">
             V<span className="text-auth-blue">.</span>
-            A<span className="text-auth-blue">.</span>
+            A<span className="text-auth-pending">.</span>
             K
           </p>
 
@@ -118,10 +121,8 @@ export default function LoginScreen() {
           </p>
 
           {/* Divider */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex-1 h-px bg-auth-divider" />
-            <span className="text-[10px] text-auth-textSecondary uppercase tracking-widest">or</span>
-            <div className="flex-1 h-px bg-auth-divider" />
+          <div className="flex items-center gap-6 mb-6">
+            <div className="flex-1 h-px  bg-auth-divider" />
           </div>
 
           {/* Email */}
@@ -236,6 +237,16 @@ export default function LoginScreen() {
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
+          <p className="text-center text-[12px] text-auth-textSecondary mt-3">
+            Don't have an account?{" "}
+            <button
+              type="button"
+              onClick={() => router.push("/(public)/SignUp")}
+              className="text-auth-white font-bold hover:text-auth-blue transition-colors"
+            >
+              Sign up
+            </button>
+          </p>
         </div>
 
         {/* ── RIGHT PANEL ── */}
@@ -262,12 +273,12 @@ export default function LoginScreen() {
           <div className="relative z-10 text-center">
             <p className="font-black text-auth-white mb-5 text-[92px]">
               V<span className="text-auth-blue">.</span>
-              A<span className="text-auth-blue">.</span>
+              A<span className="text-auth-pending">.</span>
               K
             </p>
             <div className="w-24 h-2 bg-auth-blue mx-auto mb-5" />
-            <p className="text-[18px] tracking-[0.3em] uppercase text-auth-textSecondary font-bold mb-3">
-              Employee Management System
+            <p className="text-[18px] tracking-[0.1em] uppercase text-auth-textSecondary font-bold mb-3">
+              Workforce Management System
             </p>
             <p className="text-[18px] text-auth-textSecondary max-w-[300px] mx-auto leading-relaxed">
               Centralized workforce operations for modern organizations.

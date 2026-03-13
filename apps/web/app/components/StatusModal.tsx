@@ -1,3 +1,4 @@
+//web/app/components/StatusModal.tsx
 type StatusModalProps = {
   open: boolean;
   type: "success" | "error";

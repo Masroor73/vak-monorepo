@@ -1,3 +1,4 @@
+//web/src/pages/AnalyzeReports.tsx
 import ManagerLayout from "../../app/layouts/ManagerLayout";
 
 function StatBox({ label, value }: { label: string; value: string }) {
