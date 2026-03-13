@@ -28,15 +28,21 @@ const STATUS_PROGRESS: Record<Status, number> = {
   'Done':        100,
 };
 
+const STATUS_META: Record<Status, { label: string; bgClass: string; textClass: string; iconName: string }> = {
+  'Pending':     { label: 'Pending',     bgClass: 'bg-slate-100',          textClass: 'text-slate-500',        iconName: 'time-outline'      },
+  'In Progress': { label: 'In Progress', bgClass: 'bg-damascus-secondary/10', textClass: 'text-damascus-secondary', iconName: 'reload-outline'    },
+  'Done':        { label: 'Done',        bgClass: 'bg-brand-success/10',   textClass: 'text-brand-success',    iconName: 'checkmark-circle-outline' },
+};
+
 const PRIORITY_META: Record<Priority, { label: string; barClass: string; bgClass: string; textClass: string }> = {
   HIGH:   { label: 'HIGH',   barClass: 'bg-damascus-primary',   bgClass: 'bg-damascus-primary/10',   textClass: 'text-damascus-primary'   },
   MEDIUM: { label: 'MEDIUM', barClass: 'bg-damascus-secondary', bgClass: 'bg-damascus-secondary/10', textClass: 'text-damascus-secondary' },
   LOW:    { label: 'LOW',    barClass: 'bg-brand-success',      bgClass: 'bg-brand-success/10',      textClass: 'text-brand-success'      },
 };
 
-type ChipKey = 'ALL' | Priority | Status;
+type ChipKey = 'ALL' | Priority;
 interface Chip {
-  key: ChipKey; label: string; type: 'all' | 'priority' | 'status'; activeBgClass: string; activeBorderClass: string;
+  key: ChipKey; label: string; type: 'all' | 'priority'; activeBgClass: string; activeBorderClass: string;
 }
 
 const CHIPS: Chip[] = [
@@ -56,6 +62,123 @@ function formatDueDate(dateStr: string | null): { text: string; overdue: boolean
   if (diff === 0) return { text: 'Due today',                  overdue: false };
   if (diff === 1) return { text: 'Due tomorrow',               overdue: false };
   return { text: `Due in ${diff}d`, overdue: false };
+}
+
+function EmptyState({ priorityFilter }: { priorityFilter: PriorityFilter }) {
+  return (
+    <View className="flex-1 items-center justify-center px-10 py-8">
+      <View className="items-center justify-center mb-6 w-36 h-36">
+        <View className="absolute bg-brand-primary/50 top-5 left-2.5 w-2 h-2 rounded-full" />
+        <View className="absolute bg-brand-success/60 bottom-6 left-4 w-1.5 h-1.5 rounded-full" />
+        <View className="w-28 rounded-2xl items-center pt-3 pb-4 px-4 bg-white shadow-md">
+          <View className="w-10 h-3 rounded-full mb-3 bg-slate-200" />
+          {[100, 80, 90].map((w, i) => (
+            <View key={i} className="rounded-full mb-2 bg-slate-200 h-1.5" style={{ width: `${w}%` }} />
+          ))}
+        </View>
+        <View className="absolute bottom-2 right-2 w-9 h-9 rounded-full items-center justify-center bg-brand-secondary shadow-md">
+          <Ionicons name="checkmark" size={18} color="#62CCEF" />
+        </View>
+      </View>
+
+      <Text className="text-[22px] font-black text-center mb-2 text-brand-secondary -tracking-tight">
+        {priorityFilter !== 'ALL'
+          ? `No ${priorityFilter.toLowerCase()} priority tasks`
+          : "You're all caught up!"}
+      </Text>
+      <Text className="text-[13px] text-center leading-5 mb-6 text-slate-400">
+        {priorityFilter !== 'ALL'
+          ? 'Nothing matches your current filters.\nTry a different selection.'
+          : 'No tasks have been assigned to you\nyet. Your manager will assign tasks\nwhen they\'re ready.'}
+      </Text>
+    </View>
+  );
+}
+
+function TaskCard({ task, updatingId, onCycle }: { task: Task; updatingId: string | null; onCycle: (task: Task) => void }) {
+  const pm         = PRIORITY_META[task.priority];
+  const sm         = STATUS_META[task.status];
+  const due        = formatDueDate(task.due_date);
+  const isDone     = task.status === 'Done';
+  const isUpdating = updatingId === task.id;
+  const progress   = STATUS_PROGRESS[task.status];
+
+  const progressBarClass = isDone ? 'bg-brand-success' : pm.barClass;
+
+  return (
+    <View
+      className={`mx-4 mb-3 rounded-2xl overflow-hidden bg-white shadow-sm border ${isDone ? 'border-brand-success/20' : 'border-black/[0.04]'}`}
+    >
+      {/* Left priority bar */}
+      <View className={`absolute left-0 top-0 bottom-0 w-[8px] ${pm.barClass} ${isDone ? 'opacity-35' : 'opacity-100'}`} />
+
+      <View className="pl-5 pr-4 pt-4 pb-3">
+        <View className="flex-1 mr-3 mb-1.5">
+          <Text
+            className={`font-extrabold text-[20px] ${isDone ? 'text-slate-400 line-through' : 'text-brand-secondary'}`}
+          >
+            {task.title}
+          </Text>
+          {task.description ? (
+            <Text className={`text-[15px] font-medium mt-3 ${isDone ? 'text-slate-400' : ''}`} numberOfLines={2}>
+              {task.description}
+            </Text>
+          ) : null}
+        </View>
+
+        {/* Due date row */}
+        {due.text !== '' && (
+          <View className="flex-row items-center mt-1 mb-2.5 gap-x-0.5">
+            <Ionicons name="calendar-outline" size={18} color={due.overdue ? '#D32F2F' : '#000000'} />
+            <Text className={`text-[14px] font-medium ml-2 ${due.overdue ? 'text-damascus-primary' : 'text-black/80'}`}>
+              {due.text}
+            </Text>
+          </View>
+        )}
+
+        {/* Progress bar */}
+        <View className="mt-1 mb-3">
+          <View className="flex-row items-center justify-between mb-2">
+            <Text className="text-[15px] font-semibold text-black">Progress</Text>
+            <Text className={`text-[15px] font-bold ${isDone ? 'text-brand-success' : 'text-gray-600'}`}>
+              {progress}%
+            </Text>
+          </View>
+          <View className="h-1.5 rounded-full bg-slate-300 overflow-hidden">
+            <View
+              className={`h-full rounded-full ${progressBarClass}`}
+              style={{ width: `${progress}%` }}
+            />
+          </View>
+        </View>
+
+        {/* ── Status pill button ── */}
+        <TouchableOpacity
+          onPress={() => onCycle(task)}
+          disabled={!!updatingId}
+          activeOpacity={0.7}
+          className={`self-end flex-row items-center gap-x-1.5 px-3 py-1.5 rounded-full ${sm.bgClass}`}
+        >
+          {isUpdating
+            ? <ActivityIndicator size="small" color="#94a3b8" />
+            : <Ionicons name={sm.iconName as any} size={12} color={
+                task.status === 'Done' ? '#05CC66' : task.status === 'In Progress' ? '#F0A500' : '#94a3b8'
+              } />
+          }
+          <Text className={`text-[15px] font-bold text-gray-800`}>
+            {isUpdating ? 'Updating…' : sm.label}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Priority label top-right */}
+      <View className={`absolute top-3.5 right-4 px-2 py-0.5 rounded ${pm.bgClass}`}>
+        <Text className={`text-[10px] font-black tracking-wider ${pm.textClass}`}>
+          {pm.label}
+        </Text>
+      </View>
+    </View>
+  );
 }
 
 export default function MyTasksScreen() {
@@ -122,140 +245,10 @@ export default function MyTasksScreen() {
     return false;
   };
 
-  const chipCount = (chip: Chip) => {
-    if (chip.type === 'all') return 0;
-    return tasks.filter(t => t.priority === chip.key).length;
-  };
-
-  const filtered = tasks.filter(t =>
-    (priorityFilter === 'ALL' || t.priority === priorityFilter)
-  );
-
+  const filtered        = tasks.filter(t => priorityFilter === 'ALL' || t.priority === priorityFilter);
   const doneCount       = tasks.filter(t => t.status === 'Done').length;
   const pendingCount    = tasks.filter(t => t.status === 'Pending').length;
   const inProgressCount = tasks.filter(t => t.status === 'In Progress').length;
-
-  // ── Empty state ──────────────────────────────────────────────────────────────
-  const EmptyState = () => (
-    <View className="flex-1 items-center justify-center px-10 py-8">
-      {/* Illustrated clipboard */}
-      <View className="items-center justify-center mb-6 w-36 h-36">
-        {/* Decorative dots */}
-        <View className="absolute bg-brand-primary/50 top-5 left-2.5 w-2 h-2 rounded-full" />
-        <View className="absolute bg-brand-success/60 bottom-6 left-4 w-1.5 h-1.5 rounded-full" />
-        {/* Clipboard body */}
-        <View className="w-28 rounded-2xl items-center pt-3 pb-4 px-4 bg-white shadow-md">
-          <View className="w-10 h-3 rounded-full mb-3 bg-slate-200" />
-          {[100, 80, 90].map((w, i) => (
-            <View key={i} className="rounded-full mb-2 bg-slate-200 h-1.5" style={{ width: `${w}%` }} />
-          ))}
-        </View>
-        {/* Checkmark badge */}
-        <View className="absolute bottom-2 right-2 w-9 h-9 rounded-full items-center justify-center bg-brand-secondary shadow-md">
-          <Ionicons name="checkmark" size={18} color="#62CCEF" />
-        </View>
-      </View>
-
-      <Text className="text-[22px] font-black text-center mb-2 text-brand-secondary -tracking-tight">
-        {priorityFilter !== 'ALL'
-          ? `No ${priorityFilter.toLowerCase()} priority tasks`
-          : "You're all caught up!"}
-      </Text>
-      <Text className="text-[13px] text-center leading-5 mb-6 text-slate-400">
-        {priorityFilter !== 'ALL'
-          ? 'Nothing matches your current filters.\nTry a different selection.'
-          : 'No tasks have been assigned to you\nyet. Your manager will assign tasks\nwhen they\'re ready.'}
-      </Text>
-    </View>
-  );
-
-  // ── Task card ────────────────────────────────────────────────────────────────
-  const TaskCard = ({ task }: { task: Task }) => {
-    const pm         = PRIORITY_META[task.priority];
-    const due        = formatDueDate(task.due_date);
-    const isDone     = task.status === 'Done';
-    const isUpdating = updatingId === task.id;
-    const progress   = STATUS_PROGRESS[task.status];
-
-    const progressBarClass = isDone ? 'bg-brand-success' : pm.barClass;
-
-    return (
-      <View
-        className={`mx-4 mb-3 rounded-2xl overflow-hidden bg-white shadow-sm border ${isDone ? 'border-brand-success/20' : 'border-black/[0.04]'}`}
-      >
-        {/* Left priority bar */}
-        <View className={`absolute left-0 top-0 bottom-0 w-[3px] ${pm.barClass} ${isDone ? 'opacity-35' : 'opacity-100'}`} />
-
-        <View className="pl-5 pr-4 pt-4 pb-3">
-          {/* Title + toggle */}
-          <View className="flex-row items-start justify-between mb-1.5">
-            <View className="flex-1 mr-3">
-              <Text
-                className={`font-bold text-[15px] leading-[21px] -tracking-tight ${isDone ? 'text-slate-400 line-through' : 'text-brand-secondary'}`}
-              >
-                {task.title}
-              </Text>
-              {task.description ? (
-                <Text className="text-[12px] mt-1 leading-[18px] text-slate-400" numberOfLines={2}>
-                  {task.description}
-                </Text>
-              ) : null}
-            </View>
-
-            {/* Status cycle toggle */}
-            <TouchableOpacity
-              onPress={() => cycleStatus(task)}
-              disabled={!!updatingId}
-              activeOpacity={0.7}
-              className={`w-8 h-8 rounded-full items-center justify-center border-2 ${isDone ? 'bg-brand-success/10 border-brand-success' : 'bg-slate-100 border-slate-200'}`}
-            >
-              {isUpdating
-                ? <ActivityIndicator size="small" color={isDone ? '#05CC66' : '#94a3b8'} />
-                : <Ionicons
-                    name={isDone ? 'checkmark' : 'ellipse-outline'}
-                    size={isDone ? 14 : 17}
-                    color={isDone ? '#05CC66' : '#cbd5e1'}
-                  />
-              }
-            </TouchableOpacity>
-          </View>
-
-          {/* Due date row */}
-          {due.text !== '' && (
-            <View className="flex-row items-center mt-1 mb-2.5 gap-x-0.5">
-              <Ionicons name="calendar-outline" size={11} color={due.overdue ? '#D32F2F' : '#94a3b8'} />
-              <Text className={`text-[11px] font-medium ${due.overdue ? 'text-damascus-primary' : 'text-slate-400'}`}>
-                {due.text}
-              </Text>
-            </View>
-          )}
-
-          {/* Progress bar */}
-          <View className="mt-1">
-            <View className="flex-row items-center justify-between mb-1">
-              <Text className="text-[10px] font-semibold text-slate-400">Progress</Text>
-              <Text className={`text-[10px] font-bold ${isDone ? 'text-brand-success' : 'text-slate-400'}`}>
-                {progress}%
-              </Text>
-            </View>
-            <View className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-              <View
-                className={`h-full rounded-full ${progressBarClass}`}
-                style={{ width: `${progress}%` }}
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* Priority label top-right */}
-        <View className={`absolute top-3.5 right-4 px-2 py-0.5 rounded ${pm.bgClass}`}>
-          <Text className={`text-[10px] font-black tracking-wider ${pm.textClass}`}>
-            {pm.label}
-          </Text>
-        </View>
-      </View>
-    );
-  };
 
   return (
     <View className="flex-1 bg-brand-secondary">
@@ -268,7 +261,7 @@ export default function MyTasksScreen() {
           >
             <WhiteArrow width={16} height={16} />
           </Pressable>
-          <Text className="absolute left-0 right-0 text-center text-white font-bold text-lg tracking-wide">
+          <Text pointerEvents="none" className="absolute left-0 right-0 text-center text-white font-bold text-lg tracking-wide">
             My Tasks
           </Text>
         </View>
@@ -302,7 +295,6 @@ export default function MyTasksScreen() {
           <View className="flex-row justify-center gap-x-2">
             {CHIPS.map(chip => {
               const active = isChipActive(chip);
-              const count  = chipCount(chip);
               return (
                 <TouchableOpacity
                   key={chip.key}
@@ -317,24 +309,11 @@ export default function MyTasksScreen() {
                   <Text className={`text-[13px] font-semibold ${active ? 'text-white' : 'text-slate-500'}`}>
                     {chip.label}
                   </Text>
-                  {count > 0 && (
-                    <Text className={`text-[12px] font-bold ml-1.5 ${active ? 'text-white/75' : 'text-slate-400'}`}>
-                      {count}
-                    </Text>
-                  )}
                 </TouchableOpacity>
               );
             })}
           </View>
         </View>
-
-        {/* Tasks label + count */}
-        {!loading && filtered.length > 0 && (
-          <View className="flex-row items-center justify-between px-4 mb-2">
-            <Text className="text-[10px] font-black tracking-widest text-slate-400">TASKS</Text>
-            <Text className="text-[11px] font-bold text-brand-primary">{filtered.length} tasks</Text>
-          </View>
-        )}
 
         {/* ── Task list ── */}
         {loading ? (
@@ -349,7 +328,17 @@ export default function MyTasksScreen() {
             showsVerticalScrollIndicator={false}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#62CCEF" />}
           >
-            {filtered.length === 0 ? <EmptyState /> : filtered.map(t => <TaskCard key={t.id} task={t} />)}
+            {filtered.length === 0
+              ? <EmptyState priorityFilter={priorityFilter} />
+              : filtered.map(t => (
+                  <TaskCard
+                    key={t.id}
+                    task={t}
+                    updatingId={updatingId}
+                    onCycle={cycleStatus}
+                  />
+                ))
+            }
           </ScrollView>
         )}
       </View>
