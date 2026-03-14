@@ -18,7 +18,7 @@ type Recognition = {
   created_at: string;
 };
 
-type Announcement = {
+type Notification = {
   id: string;
   message: string;
   target: string;
@@ -29,11 +29,11 @@ export default function Communication() {
 
   const { profile } = useAuth();
 
+  const [activeTab,setActiveTab] = useState("announcements");
+
   const [employees,setEmployees] = useState<Profile[]>([]);
   const [recognitions,setRecognitions] = useState<Recognition[]>([]);
-  const [announcements,setAnnouncements] = useState<Announcement[]>([]);
-
-  const [openRecognition,setOpenRecognition] = useState(false);
+  const [announcements,setAnnouncements] = useState<Notification[]>([]);
 
   const [selectedEmployee,setSelectedEmployee] = useState("");
   const [badge,setBadge] = useState("");
@@ -50,57 +50,39 @@ export default function Communication() {
 
   async function loadEmployees(){
 
-   const { data, error } = await supabase
-   .from("profiles")
-   .select("id, full_name, email, role")
-   .order("full_name", { ascending: true });
-
-    if(error){
-      console.error(error);
-      return;
-    }
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, full_name, email, role")
+      .order("full_name",{ascending:true});
 
     setEmployees(data || []);
   }
 
   async function loadRecognitions(){
 
-    const {data,error} = await supabase
+    const {data} = await supabase
       .from("recognitions")
       .select("*")
       .order("created_at",{ascending:false});
-
-    if(error){
-      console.error(error);
-      return;
-    }
 
     setRecognitions(data || []);
   }
 
   async function loadAnnouncements(){
 
-    const {data,error} = await supabase
-      .from("announcements")
+    const {data} = await supabase
+      .from("notifications")
       .select("*")
       .order("created_at",{ascending:false});
-
-    if(error){
-      console.error(error);
-      return;
-    }
 
     setAnnouncements(data || []);
   }
 
   async function sendRecognition(){
 
-    if(!selectedEmployee || !badge || !message){
-      alert("Please fill all fields");
-      return;
-    }
+    if(!selectedEmployee || !badge || !message) return;
 
-    const {error} = await supabase
+    await supabase
       .from("recognitions")
       .insert({
         sender_id: profile?.id,
@@ -109,12 +91,6 @@ export default function Communication() {
         message: message
       });
 
-    if(error){
-      console.error(error);
-      return;
-    }
-
-    setOpenRecognition(false);
     setSelectedEmployee("");
     setBadge("");
     setMessage("");
@@ -126,17 +102,12 @@ export default function Communication() {
 
     if(!announcementMessage) return;
 
-    const {error} = await supabase
-      .from("announcements")
+    await supabase
+      .from("notifications")
       .insert({
-        message: announcementMessage,
-        target: target
+        message:announcementMessage,
+        target:target
       });
-
-    if(error){
-      console.error(error);
-      return;
-    }
 
     setAnnouncementMessage("");
     loadAnnouncements();
@@ -147,50 +118,73 @@ export default function Communication() {
 
       <div className="space-y-6">
 
-        {/* HEADER */}
+        <h1 className="text-2xl font-bold">Communication</h1>
 
-        <div className="flex justify-between items-center">
+        {/* TABS */}
 
-          <div>
-            <h1 className="text-2xl font-bold">Communication</h1>
-            <p className="text-gray-500 text-sm">
-              Announcements and team recognition
-            </p>
-          </div>
+        <div className="flex gap-4 border-b pb-2">
 
           <button
-            onClick={()=>setOpenRecognition(true)}
-            className="bg-black text-white px-5 py-2 rounded-lg"
+            onClick={()=>setActiveTab("announcements")}
+            className={`px-3 py-1 ${activeTab==="announcements" ? "font-bold border-b-2 border-black":""}`}
           >
-            Send Recognition
+            Announcements
+          </button>
+
+          <button
+            onClick={()=>setActiveTab("recognition")}
+            className={`px-3 py-1 ${activeTab==="recognition" ? "font-bold border-b-2 border-black":""}`}
+          >
+            Recognition
           </button>
 
         </div>
 
-        {/* ANNOUNCEMENTS */}
+        {/* ANNOUNCEMENTS TAB */}
 
-        <div className="bg-white border rounded-lg p-5 space-y-3">
+        {activeTab==="announcements" && (
 
-          <h3 className="font-semibold">Send Announcement</h3>
+          <div className="space-y-4">
 
-          <textarea
-            placeholder="Write announcement..."
-            value={announcementMessage}
-            onChange={(e)=>setAnnouncementMessage(e.target.value)}
-            className="w-full border rounded-lg p-3"
-          />
+            <textarea
+              placeholder="Write announcement..."
+              value={announcementMessage}
+              onChange={(e)=>setAnnouncementMessage(e.target.value)}
+              className="w-full border rounded-lg p-3"
+            />
 
-          <div className="flex gap-3">
+            {/* RADIO BUTTONS */}
 
-            <select
-              value={target}
-              onChange={(e)=>setTarget(e.target.value)}
-              className="border rounded-lg px-3 py-2"
-            >
-              <option value="ALL">All Staff</option>
-              <option value="MANAGER">Managers</option>
-              <option value="EMPLOYEE">Employees</option>
-            </select>
+            <div className="flex gap-4 text-sm">
+
+              <label>
+                <input
+                  type="radio"
+                  value="ALL"
+                  checked={target==="ALL"}
+                  onChange={()=>setTarget("ALL")}
+                /> All Employees
+              </label>
+
+              <label>
+                <input
+                  type="radio"
+                  value="MANAGER"
+                  checked={target==="MANAGER"}
+                  onChange={()=>setTarget("MANAGER")}
+                /> Managers Only
+              </label>
+
+              <label>
+                <input
+                  type="radio"
+                  value="SPECIFIC"
+                  checked={target==="SPECIFIC"}
+                  onChange={()=>setTarget("SPECIFIC")}
+                /> Specific
+              </label>
+
+            </div>
 
             <button
               onClick={sendAnnouncement}
@@ -199,82 +193,48 @@ export default function Communication() {
               Send Announcement
             </button>
 
+            {announcements.map(a=>(
+              <div key={a.id} className="border rounded-lg p-4">
+                📢 {a.message}
+              </div>
+            ))}
+
           </div>
 
-        </div>
+        )}
 
-        {/* ACTIVITY FEED */}
+        {/* RECOGNITION TAB */}
 
-        <div className="space-y-4">
+        {activeTab==="recognition" && (
 
-          {announcements.map(a=>(
-            <div key={a.id} className="bg-white border rounded-lg p-4">
-              <div className="font-semibold">📢 Announcement</div>
-              <div className="text-gray-600 text-sm mt-1">{a.message}</div>
-            </div>
-          ))}
+          <div className="space-y-4">
 
-          {recognitions.map(r=>(
-            <div key={r.id} className="bg-white border rounded-lg p-4">
-              <div className="font-semibold">⭐ Recognition</div>
-              <div className="text-sm text-gray-700 mt-1">{r.message}</div>
-            </div>
-          ))}
-
-        </div>
-
-      </div>
-
-      {/* RECOGNITION MODAL */}
-
-      {openRecognition && (
-
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-
-          <div className="bg-white rounded-xl p-6 w-[520px] space-y-4">
-
-            <h2 className="text-lg font-semibold">
-              Send Recognition
-            </h2>
-
-           <select
-           value={selectedEmployee}
-
-           onChange={(e) => setSelectedEmployee(e.target.value)}
-           className="w-full border rounded-lg px-3 py-2 text-sm"
-           >
-            <option value="">Select Employee</option>
-            {employees.map((emp) => (
-              <option key={emp.id} value={emp.id}>
-                {emp.full_name || emp.email} — {emp.email}
+            <select
+              value={selectedEmployee}
+              onChange={(e)=>setSelectedEmployee(e.target.value)}
+              className="border rounded-lg px-3 py-2"
+            >
+              <option value="">Select Employee</option>
+              {employees.map(e=>(
+                <option key={e.id} value={e.id}>
+                  {e.full_name}
                 </option>
               ))}
-              </select>
+            </select>
 
-            {/* BADGE SELECTION */}
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                {name:"Star Performer",icon:"⭐"},
-                {name:"Team Player",icon:"🏆"},
-                {name:"Above & Beyond",icon:"🔥"},
-                {name:"Detail Focused",icon:"🎯"},
-                {name:"Great Teamwork",icon:"🤝"},
-                {name:"Customer Champ",icon:"🌟"}
-              ].map((b)=>{
-                return(
+            {/* EMOJI PICKER */}
+
+            <div className="flex gap-3 text-xl">
+              {["⭐","🏆","💪","🎯","🤝","🌟"].map((e)=>(
                 <button
-                key={b.name}
-                onClick={()=>setBadge(b.name)}
-                className={`border rounded-lg p-3 text-sm flex flex-col items-center ${
-                  badge===b.name ? "bg-blue-100 border-blue-500":""
-                  }`}
-                  >
-                    <div className="text-xl">{b.icon}</div>
-                    <div>{b.name}</div>
-                    </button>
-                    )
-                    })}
-                    </div>
+                  key={e}
+                  onClick={()=>setBadge(e)}
+                  className={`border p-2 rounded ${badge===e?"bg-blue-200":""}`}
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
 
             <textarea
               placeholder="Write recognition message..."
@@ -283,29 +243,24 @@ export default function Communication() {
               className="w-full border rounded-lg p-3"
             />
 
-            <div className="flex justify-end gap-3">
+            <button
+              onClick={sendRecognition}
+              className="bg-black text-white px-4 py-2 rounded-lg"
+            >
+              Send Recognition
+            </button>
 
-              <button
-                onClick={()=>setOpenRecognition(false)}
-                className="border px-4 py-2 rounded-lg"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={sendRecognition}
-                className="bg-black text-white px-4 py-2 rounded-lg"
-              >
-                Send Recognition
-              </button>
-
-            </div>
+            {recognitions.map(r=>(
+              <div key={r.id} className="border rounded-lg p-4">
+                ⭐ {r.message}
+              </div>
+            ))}
 
           </div>
 
-        </div>
+        )}
 
-      )}
+      </div>
 
     </ManagerLayout>
   );
