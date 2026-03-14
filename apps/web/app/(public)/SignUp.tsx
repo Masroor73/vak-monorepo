@@ -52,7 +52,6 @@ export default function SignupScreen() {
     reValidateMode: "onSubmit",
   });
 
-
   useEffect(() => {
     if (!authError && Object.keys(errors).length === 0) return;
     const t = setTimeout(() => { clearErrors(); setAuthError(""); }, 15000);
