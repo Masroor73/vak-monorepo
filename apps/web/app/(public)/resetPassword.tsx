@@ -1,23 +1,48 @@
 import { useState, useEffect } from "react";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { supabase } from "../../lib/supabase";
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams(); 
+  
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const [sessionEstablished, setSessionEstablished] = useState(false);
 
-  // When the user clicks the link in their email, Supabase automatically parses the 
-  // URL hash (#access_token=...) and sets the session. We just need to verify they have one.
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY") {
-        console.log("Ready to accept new password.");
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+        setSessionEstablished(true);
       }
     });
-  }, []);
+
+    const verifyToken = async () => {
+      const token_hash = params.token as string;
+      const type = params.type as string;
+
+      if (token_hash && type === 'recovery' && !sessionEstablished) {
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash,
+          type: 'recovery'
+        });
+        
+        if (error) {
+          setMessage({ text: "Recovery link is invalid or has expired.", type: "error" });
+        } else {
+          setSessionEstablished(true);
+          setMessage({ text: "Link verified. Please enter your new password.", type: "success" });
+        }
+      }
+    };
+
+    verifyToken();
+  }, [params]);
 
   const handleUpdatePassword = async () => {
     if (!password || password.length < 6) {
@@ -26,6 +51,11 @@ export default function ResetPasswordScreen() {
     }
     if (password !== confirmPassword) {
       setMessage({ text: "Passwords do not match.", type: "error" });
+      return;
+    }
+    
+    if (!sessionEstablished) {
+      setMessage({ text: "Auth session missing! Please click the link in your email again.", type: "error" });
       return;
     }
 
@@ -64,31 +94,49 @@ export default function ResetPasswordScreen() {
           </p>
 
           {/* New Password */}
-          <div className="mb-4">
+          <div className="mb-4 relative">
             <label className="block text-[10px] font-bold tracking-[0.18em] uppercase text-auth-textSecondary mb-2">
               New Password
             </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full bg-auth-input border border-auth-borderMid text-auth-textPrimary text-sm px-4 py-3 outline-none focus:border-auth-borderFocus transition-colors placeholder-auth-textMuted"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full bg-auth-input border border-auth-borderMid text-auth-textPrimary text-sm px-4 py-3 pr-14 outline-none focus:border-auth-borderFocus transition-colors placeholder-auth-textMuted"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold tracking-[0.15em] uppercase text-auth-textMuted hover:text-auth-white transition-colors"
+              >
+                {showPassword ? "HIDE" : "SHOW"}
+              </button>
+            </div>
           </div>
 
           {/* Confirm Password */}
-          <div className="mb-4">
+          <div className="mb-4 relative">
             <label className="block text-[10px] font-bold tracking-[0.18em] uppercase text-auth-textSecondary mb-2">
               Confirm Password
             </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full bg-auth-input border border-auth-borderMid text-auth-textPrimary text-sm px-4 py-3 outline-none focus:border-auth-borderFocus transition-colors placeholder-auth-textMuted"
-            />
+            <div className="relative">
+              <input
+                type={showConfirm ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full bg-auth-input border border-auth-borderMid text-auth-textPrimary text-sm px-4 py-3 pr-14 outline-none focus:border-auth-borderFocus transition-colors placeholder-auth-textMuted"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm(!showConfirm)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold tracking-[0.15em] uppercase text-auth-textMuted hover:text-auth-white transition-colors"
+              >
+                {showConfirm ? "HIDE" : "SHOW"}
+              </button>
+            </div>
           </div>
 
           {/* Status Message */}
@@ -101,14 +149,14 @@ export default function ResetPasswordScreen() {
           {/* CTA */}
           <button
             onClick={handleUpdatePassword}
-            disabled={loading}
+            disabled={loading || !sessionEstablished}
             className="w-full bg-auth-blue hover:bg-auth-blueHover disabled:opacity-50 text-auth-white text-[11px] font-black tracking-[0.2em] py-3.5 transition-all shadow-lg mt-2"
           >
             {loading ? "SAVING..." : "RESET PASSWORD"}
           </button>
         </div>
 
-        {/* ── RIGHT PANEL (Matches Forgot Password) ── */}
+        {/* ── RIGHT PANEL ── */}
         <div className="flex-1 bg-auth-bg relative flex items-center justify-center overflow-hidden">
           <div
             className="absolute inset-0"
