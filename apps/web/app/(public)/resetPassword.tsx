@@ -1,29 +1,46 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
 
-export default function ForgotPasswordScreen() {
+export default function ResetPasswordScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
-  const handleReset = async () => {
-    if (!email) {
-      setMessage({ text: "Please enter your email address.", type: "error" });
+  // When the user clicks the link in their email, Supabase automatically parses the 
+  // URL hash (#access_token=...) and sets the session. We just need to verify they have one.
+  useEffect(() => {
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        console.log("Ready to accept new password.");
+      }
+    });
+  }, []);
+
+  const handleUpdatePassword = async () => {
+    if (!password || password.length < 6) {
+      setMessage({ text: "Password must be at least 6 characters.", type: "error" });
       return;
     }
+    if (password !== confirmPassword) {
+      setMessage({ text: "Passwords do not match.", type: "error" });
+      return;
+    }
+
     setLoading(true);
     setMessage(null);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "http://localhost:8082/(public)/resetPassword",
-    });
+    const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
       setMessage({ text: error.message, type: "error" });
     } else {
-      setMessage({ text: "Check your email for the password reset link.", type: "success" });
+      setMessage({ text: "Password updated successfully! Redirecting to login...", type: "success" });
+      setTimeout(() => {
+        router.replace("/(public)/login");
+      }, 2000);
     }
     setLoading(false);
   };
@@ -31,9 +48,8 @@ export default function ForgotPasswordScreen() {
   return (
     <div className="min-h-screen bg-auth-bg flex items-center justify-center">
       <div className="flex w-full max-w-4xl h-[580px] border border-auth-border overflow-hidden shadow-2xl">
-
         {/* ── LEFT PANEL ── */}
-        <div className="flex flex-col w-5/12 bg-auth-panel border-r border-auth-border px-10 py-12 relative">
+        <div className="flex flex-col w-5/12 bg-auth-panel border-r border-auth-border px-10 py-12">
           <p className="text-xl font-black tracking-[0.22em] text-auth-white mb-10">
             V<span className="text-auth-blue">.</span>
             A<span className="text-auth-pending">.</span>
@@ -41,22 +57,36 @@ export default function ForgotPasswordScreen() {
           </p>
 
           <h1 className="text-[28px] font-black text-auth-textPrimary leading-tight mb-1">
-            Forgot your<br />password?
+            Create new<br />password.
           </h1>
           <p className="text-[13px] text-auth-textSecondary font-light mb-8">
-            Enter your work email and we'll send you a verification code.
+            Your new password must be different from previously used passwords.
           </p>
 
-          {/* Email Input */}
+          {/* New Password */}
           <div className="mb-4">
             <label className="block text-[10px] font-bold tracking-[0.18em] uppercase text-auth-textSecondary mb-2">
-              Email Address
+              New Password
             </label>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@vak.com"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full bg-auth-input border border-auth-borderMid text-auth-textPrimary text-sm px-4 py-3 outline-none focus:border-auth-borderFocus transition-colors placeholder-auth-textMuted"
+            />
+          </div>
+
+          {/* Confirm Password */}
+          <div className="mb-4">
+            <label className="block text-[10px] font-bold tracking-[0.18em] uppercase text-auth-textSecondary mb-2">
+              Confirm Password
+            </label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="••••••••"
               className="w-full bg-auth-input border border-auth-borderMid text-auth-textPrimary text-sm px-4 py-3 outline-none focus:border-auth-borderFocus transition-colors placeholder-auth-textMuted"
             />
           </div>
@@ -70,25 +100,15 @@ export default function ForgotPasswordScreen() {
 
           {/* CTA */}
           <button
-            onClick={handleReset}
+            onClick={handleUpdatePassword}
             disabled={loading}
             className="w-full bg-auth-blue hover:bg-auth-blueHover disabled:opacity-50 text-auth-white text-[11px] font-black tracking-[0.2em] py-3.5 transition-all shadow-lg mt-2"
           >
-            {loading ? "SENDING..." : "SEND LINK"}
+            {loading ? "SAVING..." : "RESET PASSWORD"}
           </button>
-
-          <p className="text-[12px] text-auth-textSecondary text-center mt-6">
-            Remembered it?{" "}
-            <button
-              onClick={() => router.back()}
-              className="text-auth-white font-bold underline underline-offset-2 hover:text-auth-blue transition-colors"
-            >
-              Back to sign in
-            </button>
-          </p>
         </div>
 
-        {/* ── RIGHT PANEL ── */}
+        {/* ── RIGHT PANEL (Matches Forgot Password) ── */}
         <div className="flex-1 bg-auth-bg relative flex items-center justify-center overflow-hidden">
           <div
             className="absolute inset-0"
@@ -121,7 +141,6 @@ export default function ForgotPasswordScreen() {
             </p>
           </div>
         </div>
-
       </div>
     </div>
   );
