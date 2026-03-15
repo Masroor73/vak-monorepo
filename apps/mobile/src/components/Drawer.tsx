@@ -98,7 +98,7 @@ export default function Drawer({ isOpen, toggleDrawer, pendingTasksCount = 0, ne
               <Pressable
                 key={item.route}
                 onPress={() => {
-                  router.push(item.route);
+                  router.push(item.route as any);
                   toggleDrawer();
                 }}
                 style={s.row}
