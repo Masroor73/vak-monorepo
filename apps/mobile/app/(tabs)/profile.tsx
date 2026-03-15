@@ -1,3 +1,4 @@
+
 //apps/mobile/app/(tabs)/profile.tsx
 import React, { useCallback, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
@@ -7,6 +8,7 @@ import NotificationBottomSheet from "@/src/components/NotificationBottomSheet";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+
 
 type Tab = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -30,26 +32,38 @@ const Profile = () => {
     setIsNotificationSheetOpen(true);
   }, []);
 
+  const router = useRouter();
+
   const tabs: Tab[] = [
+    {
+      icon: "calendar-outline",
+      label: "Set Availability",
+      onPress: () => router.push("/availability"),
+    },
+    {
+      icon: "trophy-outline",
+      label: "Recognition",
+      onPress: () => router.push("/recognition"),
+    },
     {
       icon: "globe-outline",
       label: "Location",
-      onPress: () => { },
+      onPress: () => {},
     },
     {
       icon: "shield-outline",
-      label: "Privacy policy",
-      onPress: () => { },
+      label: "Privacy Policy",
+      onPress: () => {},
     },
     {
       icon: "settings-outline",
-      label: "Notification preferences",
+      label: "Notification Preferences",
       onPress: handleOpenNotification,
     },
     {
       icon: "help-circle-outline",
-      label: "Help and support",
-      onPress: () => { },
+      label: "Help and Support",
+      onPress: () => {},
     },
   ];
 

@@ -1,26 +1,38 @@
-//apps/mobile/app/index.tsx
 import { useEffect } from "react";
-import { View, ActivityIndicator } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 
 export default function IndexScreen() {
   const router = useRouter();
-  const { session, loading } = useAuth();
+  const { session, loading, profile } = useAuth();
 
   useEffect(() => {
-  if (loading) return;
+    if (loading) return;
 
-  if (!session) {
-    router.replace("/(public)/login");
-    return;
-  }
+    if (!session) {
+      router.replace("/login");
+      return;
+    }
 
-  router.replace("/(tabs)");
-}, [session, loading]);
+    if (!profile?.is_approved) {
+      router.replace("/(public)/pendingApproval" as any);
+      return;
+    }
+
+    router.replace("/(tabs)");
+  }, [session, loading, profile, router]);
+
   return (
-    <View className="flex-1 justify-center items-center bg-white">
-      <ActivityIndicator size="large" color="#000" />
+    <View
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#ffffff",
+      }}
+    >
+      <ActivityIndicator size="large" color="#063386" />
     </View>
   );
 }

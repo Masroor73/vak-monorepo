@@ -1,18 +1,26 @@
-// apps/mobile/app/(tabs)/mySchedule.tsx
 import { useMemo, useState } from "react";
-import { View, Text, Pressable, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  ActivityIndicator,
+} from "react-native";
 import { useRouter } from "expo-router";
-import { MOCK_SHIFTS } from "../../constants/mockData";
 import WhiteArrow from "../../assets/WhiteArrow.svg";
 import { Shift } from "@vak/contract";
+import { useAuth } from "../../context/AuthContext";
+import { useShifts } from "../../hooks/useShifts";
 
 /* ───────── Helpers ───────── */
+
 const WEEKDAY_SHORT = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
 function buildWeekDays(anchorDate: Date) {
   const days: Date[] = [];
   const dow = anchorDate.getDay();
   const monday = new Date(anchorDate);
+
   monday.setDate(anchorDate.getDate() - ((dow + 6) % 7));
 
   for (let i = 0; i < 7; i++) {
@@ -32,17 +40,16 @@ function isSameLocalDate(d1: Date, d2: Date) {
   );
 }
 
-function getShiftsForDate(date: Date) {
-  return MOCK_SHIFTS.filter((s) =>
-    isSameLocalDate(new Date(s.start_time), date)
-  );
-}
-
 /* ───────── Screen ───────── */
+
 export default function MySchedule() {
   const router = useRouter();
-  const today = useMemo(() => new Date(), []);
+  const { user } = useAuth();
 
+  const { data: shifts, isLoading, isError, error } = useShifts(user?.id);
+  const liveShifts = shifts ?? [];
+
+  const today = useMemo(() => new Date(), []);
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDate, setSelectedDate] = useState(today);
 
@@ -54,9 +61,15 @@ export default function MySchedule() {
 
   const weekDays = useMemo(() => buildWeekDays(anchorDate), [anchorDate]);
 
+  const getShiftsForDate = (date: Date) => {
+    return liveShifts.filter((s) =>
+      isSameLocalDate(new Date(s.start_time), date)
+    );
+  };
+
   const weekShiftCount = useMemo(
     () => weekDays.reduce((sum, day) => sum + getShiftsForDate(day).length, 0),
-    [weekDays]
+    [weekDays, liveShifts]
   );
 
   const weekType = useMemo(() => {
@@ -70,34 +83,32 @@ export default function MySchedule() {
 
   const selectedDayShifts = useMemo(
     () => getShiftsForDate(selectedDate),
-    [selectedDate]
+    [selectedDate, liveShifts]
   );
 
-  // ───────── Dynamic Shift Pill ─────────
   const weekShiftPill = useMemo(() => {
-  let bg = "bg-gray-200/20"; // default gray
-  let border = "border-gray-300/30";
-  let text = "text-gray-400";
+    let bg = "bg-gray-200/20";
+    let border = "border-gray-300/30";
+    let text = "text-gray-400";
 
-  if (weekShiftCount > 0) {
-    // Only assign color if there are shifts
-    if (weekType === "current") {
-      bg = "bg-brand-success/15";
-      border = "border-brand-success/30";
-      text = "text-brand-success";
-    } else if (weekType === "past") {
-      bg = "bg-red-500/15";
-      border = "border-red-500/30";
-      text = "text-red-400";
-    } else if (weekType === "future") {
-      bg = "bg-yellow-200/20";
-      border = "border-yellow-300/40";
-      text = "text-yellow-300";
+    if (weekShiftCount > 0) {
+      if (weekType === "current") {
+        bg = "bg-brand-success/15";
+        border = "border-brand-success/30";
+        text = "text-brand-success";
+      } else if (weekType === "past") {
+        bg = "bg-red-500/15";
+        border = "border-red-500/30";
+        text = "text-red-400";
+      } else if (weekType === "future") {
+        bg = "bg-yellow-200/20";
+        border = "border-yellow-300/40";
+        text = "text-yellow-300";
+      }
     }
-  }
 
-  return { bg, border, text };
-}, [weekType, weekShiftCount]);
+    return { bg, border, text };
+  }, [weekType, weekShiftCount]);
 
   const changeWeek = (direction: "prev" | "next") => {
     setWeekOffset((prev) => {
@@ -108,6 +119,7 @@ export default function MySchedule() {
 
       const newAnchor = new Date(today);
       newAnchor.setDate(today.getDate() + next * 7);
+
       const newWeekDays = buildWeekDays(newAnchor);
 
       setSelectedDate(next === 0 ? today : newWeekDays[0]);
@@ -116,11 +128,34 @@ export default function MySchedule() {
     });
   };
 
+  if (isLoading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-brand-background">
+        <ActivityIndicator size="large" color="#063386" />
+        <Text className="mt-4 text-gray-500 font-medium">
+          Loading schedule...
+        </Text>
+      </View>
+    );
+  }
+
+  if (isError) {
+    return (
+      <View className="flex-1 items-center justify-center bg-brand-background px-4">
+        <Text className="text-center text-red-500 font-bold text-lg">
+          Error loading schedule
+        </Text>
+        <Text className="mt-2 text-sm text-gray-500 text-center">
+          {String(error?.message ?? error)}
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View className="flex-1 bg-brand-background">
-      {/* ───────── Blue Header ───────── */}
+      {/* HEADER */}
       <View className="bg-brand-secondary pt-6 pb-16 px-5">
-        {/* Top Bar */}
         <View className="flex-row items-center justify-between mb-5">
           <Pressable
             onPress={() => router.back()}
@@ -134,46 +169,7 @@ export default function MySchedule() {
           </Text>
         </View>
 
-        {/* Week Pills */}
-        <View className="flex-row items-center gap-4 mb-6 mt-3">
-          {/* Week Type Pill */}
-          <View
-            className={`rounded-full px-5 py-2 border ${
-              weekType === "current"
-                ? "bg-brand-success/15 border-brand-success/30"
-                : weekType === "past"
-                ? "bg-red-500/15 border-red-500/30"
-                : "bg-yellow-200/20 border-yellow-300/40"
-            }`}
-          >
-            <Text
-              className={`text-xs font-semibold ${
-                weekType === "current"
-                  ? "text-brand-success"
-                  : weekType === "past"
-                  ? "text-red-400"
-                  : "text-yellow-300"
-              }`}
-            >
-              {weekType === "current"
-                ? "This Week"
-                : weekType === "past"
-                ? "Past Week"
-                : "Upcoming Week"}
-            </Text>
-          </View>
-
-          {/* Shifts This Week Pill */}
-          <View className={`rounded-full px-5 py-2 border ${weekShiftPill.bg} ${weekShiftPill.border}`}>
-            <Text className={`text-xs font-semibold ${weekShiftPill.text}`}>
-              {weekShiftCount > 0
-                ? `${weekShiftCount} shift${weekShiftCount !== 1 ? "s" : ""} this week`
-                : "No shifts this week"}
-            </Text>
-          </View>
-        </View>
-
-        {/* Week Selector */}
+        {/* WEEK SELECTOR */}
         <View className="flex-row items-center">
           <Pressable
             onPress={() => changeWeek("prev")}
@@ -190,13 +186,12 @@ export default function MySchedule() {
           >
             {weekDays.map((day, i) => {
               const isSelected = isSameLocalDate(day, selectedDate);
-              const hasShift = getShiftsForDate(day).length > 0;
 
               return (
                 <Pressable
                   key={day.toDateString()}
                   onPress={() => setSelectedDate(day)}
-                  className={`items-center py-2 px-3 rounded-2xl min-w-[44px] ${
+                  className={`items-center py-2 px-3 rounded-xl min-w-[44px] ${
                     isSelected ? "bg-white" : "bg-white/10"
                   }`}
                 >
@@ -215,10 +210,6 @@ export default function MySchedule() {
                   >
                     {day.getDate()}
                   </Text>
-
-                  {hasShift && (
-                    <View className="w-1.5 h-1.5 rounded-full bg-brand-success mt-1" />
-                  )}
                 </Pressable>
               );
             })}
@@ -237,10 +228,10 @@ export default function MySchedule() {
         </View>
 
         {/* Selected Date Label */}
-        <View className="mt-6">
+        <View className="mt-7">
           <View className="flex-row items-center gap-2">
             <View className="w-2 h-2 rounded-full bg-brand-primary" />
-            <Text className="text-xs font-bold text-white tracking-widest uppercase">
+            <Text className="text-s font-bold text-white tracking-widest uppercase">
               {selectedDate.toLocaleDateString([], {
                 weekday: "long",
                 month: "short",
@@ -248,54 +239,61 @@ export default function MySchedule() {
               })}
             </Text>
           </View>
+
+          <View
+            className={`mt-3 self-start rounded-full px-3 py-1 border ${weekShiftPill.bg} ${weekShiftPill.border}`}
+          >
+            <Text className={`text-xs font-semibold ${weekShiftPill.text}`}>
+              {weekShiftCount} {weekShiftCount === 1 ? "shift" : "shifts"} this
+              week
+            </Text>
+          </View>
         </View>
       </View>
 
-      {/* ───────── Shift Sheet ───────── */}
-      <View className="-mt-8 flex-1">
+      {/* Shift Sheet */}
+      <View className="-mt-9 flex-1 px-2">
         <ScrollView
           className="flex-1"
           contentContainerStyle={{
-            paddingHorizontal: 16,
+            paddingHorizontal: 20,
             paddingBottom: 32,
           }}
-          showsVerticalScrollIndicator={false}
         >
-          <View className="bg-white rounded-3xl overflow-hidden shadow-xl">
+          <View className="bg-white rounded overflow-hidden shadow-xl">
             {selectedDayShifts.length === 0 ? (
               <View className="px-5 py-10 items-center">
-                <Text className="text-base font-bold text-gray-800 text-center">
+                <Text className="text-md font-bold text-gray-800 text-center">
                   No shifts scheduled
                 </Text>
-                <Text className="text-xs text-gray-400 text-center mt-2">
-                  Enjoy your day off — nothing on the clock!
+                <Text className="text-lg text-gray-600 text-center mt-2 tracking-wide">
+                  Enjoy your day off.. nothing on the clock!
                 </Text>
               </View>
             ) : (
-              <View className="px-5 py-5 gap-3">
-                {selectedDayShifts.map((shift: Shift, index: number) => {
-                  const start = new Date(
-                    shift.start_time
-                  ).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  });
+              <View className="px-5 py-5 gap-5">
+                {selectedDayShifts.map((shift: Shift) => {
+                  const start = new Date(shift.start_time).toLocaleTimeString(
+                    [],
+                    {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }
+                  );
 
-                  const end = new Date(
-                    shift.end_time
-                  ).toLocaleTimeString([], {
+                  const end = new Date(shift.end_time).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
                   });
 
                   return (
                     <View key={shift.id}>
-                      <View className="bg-gray-50 rounded-2xl px-4 py-4 border border-gray-200">
+                      <View className="bg-gray-50 rounded-xl p-4 border border-gray-400">
                         <Text className="text-base font-bold text-gray-800">
                           {shift.role_at_time_of_shift}
                         </Text>
 
-                        <Text className="text-xs text-gray-400 mt-0.5">
+                        <Text className="text-s text-gray-700 mt-0.5">
                           {shift.location_id}
                         </Text>
 
@@ -305,17 +303,24 @@ export default function MySchedule() {
                       </View>
 
                       <Pressable
-                        onPress={() => router.push(`/(tabs)/shift/${shift.id}`)}
-                        className="bg-brand-secondaryLight rounded-2xl py-5 items-center justify-center mt-3"
-                      >
+                        onPress={() => router.push(`/(tabs)/shift/${shift.id}` as any)}
+                        className="bg-brand-secondaryLight rounded-xl py-5 items-center justify-center mt-5"
+>
                         <Text className="text-white font-bold text-sm tracking-widest uppercase">
                           View Details
+  </Text>
+</Pressable>
+
+                      <Pressable
+                        onPress={() => {
+                          // placeholder until swap modal is wired back in
+                        }}
+                        className="bg-blue-500 rounded-2xl py-5 items-center justify-center mt-2"
+                      >
+                        <Text className="text-white font-bold text-sm tracking-widest uppercase">
+                          Request Swap
                         </Text>
                       </Pressable>
-
-                      {index < selectedDayShifts.length - 1 && (
-                        <View className="h-px bg-gray-100 mt-3" />
-                      )}
                     </View>
                   );
                 })}

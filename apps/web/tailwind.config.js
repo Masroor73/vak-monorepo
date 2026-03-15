@@ -33,6 +33,7 @@ module.exports = {
           textFaint:     "#4B5563",
           green:         "#4ADE80",
           divider:       "#1F2937",
+          pending:       "#F59E0B",
         },
       },
     },

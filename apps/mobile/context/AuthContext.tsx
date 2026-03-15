@@ -13,7 +13,7 @@ type AuthContextType = {
   isEmployee: boolean;
   signOut: () => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
-  login: (email: string, password: string) => Promise<{ data?: any; error?: string }>;
+  login: (email: string, password: string) => Promise<{ data?: any; error?: string; pendingApproval?: boolean }>; // ← updated
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -91,6 +91,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
+    if (!data.is_approved) {
+      const { data: currentSession } = await supabase.auth.getSession();
+      setSession(currentSession.session ?? null);
+      setUser(currentSession.session?.user ?? null);
+      setProfile(data as Profile);
+      return;
+    }
+
     // Valid employee
     const { data: currentSession } = await supabase.auth.getSession();
 
@@ -110,15 +118,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // -------------------- Sign up --------------------
   const signUp = async (email: string, password: string, fullName: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-      },
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { full_name: fullName },
+    },
+  });
+
+  // Ensure user exists
+  if (data?.user?.id) {
+    await supabase.from("profiles").insert({
+      id: data.user.id,
+      full_name: fullName,
+      role: "EMPLOYEE",
+      is_approved: false,
     });
-    return { error };
-  };
+  }
+
+  return { error };
+};
 
   // -------------------- Sign out --------------------
   const signOut = async () => {
@@ -158,6 +177,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return { error: "ACCESS_DENIED" };
     }
 
+    if (!profileData.is_approved) {
+      setSession(loginData.session);
+      setUser(loginData.user);
+      setProfile(profileData as Profile);
+      return { pendingApproval: true }; 
+    }
+
     setSession(loginData.session);
     setUser(loginData.user);
     setProfile(profileData as Profile);
@@ -170,8 +196,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 };
 
-
-  // -------------------- Role helpers --------------------
+// -------------------- Role helpers --------------------
   const isAdmin = profile?.role === 'OWNER';
   const isManager = profile?.role === 'MANAGER' || isAdmin;
   const isEmployee = profile?.role === "EMPLOYEE";

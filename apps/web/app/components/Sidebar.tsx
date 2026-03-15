@@ -1,6 +1,8 @@
-import { Link, usePathname } from "expo-router";
+//web/app/components/Sidebar.tsx
+import { Link, usePathname, useRouter } from "expo-router";
 import { useState } from "react";
 import StatusModal from "./StatusModal";
+import { useAuth } from "../../context/AuthContext";
 
 const items = [
   { label: "Dashboard", href: "/" },
@@ -9,14 +11,22 @@ const items = [
   { label: "Analyze Reports", href: "/analyze-reports" },
   { label: "Communication", href: "/communication" },
   { label: "Settings", href: "/settings" },
+  { label: "User Management", href: "/user-management" },
 ];
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const [modalOpen, setModalOpen] = useState(false);
+  const router = useRouter();
+  const { signOut } = useAuth();
 
-  const handleLogout = () => {
-    setModalOpen(true);
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      router.replace("/(public)/login");
+    } catch (e) {
+      console.error("Sign out failed:", e);
+    }
   };
 
   return (
