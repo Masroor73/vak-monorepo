@@ -8,6 +8,7 @@ import WhiteArrow from "../../../assets/WhiteArrow.svg";
 import { Shift } from "@vak/contract";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import ClockInButton from "../../../src/components/ClockInButton";
+import SwapModal from "../../../src/components/SwapModal";
 
 function formatTime(dateStr: string) {
   return new Date(dateStr).toLocaleTimeString([], {
@@ -43,6 +44,7 @@ export default function ShiftDetails() {
   const { user } = useAuth();
 
   const [showClockIn, setShowClockIn] = useState(false);
+  const [swapVisible, setSwapVisible] = useState(false);
 
   const shift = useMemo(
     () => MOCK_SHIFTS.find((s: Shift) => s.id === id),
@@ -74,8 +76,6 @@ export default function ShiftDetails() {
 
   return (
     <View className="flex-1 bg-brand-background">
-
-      {/* HEADER */}
       <View className="bg-brand-secondary pt-6 pb-16 px-5">
         <View className="flex-row items-center mb-2">
           <Pressable
@@ -94,11 +94,10 @@ export default function ShiftDetails() {
       <View className="-mt-8 flex-1">
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 180 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 200 }}
           showsVerticalScrollIndicator={false}
         >
           <View className="bg-white rounded-3xl overflow-hidden shadow-xl">
-
             <View className="w-full h-56 bg-blue-50 border-b border-gray-100 overflow-hidden">
               <Image
                 source={require("../../../assets/Map.png")}
@@ -108,12 +107,11 @@ export default function ShiftDetails() {
             </View>
 
             <View className="px-5 pt-5 pb-5">
-
               <View className="flex-row items-center justify-between mb-3">
                 <StatusBadge status={shift.status} />
 
                 {shift.id && (
-                  <Text className="text-gray-800 font-medium">
+                  <Text className="text-xs text-gray-400 font-medium">
                     #{shift.id.split("-")[1]}
                   </Text>
                 )}
@@ -123,7 +121,6 @@ export default function ShiftDetails() {
                 {formatRole(shift.role_at_time_of_shift)}
               </Text>
 
-              {/* DATE */}
               <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
                 <Ionicons name="calendar-outline" size={16} color="#3b82f6" />
                 <View>
@@ -131,23 +128,11 @@ export default function ShiftDetails() {
                     Date
                   </Text>
                   <Text className="text-sm font-bold text-gray-800">
-              {/* ── Date ── */}
-              <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-400">
-                <View className="w-8 h-8 rounded-full bg-brand-secondary/10 items-center justify-center">
-                  {/* 📅 → calendar-outline */}
-                  <Ionicons name="calendar-outline" size={16} color="#3b82f6" />
-                </View>
-                <View>
-                  <Text className="text-[12px] text-gray-700 font-semibold uppercase tracking-wider">
-                    Date
-                  </Text>
-                  <Text className="text-md font-bold text-gray-800 mt-0.5">
                     {dateLabel}
                   </Text>
                 </View>
               </View>
 
-              {/* TIME */}
               <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
                 <Ionicons name="time-outline" size={16} color="#3b82f6" />
                 <View className="flex-1">
@@ -155,26 +140,14 @@ export default function ShiftDetails() {
                     Time
                   </Text>
                   <Text className="text-sm font-bold text-gray-800">
-              {/* ── Time ── */}
-              <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-400">
-                <View className="w-8 h-8 rounded-full bg-brand-secondary/10 items-center justify-center">
-                  {/* 🕐 → time-outline */}
-                  <Ionicons name="time-outline" size={16} color="#3b82f6" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-[12px] text-gray-700 font-semibold uppercase tracking-wider">
-                    Time
-                  </Text>
-                  <Text className="text-md font-bold text-gray-800 mt-0.5">
                     {startTime} — {endTime}
                   </Text>
                 </View>
-                <Text className="text-xs text-gray-700 font-semibold">
+                <Text className="text-xs text-gray-400 font-semibold">
                   {duration}h
                 </Text>
               </View>
 
-              {/* LOCATION */}
               <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
                 <Ionicons name="location-outline" size={16} color="#3b82f6" />
                 <View>
@@ -182,17 +155,6 @@ export default function ShiftDetails() {
                     Location
                   </Text>
                   <Text className="text-sm font-bold text-gray-800">
-              {/* ── Location ── */}
-              <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-400">
-                <View className="w-8 h-8 rounded-full bg-brand-secondary/10 items-center justify-center">
-                  {/* 📍 → location-outline */}
-                  <Ionicons name="location-outline" size={16} color="#3b82f6" />
-                </View>
-                <View>
-                  <Text className="text-[12px] text-gray-700 font-semibold uppercase tracking-wider">
-                    Location
-                  </Text>
-                  <Text className="text-md font-bold text-gray-800 mt-0.5">
                     {shift.location_id}
                   </Text>
                 </View>
@@ -200,22 +162,16 @@ export default function ShiftDetails() {
 
               {hasBreak && (
                 <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
-                  <MaterialCommunityIcons name="coffee-outline" size={16} color="#3b82f6" />
+                  <MaterialCommunityIcons
+                    name="coffee-outline"
+                    size={16}
+                    color="#3b82f6"
+                  />
                   <View>
                     <Text className="text-[10px] text-gray-400 font-semibold uppercase">
                       Unpaid Break
                     </Text>
                     <Text className="text-sm font-bold text-gray-800">
-                <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-400">
-                  <View className="w-8 h-8 rounded-full bg-brand-secondary/10 items-center justify-center">
-                    {/* ☕ → coffee-outline (MaterialCommunityIcons) */}
-                    <MaterialCommunityIcons name="coffee-outline" size={16} color="#3b82f6" />
-                  </View>
-                  <View>
-                    <Text className="text-[12px] text-gray-700 font-semibold uppercase tracking-wider">
-                      Unpaid Break
-                    </Text>
-                    <Text className="text-md font-bold text-gray-800 mt-0.5">
                       {shift.unpaid_break_minutes} min
                     </Text>
                   </View>
@@ -225,9 +181,7 @@ export default function ShiftDetails() {
           </View>
         </ScrollView>
 
-        {/* CLOCK IN AREA */}
         <View className="absolute bottom-0 left-0 right-0 px-4 pb-6 pt-3 bg-brand-background border-t border-gray-100">
-
           {showClockIn ? (
             <ClockInButton
               shiftId={shift.id!}
@@ -238,15 +192,44 @@ export default function ShiftDetails() {
               }}
             />
           ) : canClockIn ? (
-            <Pressable
-              onPress={() => setShowClockIn(true)}
-              className="bg-brand-secondary rounded-2xl py-5 items-center justify-center flex-row gap-2"
-            >
-              <Ionicons name="time-outline" size={18} color="#fff" />
-              <Text className="text-white font-bold text-sm tracking-widest uppercase">
-                Clock In
-              </Text>
-            </Pressable>
+            <>
+              <Pressable
+                onPress={() => setShowClockIn(true)}
+                className="bg-brand-secondary rounded-2xl py-5 items-center justify-center flex-row gap-2"
+              >
+                <Ionicons name="time-outline" size={18} color="#fff" />
+                <Text className="text-white font-bold text-sm tracking-widest uppercase">
+                  Clock In
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => setSwapVisible(true)}
+                className="bg-orange-500 rounded-2xl py-4 items-center mt-3"
+              >
+                <Text className="text-white font-bold">
+                  Request Shift Swap
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => router.push("/swap-requests")}
+                className="bg-blue-500 rounded-2xl py-4 items-center mt-3"
+              >
+                <Text className="text-white font-bold">
+                  View Swap Requests
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => router.push("/clock-history")}
+                className="bg-green-500 rounded-2xl py-4 items-center mt-3"
+              >
+                <Text className="text-white font-bold">
+                  View Clock History
+                </Text>
+              </Pressable>
+            </>
           ) : (
             <View className="bg-gray-100 rounded-2xl py-5 items-center justify-center flex-row gap-2">
               <Ionicons name="lock-closed" size={18} color="#9ca3af" />
@@ -259,8 +242,14 @@ export default function ShiftDetails() {
               </Text>
             </View>
           )}
-
         </View>
+
+        <SwapModal
+          visible={swapVisible}
+          onClose={() => setSwapVisible(false)}
+          shiftId={shift.id!}
+          role={shift.role_at_time_of_shift}
+        />
       </View>
     </View>
   );

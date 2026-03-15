@@ -5,15 +5,23 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@vak/ui": ["../../packages/ui/src"],
-      "@vak/contract": ["../../packages/contract/src"]
+      "@/*": [
+        "./*"
+      ],
+      "@vak/ui": [
+        "../../packages/ui/src"
+      ],
+      "@vak/contract": [
+        "../../packages/contract/src"
+      ]
     }
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
     "nativewind-env.d.ts",
-    "src/declarations/**/*.d.ts"
+    "src/declarations/**/*.d.ts",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
   ]
 }
