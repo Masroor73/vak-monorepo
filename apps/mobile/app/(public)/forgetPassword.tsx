@@ -37,7 +37,7 @@ export default function ForgetPasswordScreen() {
     setIsLoading(true);
 
     const { error: supabaseError } = await supabase.auth.resetPasswordForEmail(data.email, {
-      redirectTo: "vak://reset-password",
+       redirectTo: "http://localhost:8082/(public)/resetPassword",
     });
 
     setIsLoading(false);
