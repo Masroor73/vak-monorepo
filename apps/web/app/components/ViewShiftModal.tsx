@@ -56,7 +56,6 @@ interface Props {
 export default function ViewShiftModal({ shift, employee, onClose, onSuccess }: Props) {
 
   const [status, setStatus] = useState<"PUBLISHED" | "COMPLETED" | "VOID">(normalizeStatus(shift.status));
-
   const [isEditing, setIsEditing]       = useState(false);
   const [editDate, setEditDate]         = useState(shift.start_time.split("T")[0]);
   const [editStart, setEditStart]       = useState(toTimeInput(shift.start_time));
@@ -65,9 +64,7 @@ export default function ViewShiftModal({ shift, employee, onClose, onSuccess }: 
   const [editLocation, setEditLocation] = useState(shift.location_id ?? "damascus-hq");
   const [editBreak, setEditBreak]       = useState(shift.unpaid_break_minutes ?? 0);
   const [editHoliday, setEditHoliday]   = useState(shift.is_holiday ?? false);
-
   const [confirmDelete, setConfirmDelete] = useState(false);
-
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState<string | null>(null);
 
@@ -84,6 +81,13 @@ export default function ViewShiftModal({ shift, employee, onClose, onSuccess }: 
   };
 
   const handleSaveEdit = async () => {
+    if (!editStart || !editEnd)   { setError("Please set start and end times."); return; }
+    if (editStart >= editEnd)     { setError("End time must be after start time."); return; }
+
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const shiftDate = new Date(editDate + "T00:00:00");
+    if (shiftDate < today)        { setError("Cannot set a shift date in the past."); return; }
+
     setSaving(true); setError(null);
     const { error: err } = await supabase.from("shifts").update({
       start_time:            new Date(`${editDate}T${editStart}:00`).toISOString(),
@@ -100,10 +104,8 @@ export default function ViewShiftModal({ shift, employee, onClose, onSuccess }: 
   };
 
   const handleDelete = async () => {
-    console.log("Deleting shift id:", shift.id);
     setSaving(true); setError(null);
     const { error: err } = await supabase.from("shifts").delete().eq("id", shift.id);
-    console.log("Delete result:", err);
     setSaving(false);
     if (err) { setError(err.message); return; }
     onSuccess?.();
@@ -142,10 +144,7 @@ export default function ViewShiftModal({ shift, employee, onClose, onSuccess }: 
               {statusLabel}
             </span>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition"
-          >
+          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition">
             ✕
           </button>
         </div>
@@ -252,17 +251,10 @@ export default function ViewShiftModal({ shift, employee, onClose, onSuccess }: 
               Are you sure you want to delete this shift? This cannot be undone.
             </p>
             <div className="flex gap-2">
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="flex-1 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-100 transition"
-              >
+              <button onClick={() => setConfirmDelete(false)} className="flex-1 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-100 transition">
                 Cancel
               </button>
-              <button
-                onClick={handleDelete}
-                disabled={saving}
-                className="flex-1 bg-red-600 text-white rounded-lg px-3 py-2 text-sm font-medium hover:bg-red-700 transition disabled:opacity-50"
-              >
+              <button onClick={handleDelete} disabled={saving} className="flex-1 bg-red-600 text-white rounded-lg px-3 py-2 text-sm font-medium hover:bg-red-700 transition disabled:opacity-50">
                 {saving ? "Deleting…" : "Yes, Delete"}
               </button>
             </div>
@@ -274,38 +266,22 @@ export default function ViewShiftModal({ shift, employee, onClose, onSuccess }: 
           <div className="pt-1">
             {isEditing ? (
               <div className="flex gap-3">
-                <button
-                  onClick={() => { setIsEditing(false); setError(null); }}
-                  className="flex-1 border rounded-xl px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
-                >
+                <button onClick={() => { setIsEditing(false); setError(null); }} className="flex-1 border rounded-xl px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition">
                   Cancel
                 </button>
-                <button
-                  onClick={handleSaveEdit}
-                  disabled={saving}
-                  className="flex-1 bg-gray-900 text-white rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-gray-700 transition disabled:opacity-50"
-                >
+                <button onClick={handleSaveEdit} disabled={saving} className="flex-1 bg-gray-900 text-white rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-gray-700 transition disabled:opacity-50">
                   {saving ? "Saving…" : "Save Changes"}
                 </button>
               </div>
             ) : (
               <div className="flex gap-3">
-                <button
-                  onClick={onClose}
-                  className="flex-1 border rounded-xl px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
-                >
+                <button onClick={onClose} className="flex-1 border rounded-xl px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition">
                   Close
                 </button>
-                <button
-                  onClick={() => { setIsEditing(true); setError(null); }}
-                  className="flex-1 bg-gray-900 text-white rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-gray-700 transition"
-                >
+                <button onClick={() => { setIsEditing(true); setError(null); }} className="flex-1 bg-gray-900 text-white rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-gray-700 transition">
                   Edit Shift
                 </button>
-                <button
-                  onClick={() => setConfirmDelete(true)}
-                  className="px-4 py-2.5 rounded-xl border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition"
-                >
+                <button onClick={() => setConfirmDelete(true)} className="px-4 py-2.5 rounded-xl border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition">
                   Delete
                 </button>
               </div>

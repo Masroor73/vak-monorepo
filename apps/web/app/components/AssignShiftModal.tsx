@@ -6,7 +6,7 @@ import { supabase } from "../../lib/supabase";
 export interface Availability {
   id: string;
   user_id: string;
-  day_of_week: number;
+  specific_date: string;
   start_time: string;
   end_time: string;
   is_available: boolean;
@@ -17,7 +17,10 @@ function formatRole(role: string): string {
 }
 
 function formatDate(date: Date): string {
-  return date.toISOString().split("T")[0];
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 interface Props {
@@ -52,15 +55,13 @@ export default function AssignShiftModal({
   const [saving, setSaving]         = useState(false);
   const [error, setError]           = useState<string | null>(null);
 
-  const selectedDow = new Date(date + "T00:00:00").getDay();
-
   const eligibleEmployees = useMemo(() =>
     availableEmployees.filter((emp) =>
       availabilities.some(
-        (a) => a.user_id === emp.id && a.day_of_week === selectedDow && a.is_available
+        (a) => a.user_id === emp.id && a.specific_date === date && a.is_available
       )
     ),
-    [availableEmployees, availabilities, selectedDow]
+    [availableEmployees, availabilities, date]
   );
 
   useEffect(() => {
@@ -70,9 +71,30 @@ export default function AssignShiftModal({
   }, [eligibleEmployees]);
 
   const handleSubmit = async () => {
-    if (!employeeId)            { setError("Please select an employee."); return; }
-    if (!date)                  { setError("Please select a date."); return; }
+    // ── Validation ────────────────────────────────────────────────────────────
+    if (!employeeId)          { setError("Please select an employee."); return; }
+    if (!date)                { setError("Please select a date."); return; }
     if (!startTime || !endTime) { setError("Please set start and end times."); return; }
+    if (startTime >= endTime) { setError("End time must be after start time."); return; }
+    if (breakMins < 0)        { setError("Break minutes cannot be negative."); return; }
+
+    const shiftDurationMins = (new Date(`${date}T${endTime}:00`).getTime() - new Date(`${date}T${startTime}:00`).getTime()) / 60000;
+    if (breakMins >= shiftDurationMins) { setError("Break time cannot be longer than or equal to the shift duration."); return; }
+
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const shiftDate = new Date(date + "T00:00:00");
+    if (shiftDate < today)    { setError("Cannot assign a shift in the past."); return; }
+
+    // Check for duplicate shift on same employee + date
+    const { data: existing } = await supabase
+      .from("shifts")
+      .select("id")
+      .eq("employee_id", employeeId)
+      .gte("start_time", new Date(`${date}T00:00:00`).toISOString())
+      .lt("start_time", new Date(`${date}T23:59:59`).toISOString())
+      .limit(1);
+    if (existing && existing.length > 0) { setError("This employee already has a shift assigned on this day."); return; }
+    // ─────────────────────────────────────────────────────────────────────────
 
     setSaving(true);
     setError(null);
@@ -105,117 +127,63 @@ export default function AssignShiftModal({
             <h2 className="text-lg font-bold text-gray-900">Assign Shift</h2>
             <p className="text-sm text-gray-400">Schedule a new shift for an employee</p>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Employee */}
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">
-            Employee
-          </label>
-          <select
-            className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={employeeId}
-            onChange={(e) => setEmployeeId(e.target.value)}
-          >
-            <option value="">Select an employee…</option>
-            {eligibleEmployees.map((emp) => (
-              <option key={emp.id} value={emp.id}>
-                {emp.full_name ?? emp.email}
-              </option>
-            ))}
-          </select>
-          {eligibleEmployees.length === 0 && (
-            <p className="text-xs text-auth-pending mt-1">
-              No employees have marked availability for this day.
-            </p>
-          )}
+          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition">✕</button>
         </div>
 
         {/* Date + Role */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">
-              Date
-            </label>
-            <input
-              type="date"
-              className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
+            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Date</label>
+            <input type="date" className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">
-              Role at Shift
-            </label>
-            <select
-              className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={role}
-              onChange={(e) => setRole(e.target.value as typeof JobRoleEnum._type)}
-            >
-              {JobRoleEnum.options.map((r) => (
-                <option key={r} value={r}>{formatRole(r)}</option>
-              ))}
+            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Role at Shift</label>
+            <select className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={role} onChange={(e) => setRole(e.target.value as typeof JobRoleEnum._type)}>
+              {JobRoleEnum.options.map((r) => (<option key={r} value={r}>{formatRole(r)}</option>))}
             </select>
           </div>
+        </div>
+
+        {/* Employee */}
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Employee</label>
+          <select className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
+            <option value="">Select an employee…</option>
+            {eligibleEmployees.map((emp) => (<option key={emp.id} value={emp.id}>{emp.full_name ?? emp.email}</option>))}
+          </select>
+          {eligibleEmployees.length === 0 && (
+            <p className="text-xs text-auth-pending mt-1">No employees have marked availability for this day.</p>
+          )}
         </div>
 
         {/* Start + End */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">
-              Start Time
-            </label>
-            <input
-              type="time"
-              className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-            />
+            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Start Time</label>
+            <input type="time" className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={startTime} onChange={(e) => setStartTime(e.target.value)} />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">
-              End Time
-            </label>
-            <input
-              type="time"
-              className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-            />
+            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">End Time</label>
+            <input type="time" className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={endTime} onChange={(e) => setEndTime(e.target.value)} />
           </div>
         </div>
 
         {/* Location + Break */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">
-              Location ID
-            </label>
-            <input
-              type="text"
-              className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={locationId}
-              onChange={(e) => setLocationId(e.target.value)}
-            />
+            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Location ID</label>
+            <input type="text" className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={locationId} onChange={(e) => setLocationId(e.target.value)} />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">
-              Unpaid Break (mins)
-            </label>
-            <input
-              type="number"
-              min={0}
-              className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={breakMins}
-              onChange={(e) => setBreakMins(Number(e.target.value))}
-            />
+            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Unpaid Break (mins)</label>
+            <input type="number" min={0} className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={breakMins} onChange={(e) => setBreakMins(Math.max(0, Number(e.target.value)))} />
           </div>
         </div>
 
@@ -225,35 +193,19 @@ export default function AssignShiftModal({
             <p className="text-sm font-medium text-gray-800">Public Holiday</p>
             <p className="text-xs text-gray-400">Mark this shift as a holiday shift</p>
           </div>
-          <button
-            onClick={() => setIsHoliday((v) => !v)}
-            className={`w-11 h-6 rounded-full transition-colors relative ${isHoliday ? "bg-blue-600" : "bg-gray-300"}`}
-          >
-            <span
-              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${isHoliday ? "translate-x-5" : "translate-x-0"}`}
-            />
+          <button onClick={() => setIsHoliday((v) => !v)}
+            className={`w-11 h-6 rounded-full transition-colors relative ${isHoliday ? "bg-blue-600" : "bg-gray-300"}`}>
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${isHoliday ? "translate-x-5" : "translate-x-0"}`} />
           </button>
         </div>
 
-        {error && (
-          <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-            {error}
-          </p>
-        )}
+        {error && <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 
         {/* Actions */}
         <div className="flex gap-3 pt-1">
-          <button
-            onClick={onClose}
-            className="flex-1 border rounded-xl px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={saving}
-            className="flex-1 bg-gray-900 text-white rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-gray-700 transition disabled:opacity-50"
-          >
+          <button onClick={onClose} className="flex-1 border rounded-xl px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition">Cancel</button>
+          <button onClick={handleSubmit} disabled={saving}
+            className="flex-1 bg-gray-900 text-white rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-gray-700 transition disabled:opacity-50">
             {saving ? "Saving…" : "Assign Shift"}
           </button>
         </div>

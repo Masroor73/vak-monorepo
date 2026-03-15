@@ -25,7 +25,10 @@ function addDays(date: Date, n: number): Date {
 }
 
 function formatDate(date: Date): string {
-  return date.toISOString().split("T")[0];
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 function formatTime(isoString: string): string {
@@ -133,7 +136,8 @@ export default function ShiftsPage() {
     const { data, error } = await supabase
       .from("availabilities")
       .select("*")
-      .eq("is_available", true);
+      .eq("is_available", true)
+      .not("specific_date", "is", null);
     if (!error && data) setAvailabilities(data as Availability[]);
   };
 
@@ -216,16 +220,16 @@ export default function ShiftsPage() {
           {loading ? (
             <div className="py-20 text-center text-gray-400 text-sm">Loading shifts…</div>
           ) : (
-            <table className="w-full text-sm min-w-[700px]">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="text-left px-5 py-3 font-medium text-gray-500 w-44">Employee</th>
+            <table className="w-full text-sm min-w-[700px] border-collapse">
+              <thead className="bg-gray-50">
+                <tr className="border-b border-gray-200">
+                  <th className="text-left px-5 py-3 font-medium text-gray-500 w-44 border-r border-gray-200">Employee</th>
                   {weekDays.map((day, i) => {
                     const isToday = formatDate(day) === formatDate(new Date());
                     return (
                       <th
                         key={i}
-                        className={`text-center px-2 py-3 font-medium text-xs tracking-wider ${isToday ? "text-blue-600" : "text-gray-500"}`}
+                        className={`text-center px-2 py-3 font-medium text-xs tracking-wider border-r border-gray-200 last:border-r-0 ${isToday ? "text-blue-600 bg-blue-50/50" : "text-gray-500"}`}
                       >
                         {formatHeaderDate(day)}
                         {isToday && <span className="ml-1 text-blue-400">·</span>}
@@ -234,7 +238,7 @@ export default function ShiftsPage() {
                   })}
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody>
                 {filteredEmployees.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-14 text-center text-gray-400">
@@ -242,11 +246,11 @@ export default function ShiftsPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredEmployees.map((emp) => (
-                    <tr key={emp.id} className="hover:bg-gray-50/50 transition">
+                  filteredEmployees.map((emp, rowIndex) => (
+                    <tr key={emp.id} className={`hover:bg-gray-50/50 transition border-b border-gray-200 last:border-b-0`}>
 
                       {/* Employee */}
-                      <td className="px-5 py-3">
+                      <td className="px-5 py-3 border-r border-gray-200">
                         <div className="flex items-center gap-2.5">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${avatarColor(emp.full_name ?? emp.email)}`}>
                             {getInitials(emp.full_name ?? emp.email)}
@@ -262,11 +266,12 @@ export default function ShiftsPage() {
                       {weekDays.map((day, i) => {
                         const shift = getShiftForCell(emp.id, day);
                         const isAvailable = availabilities.some(
-                          (a) => a.user_id === emp.id && a.day_of_week === day.getDay() && a.is_available
+                          (a) => a.user_id === emp.id && a.specific_date === formatDate(day) && a.is_available
                         );
+                        const isToday = formatDate(day) === formatDate(new Date());
 
                         return (
-                          <td key={i} className="px-2 py-3 text-center align-middle">
+                          <td key={i} className={`px-2 py-3 text-center align-middle border-r border-gray-200 last:border-r-0 ${isToday ? "bg-blue-50/30" : ""}`}>
                             {shift ? (
                               <button
                                 onClick={() => setViewingShift(shift)}
