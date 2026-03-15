@@ -121,11 +121,10 @@ export default function Index() {
             </View>
 
             <View
-              className={`flex-row items-center gap-1.5 rounded-[20px] px-3 py-1.5 border ${
-                hasShiftToday
-                  ? "bg-brand-success/15 border-brand-success/30"
-                  : "bg-white/10 border-white/10"
-              }`}
+              className={`flex-row items-center gap-1.5 rounded-[20px] px-3 py-1.5 border ${hasShiftToday
+                ? "bg-brand-success/15 border-brand-success/30"
+                : "bg-white/10 border-white/10"
+                }`}
             >
               <View
                 style={{
@@ -138,9 +137,8 @@ export default function Index() {
                 }}
               />
               <Text
-                className={`text-[11px] font-semibold ${
-                  hasShiftToday ? "text-brand-success" : "text-white/65"
-                }`}
+                className={`text-[11px] font-semibold ${hasShiftToday ? "text-brand-success" : "text-white/65"
+                  }`}
               >
                 {hasShiftToday ? "1 shift today" : "No shifts"}
               </Text>

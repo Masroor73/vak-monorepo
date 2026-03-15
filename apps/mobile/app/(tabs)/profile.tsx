@@ -1,4 +1,3 @@
-
 //apps/mobile/app/(tabs)/profile.tsx
 import React, { useCallback, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
@@ -9,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useRouter } from "expo-router";
+import LocationBottomSheet from "@/src/components/LocationBottomSheet";
 
 type Tab = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -26,13 +26,17 @@ function TabItem({ icon, label, onPress }: Tab) {
 }
 
 const Profile = () => {
+  const router = useRouter();
   const [isNotificationSheetOpen, setIsNotificationSheetOpen] = useState(false);
+  const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
 
   const handleOpenNotification = useCallback(() => {
     setIsNotificationSheetOpen(true);
   }, []);
 
-  const router = useRouter();
+  const handleOpenLocation = useCallback(() => {
+    setIsLocationSheetOpen(true);
+  }, []);
 
   const tabs: Tab[] = [
     {
@@ -48,12 +52,12 @@ const Profile = () => {
     {
       icon: "globe-outline",
       label: "Location",
-      onPress: () => {},
+      onPress: handleOpenLocation,
     },
     {
       icon: "shield-outline",
       label: "Privacy Policy",
-      onPress: () => {},
+      onPress: () => { },
     },
     {
       icon: "settings-outline",
@@ -63,7 +67,7 @@ const Profile = () => {
     {
       icon: "help-circle-outline",
       label: "Help and Support",
-      onPress: () => {},
+      onPress: () => { },
     },
   ];
 
@@ -81,8 +85,9 @@ const Profile = () => {
         </ScrollView>
 
         <NotificationBottomSheet open={isNotificationSheetOpen} onClose={() => setIsNotificationSheetOpen(false)} />
-      </SafeAreaView>
-    </GestureHandlerRootView>
+        <LocationBottomSheet open={isLocationSheetOpen} onClose={() => setIsLocationSheetOpen(false)} />
+      </SafeAreaView >
+    </GestureHandlerRootView >
   );
 };
 
