@@ -6,15 +6,6 @@ import { ShiftStatusCard } from "@vak/ui";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import ClockInButton from "../../src/components/ClockInButton";
 
-/*
- * Supabase query key structure (for when this tab switches to live data):
- * - Query keys: see hooks/shiftsKeys.ts — SHIFTS_QUERY_KEY_BASE = ['shifts'], getShiftsQueryKey(userId) = ['shifts', userId]
- * - To use live shifts here: useAuth() for user, then useShifts(user?.id) for data. Realtime INSERT
- *   already invalidates those keys (useShiftsRealtimeSubscription in (tabs)/_layout), so UI would update automatically.
- * - Today's shift from live data: list = shifts ?? []; base = list.find((s) => isSameDay(new Date(s.start_time), now));
- *   then todayShiftCount = list.filter((s) => isSameDay(new Date(s.start_time), now)).length
- */
-
 export default function Index() {
   const router = useRouter();
   const now = new Date();
@@ -26,7 +17,6 @@ export default function Index() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-
     if (hour < 12) return "Good Morning";
     if (hour < 18) return "Good Afternoon";
     return "Good Evening";
@@ -64,7 +54,6 @@ export default function Index() {
 
   return (
     <ScrollView className="flex-1 bg-brand-background">
-      {/* HEADER */}
       <View className="bg-brand-secondary pb-[100px] overflow-hidden">
         <View
           style={{
@@ -160,7 +149,6 @@ export default function Index() {
         </View>
       </View>
 
-      {/* Card over header */}
       <View className="-mt-16 px-4">
         <View
           className="bg-white rounded px-5 pt-5 pb-5 mb-3"

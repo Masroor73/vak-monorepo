@@ -303,13 +303,13 @@ export default function MySchedule() {
                       </View>
 
                       <Pressable
-                        onPress={() => router.push(`/(tabs)/shift/${shift.id}`)}
+                        onPress={() => router.push(`/(tabs)/shift/${shift.id}` as any)}
                         className="bg-brand-secondaryLight rounded-xl py-5 items-center justify-center mt-5"
-                      >
+>
                         <Text className="text-white font-bold text-sm tracking-widest uppercase">
                           View Details
-                        </Text>
-                      </Pressable>
+  </Text>
+</Pressable>
 
                       <Pressable
                         onPress={() => {
