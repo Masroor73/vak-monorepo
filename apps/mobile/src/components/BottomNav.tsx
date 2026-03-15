@@ -74,7 +74,7 @@ export default function BottomNavigation() {
         return (
           <TouchableOpacity
             key={tab.navigateTo}
-            onPress={() => router.push(tab.navigateTo as any)}
+            onPress={() => router.push(tab.navigateTo)}
           >
             <View className="p-2 items-center justify-center"  style={{ marginHorizontal: 20}}>
               <Icon width={45} height={45}/>

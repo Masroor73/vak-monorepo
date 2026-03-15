@@ -1,5 +1,5 @@
 {
-  "extends": "expo/tsconfig.base",
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "strict": true,
     "jsx": "react-jsx",
@@ -9,19 +9,16 @@
         "./*"
       ],
       "@vak/ui": [
-        "../../packages/ui/src"
+        "../../packages/ui/src/index.ts"
       ],
       "@vak/contract": [
-        "../../packages/contract/src"
+        "../../packages/contract/src/index.ts"
       ]
     }
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "nativewind-env.d.ts",
-    "src/declarations/**/*.d.ts",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
+    "nativewind-env.d.ts"
   ]
 }
