@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 
 export default function IndexScreen() {
   const router = useRouter();
-  const { session, loading } = useAuth();
+  const { session, loading,profile } = useAuth();
 
   useEffect(() => {
     if (loading) return;
@@ -17,6 +17,13 @@ export default function IndexScreen() {
     }
   }, [session, loading, router]);
 
+   if (!profile?.is_approved) {        
+      router.replace("/(public)/pendingApproval");
+      return;
+    }
+
+  router.replace("/(tabs)");
+}, [session, loading, profile]);
   return (
     <View
       style={{

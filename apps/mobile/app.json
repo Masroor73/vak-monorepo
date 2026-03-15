@@ -14,6 +14,15 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow V.A.K to access your photos to attach food wastage images.",
+          "cameraPermission": "Allow V.A.K to use your camera to take food wastage photos."
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": true
     },
@@ -23,7 +32,11 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

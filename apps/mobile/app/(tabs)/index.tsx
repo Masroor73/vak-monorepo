@@ -6,6 +6,15 @@ import { ShiftStatusCard } from "@vak/ui";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import ClockInButton from "../../src/components/ClockInButton";
 
+/*
+ * Supabase query key structure (for when this tab switches to live data):
+ * - Query keys: see hooks/shiftsKeys.ts — SHIFTS_QUERY_KEY_BASE = ['shifts'], getShiftsQueryKey(userId) = ['shifts', userId]
+ * - To use live shifts here: useAuth() for user, then useShifts(user?.id) for data. Realtime INSERT
+ *   already invalidates those keys (useShiftsRealtimeSubscription in (tabs)/_layout), so UI would update automatically.
+ * - Today's shift from live data: list = shifts ?? []; base = list.find((s) => isSameDay(new Date(s.start_time), now));
+ *   then todayShiftCount = list.filter((s) => isSameDay(new Date(s.start_time), now)).length
+ */
+
 export default function Index() {
   const router = useRouter();
 
@@ -62,10 +71,8 @@ const topDate = now.toLocaleDateString("en-US", {
         <View style={{ position: "absolute", bottom: 30, left: -30, width: 130, height: 130, borderRadius: 65, backgroundColor: "#162550", opacity: 0.7 }} />
 
         <View className="px-6 pt-7">
-
           <View className="flex-row items-center space-x-5 mb-[18px] p-2">
             <View className="w-24 h-24 rounded-full bg-brand-primary/10 border-[1.5px] border-brand-primary border-white/22 items-center justify-center mr-2">
-              {/* 👤 → person */}
               <Ionicons name="person" size={36} color="#62CCEF" />
             </View>
 
@@ -73,7 +80,6 @@ const topDate = now.toLocaleDateString("en-US", {
               <Text className="text-[22px] font-semibold text-white/45 tracking-[1.3px] uppercase mb-2 ml-3">
                 {getGreeting()}
               </Text>
-              {/* 👋 → hand-wave */}
               <View className="flex-row items-center ml-3">
                 <Text className="text-[21px] font-bold text-white tracking-[0.2px]">
                   {firstName}
@@ -85,12 +91,10 @@ const topDate = now.toLocaleDateString("en-US", {
           </View>
 
           <View className="flex-row flex-wrap gap-5 ml-2">
-            {/* 📅 → calendar-outline */}
             <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2 gap-1.5">
               <Ionicons name="calendar-outline" size={12} color="red" />
               <Text className="text-white/65 text-[11px] font-medium">{topDate}</Text>
             </View>
-            {/* ☁️ → cloud-outline */}
             <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2 gap-1.5">
               <Ionicons name="cloud" size={12} color="white" />
               <Text className="text-white/65 text-[11px] font-medium">15°C</Text>
@@ -108,14 +112,9 @@ const topDate = now.toLocaleDateString("en-US", {
         </View>
       </View>
 
-      {/* SHIFT CARD */}
-      <View className="-mt-10 px-4">
-        <View className="bg-white rounded-2xl p-5">
-
-          <View className="flex-row justify-between mb-5">
-            <Text className="text-gray-500 font-bold">
-              Today's Shift
-            </Text>
+      {/* ── Card over header ── */}
+      <View className="-mt-16 px-4">
+        <View className="bg-white rounded px-5 pt-5 pb-5 mb-3" style={{ shadowColor: "#0d1b3e", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 18, elevation: 6 }}>
 
             <Pressable onPress={() => router.push("/(tabs)/mySchedule")}>
               <Text className="text-blue-600 font-semibold">
