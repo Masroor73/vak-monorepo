@@ -12,9 +12,9 @@ const UserInfo = () => {
         <View className='flex-row items-center gap-8 pt-8 pb-6 px-6'>
             <Avatar />
             <View>
-                <Text className='text-xl font-bold'>Nome</Text>
-                <Text className='mt-1 mb-4'>Email</Text>
-                <PrimaryButton className="bg-brand-secondary" title={"Edit Profile"} onPress={() => router.push("/(tabs)/editProfile")} />
+                <Text className='text-xl font-bold text-gray-400'>Nome</Text>
+                <Text className='mt-1 mb-4 text-gray-400'>Email</Text>
+                <PrimaryButton className="bg-brand-secondaryLight" title={"Edit Profile"} onPress={() => router.push("/(tabs)/editProfile")} />
             </View>
         </View>
     )

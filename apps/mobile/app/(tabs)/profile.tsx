@@ -1,9 +1,16 @@
-import React from "react";
+//apps/mobile/app/(tabs)/profile.tsx
+import React, { useCallback, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
-import { useRouter } from "expo-router";
 import Header from "@/src/components/Header";
 import UserInfo from "@/src/components/UserInfo";
+import NotificationBottomSheet from "@/src/components/NotificationBottomSheet";
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useRouter } from "expo-router";
+import LocationBottomSheet from "@/src/components/LocationBottomSheet";
+import PrivacyPolicySheet from '@/src/components/PrivacyPolicySheet';
+import HelpSupportSheet from '@/src/components/HelpSupportSheet';
 
 type Tab = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -11,20 +18,30 @@ type Tab = {
   onPress: () => void;
 };
 
-function Tab({ icon, label, onPress }: Tab) {
+function TabItem({ icon, label, onPress }: Tab) {
   return (
-    <TouchableOpacity
-      className="flex-row items-center py-5 border-b border-gray-200"
-      onPress={onPress}
-    >
-      <Ionicons name={icon} size={24} color="#333" />
-      <Text className="ml-4 text-base">{label}</Text>
+    <TouchableOpacity className="flex-row items-center py-5 border-b border-gray-600" onPress={onPress}>
+      <Ionicons name={icon} size={24} />
+      <Text className="ml-4">{label}</Text>
     </TouchableOpacity>
   );
 }
 
 const Profile = () => {
   const router = useRouter();
+  const [isNotificationSheetOpen, setIsNotificationSheetOpen] = useState(false);
+  const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState<boolean>(false);
+  const [showHelpSupport, setShowHelpSupport] = useState<boolean>(false);
+
+
+  const handleOpenNotification = useCallback(() => {
+    setIsNotificationSheetOpen(true);
+  }, []);
+
+  const handleOpenLocation = useCallback(() => {
+    setIsLocationSheetOpen(true);
+  }, []);
 
   const tabs: Tab[] = [
     {
@@ -40,42 +57,46 @@ const Profile = () => {
     {
       icon: "globe-outline",
       label: "Location",
-      onPress: () => {},
+      onPress: handleOpenLocation,
     },
     {
       icon: "shield-outline",
       label: "Privacy Policy",
-      onPress: () => {},
+      onPress: () => setShowPrivacyPolicy(true),
     },
     {
       icon: "settings-outline",
       label: "Notification Preferences",
-      onPress: () => {},
+      onPress: handleOpenNotification,
     },
     {
       icon: "help-circle-outline",
       label: "Help and Support",
-      onPress: () => {},
+      onPress: () => setShowHelpSupport(true),
     },
   ];
 
   return (
-    <ScrollView className="flex-1 bg-white">
-      <Header title="My Profile" />
+    <GestureHandlerRootView className="flex-1">
+      <SafeAreaView className="flex-1 bg-white">
+        <ScrollView>
+          <Header title="My Profile" />
+          <UserInfo />
+          <View className="px-8 mt-2">
+            {tabs.map((item, index) => (
+              <TabItem key={index} icon={item.icon} label={item.label} onPress={item.onPress} />
+            ))}
+          </View>
+        </ScrollView>
 
-      <UserInfo />
+        <NotificationBottomSheet open={isNotificationSheetOpen} onClose={() => setIsNotificationSheetOpen(false)} />
+        <LocationBottomSheet open={isLocationSheetOpen} onClose={() => setIsLocationSheetOpen(false)} />
+        {showPrivacyPolicy && <PrivacyPolicySheet onClose={() => setShowPrivacyPolicy(false)} />}
+        {showHelpSupport && <HelpSupportSheet onClose={() => setShowHelpSupport(false)} />}
 
-      <View className="px-8 mt-2">
-        {tabs.map((item, index) => (
-          <Tab
-            key={index}
-            icon={item.icon}
-            label={item.label}
-            onPress={item.onPress}
-          />
-        ))}
-      </View>
-    </ScrollView>
+
+      </SafeAreaView >
+    </GestureHandlerRootView >
   );
 };
 
