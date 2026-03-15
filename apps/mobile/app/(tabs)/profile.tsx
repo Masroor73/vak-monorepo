@@ -9,6 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useRouter } from "expo-router";
 import LocationBottomSheet from "@/src/components/LocationBottomSheet";
+import PrivacyPolicySheet from '@/src/components/PrivacyPolicySheet';
 
 type Tab = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -29,6 +30,7 @@ const Profile = () => {
   const router = useRouter();
   const [isNotificationSheetOpen, setIsNotificationSheetOpen] = useState(false);
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState<boolean>(false);
 
   const handleOpenNotification = useCallback(() => {
     setIsNotificationSheetOpen(true);
@@ -57,7 +59,7 @@ const Profile = () => {
     {
       icon: "shield-outline",
       label: "Privacy Policy",
-      onPress: () => { },
+      onPress: () => setShowPrivacyPolicy(true),
     },
     {
       icon: "settings-outline",
@@ -86,6 +88,8 @@ const Profile = () => {
 
         <NotificationBottomSheet open={isNotificationSheetOpen} onClose={() => setIsNotificationSheetOpen(false)} />
         <LocationBottomSheet open={isLocationSheetOpen} onClose={() => setIsLocationSheetOpen(false)} />
+        {showPrivacyPolicy && <PrivacyPolicySheet onClose={() => setShowPrivacyPolicy(false)} />}
+
       </SafeAreaView >
     </GestureHandlerRootView >
   );
