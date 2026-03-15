@@ -19,7 +19,6 @@ const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 const formatDateKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const parseTimeLabel = (t: string) => { const [h,m] = t.split(":"); const hour = +h; return { time: `${hour%12||12}:${m}`, ampm: hour>=12?"PM":"AM" }; };
 
-// ── Validation helpers ────────────────────────────────────────────────────────
 const timeToMinutes = (t: string) => {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
@@ -33,7 +32,6 @@ const validateSchedule = (schedule: DaySchedule): string | null => {
   }
   return null;
 };
-// ─────────────────────────────────────────────────────────────────────────────
 
 type DaySchedule = { fullDay: boolean; start: string; end: string; saved: boolean; dbId?: string };
 const DEFAULT_SCHEDULE: DaySchedule = { fullDay: false, start: "09:00", end: "17:00", saved: false };
@@ -53,20 +51,20 @@ export default function SetAvailability() {
   const [expandApply, setExpandApply] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preEditSchedule, setPreEditSchedule] = useState<DaySchedule | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const anchor = useMemo(() => { const d = new Date(today); d.setDate(today.getDate() + weekOffset * 7); return d; }, [today, weekOffset]);
   const week = useMemo(() => weekOf(anchor), [anchor]);
 
   useEffect(() => {
     if (!user?.id) return;
-    supabase.from("availabilities").select("id,day_of_week,start_time,end_time").eq("user_id", user.id).eq("is_available", true)
+    supabase.from("availabilities").select("id,specific_date,start_time,end_time").eq("user_id", user.id).eq("is_available", true)
+      .not("specific_date", "is", null)
       .then(({ data }) => {
         if (data) {
           const scheduleMap: Record<string, DaySchedule> = {};
           data.forEach((record) => {
-            const d = new Date(today);
-            d.setDate(today.getDate() + (record.day_of_week - today.getDay() + 7) % 7);
-            const key = formatDateKey(d);
+            const key = record.specific_date;
             scheduleMap[key] = { fullDay: record.start_time === "09:00:00" && record.end_time === "17:00:00", start: record.start_time?.slice(0,5) ?? "09:00", end: record.end_time?.slice(0,5) ?? "17:00", saved: true, dbId: record.id };
           });
           setAvailabilityMap(scheduleMap);
@@ -75,7 +73,6 @@ export default function SetAvailability() {
       });
   }, [user?.id]);
 
-  // Clear error when switching days
   const selectDay = (d: Date) => {
     if (isPastDay(d)) return;
     setSelectedDate(d);
@@ -83,6 +80,7 @@ export default function SetAvailability() {
     setCopyTo([]);
     setExpandApply(false);
     setError(null);
+    setConfirmClear(false);
   };
 
   const selectedDateKey = formatDateKey(selectedDate);
@@ -96,6 +94,7 @@ export default function SetAvailability() {
     updateSelectedDay({ saved: false });
     setPicker(null);
     setError(null);
+    setConfirmClear(false);
   };
 
   const cancelEdit = () => {
@@ -108,41 +107,21 @@ export default function SetAvailability() {
   const submit = async () => {
     if (!user?.id || saving) return;
 
-    // ── Validate time range ───────────────────────────────────────────────────
     if (isPastDay(selectedDate)) { setError("Cannot set availability for a past day."); return; }
     const validationError = validateSchedule(daySchedule);
     if (validationError) { setError(validationError); return; }
     setError(null);
-    // ─────────────────────────────────────────────────────────────────────────
 
-    const start = timeToMinutes(daySchedule.fullDay ? "09:00" : daySchedule.start);
-    const end   = timeToMinutes(daySchedule.fullDay ? "17:00" : daySchedule.end);
-
-    // Check for overlaps in local state across all target days
     const targets = [
       { key: selectedDateKey, date: selectedDate },
       ...copyTo.map(ck => ({ key: ck, date: new Date(ck + "T00:00:00") })),
     ];
-    const overlappingDay = targets.find(({ key }) => {
-      const existing = availabilityMap[key];
-      if (existing?.dbId) return false;
-      return Object.entries(availabilityMap).some(([k, v]) => {
-        if (k === key || k === selectedDateKey || !v.dbId) return false;
-        const s = timeToMinutes(v.start);
-        const e = timeToMinutes(v.end);
-        return start < e && end > s;
-      });
-    });
-    if (overlappingDay) {
-      setError(`Overlapping availability on ${overlappingDay.date.toLocaleDateString([], { weekday: "long" })}.`);
-      return;
-    }
 
     setSaving(true);
 
     const makeRow = (date: Date) => ({
       user_id: user.id,
-      day_of_week: date.getDay(),
+      specific_date: formatDateKey(date),
       start_time: daySchedule.fullDay ? "09:00" : daySchedule.start,
       end_time:   daySchedule.fullDay ? "17:00" : daySchedule.end,
       is_available: true,
@@ -177,6 +156,7 @@ export default function SetAvailability() {
     setPicker(null);
     setCopyTo([]);
     setError(null);
+    setConfirmClear(false);
   };
 
   const changeWeek = (dir: 1|-1) => setWeekOffset(prev => {
@@ -238,7 +218,7 @@ export default function SetAvailability() {
         </View>
       </View>
 
-      {/* Card — natural height, no flex-1 */}
+      {/* Card */}
       <View className="px-8 -mt-28 pb-8">
         <View className="bg-white rounded-2xl shadow-lg shadow-black/20 elevation-8">
           <View className="px-5 pt-4 pb-3 border-b border-gray-100">
@@ -348,7 +328,7 @@ export default function SetAvailability() {
               </View>
             )}
 
-            {/* ── Error banner ─────────────────────────────────────────────── */}
+            {/* Error banner */}
             {error && (
               <View className="px-4 py-3 rounded bg-red-50 border border-red-300">
                 <Text className="text-red-600 font-semibold text-sm">{error}</Text>
@@ -357,14 +337,28 @@ export default function SetAvailability() {
 
             {/* Buttons */}
             {!isPastDay(selectedDate) && (daySchedule.saved && copyTo.length === 0 ? (
-              <View className="flex-row gap-3 mt-2">
-                <Pressable onPress={startEdit} className="flex-1 rounded-xl py-4 items-center bg-brand-secondary">
-                  <Text className="text-white font-black text-medium tracking-widest uppercase">Edit</Text>
-                </Pressable>
-                <Pressable onPress={clear} className="flex-1 rounded-xl py-4 items-center bg-red-600">
-                  <Text className="text-white font-black text-medium tracking-widest uppercase">Clear</Text>
-                </Pressable>
-              </View>
+              confirmClear ? (
+                <View style={{ gap: 8 }} className="mt-2">
+                  <Text className="text-gray-700 font-extrabold text-[18px] text-center p-3">Clear availability for this day?</Text>
+                  <View className="flex-row gap-3">
+                    <Pressable onPress={() => setConfirmClear(false)} className="flex-1 rounded-xl py-4 items-center bg-gray-200">
+                      <Text className="text-gray-800 font-black text-medium tracking-widest uppercase">Cancel</Text>
+                    </Pressable>
+                    <Pressable onPress={clear} className="flex-1 rounded-xl py-4 items-center bg-red-600">
+                      <Text className="text-white font-black text-medium tracking-widest uppercase">Confirm</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <View className="flex-row gap-3 mt-2">
+                  <Pressable onPress={startEdit} className="flex-1 rounded-xl py-4 items-center bg-brand-secondary">
+                    <Text className="text-white font-black text-medium tracking-widest uppercase">Edit</Text>
+                  </Pressable>
+                  <Pressable onPress={() => setConfirmClear(true)} className="flex-1 rounded-xl py-4 items-center bg-red-600">
+                    <Text className="text-white font-black text-medium tracking-widest uppercase">Clear</Text>
+                  </Pressable>
+                </View>
+              )
             ) : (
               <View className="flex-row gap-3 mt-2">
                 {preEditSchedule && (
