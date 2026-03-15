@@ -82,6 +82,16 @@ export default function SignupScreen() {
     setLoading(false);
   };
 
+  const onGoogleSignUp = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+      redirectTo: "http://localhost:8082/auth/callback",
+      },
+   });
+   if (error) setAuthError(error.message);
+  };
+  
   return (
     <div className="bg-auth-bg min-h-screen w-full flex items-center justify-center px-4 py-6">
       <div
@@ -108,7 +118,7 @@ export default function SignupScreen() {
           </p>
 
           {/* Google SSO */}
-          <button className="w-full flex items-center justify-center gap-3 bg-auth-card border border-auth-borderMid text-auth-textPrimary text-[11px] font-semibold tracking-wide py-2.5 mb-3 hover:border-auth-borderFocus hover:text-auth-blue transition-all">
+          <button onClick={onGoogleSignUp} className="w-full flex items-center justify-center gap-3 bg-auth-card border border-auth-borderMid text-auth-textPrimary text-[11px] font-semibold tracking-wide py-2.5 mb-3 hover:border-auth-borderFocus hover:text-auth-blue transition-all">
             <Google width={16} height={16} />
             Continue with Google
           </button>
