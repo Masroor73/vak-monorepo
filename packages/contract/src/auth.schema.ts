@@ -10,12 +10,12 @@ export const PASSWORD_RULES: {
   errorMessage: string;
   test: (val: string) => boolean;
 }[] = [
-  {
-    label: "At least 6 characters",
-    errorMessage: "Password does not meet requirements",
-    test: (val) => val.length >= 6,
-  },
-];
+    {
+      label: "At least 6 characters",
+      errorMessage: "Password does not meet requirements",
+      test: (val) => val.length >= 6,
+    },
+  ];
 
 // Empty field → "Password is required"
 // Rules fail  → "Password does not meet requirements"
@@ -65,13 +65,21 @@ export const ProfileSchema = z.object({
   full_name: z.string().min(2).nullable(),
   role: SystemRoleEnum.default('EMPLOYEE'),
   phone_number: z.string().nullable().optional(),
-  hourly_rate: z.number().min(0).default(15.00), 
+  hourly_rate: z.number().min(0).default(15.00),
   avatar_url: z.string().url().nullable().optional(),
   is_approved: z.boolean().default(false), 
 });
 
+export const ProfileUpdateSchema = z.object({
+  first_name: z.string().min(2, { message: "The first name must have at least 2 characters" }),
+  last_name: z.string().min(2, { message: "The last name must have at least 2 characters" }),
+  email: z.string().email({ message: "Invalid email address" }),
+  phone_number: z.string().min(10, { message: "The phone number must have at least 10 characters" })
+})
+
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type Profile = z.infer<typeof ProfileSchema>;
+export type ProfileUpdateInput = z.infer<typeof ProfileUpdateSchema>;
 export type SignupInput = z.infer<typeof SignupSchema>;
 export type ForgotPasswordInput = z.infer<typeof ForgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;
