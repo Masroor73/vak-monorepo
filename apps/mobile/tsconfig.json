@@ -20,8 +20,6 @@
     "**/*.ts",
     "**/*.tsx",
     "nativewind-env.d.ts",
-    "src/declarations/**/*.d.ts",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
+    "src/declarations/**/*.d.ts"
   ]
 }
