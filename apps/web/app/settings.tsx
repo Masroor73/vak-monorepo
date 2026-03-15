@@ -1,197 +1,288 @@
-//web/app/settings.tsx
-import { useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import ManagerLayout from "./layouts/ManagerLayout";
-import { useAuthGuard } from "../hooks/useAuthGuard";
+import { useAuth } from "../context/AuthContext";
+import { supabase } from "../lib/supabase";
+import { Ionicons } from "@expo/vector-icons";
+import Toggle from "./components/Toggle";
 
-function Toggle({
-  value,
-  onChange,
-}: {
-  value: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <button
-      onClick={() => onChange(!value)}
-      className={`w-12 h-7 rounded-full relative ${
-        value ? "bg-green-500" : "bg-gray-300"
-      }`}
-      type="button"
-    >
-      <span
-        className={`h-6 w-6 bg-white rounded-full absolute top-0.5 transition-all ${
-          value ? "left-6" : "left-0.5"
-        }`}
-      />
-    </button>
-  );
-}
+export default function SettingsPage() {
+  const { user } = useAuth();
 
-export default function Settings() {
-  useAuthGuard();
-  const [twoFA, setTwoFA] = useState(true);
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const [shiftChange, setShiftChange] = useState(true);
-  const [timesheet, setTimesheet] = useState(true);
-  const [maintenance, setMaintenance] = useState(true);
-  const [announcements, setAnnouncements] = useState(true);
-  const [issuesReported, setIssuesReported] = useState(true);
+  const [avatarUrl, setAvatarUrl] = useState("");
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
 
-  const handlePickAvatar = () => {
-    fileInputRef.current?.click();
-  };
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
-  const handleAvatarSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  /* ---------------- LOAD SETTINGS ---------------- */
+
+  useEffect(() => {
+    if (!user) return;
+    loadSettings();
+  }, [user]);
+
+  async function loadSettings() {
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
+    if (!data) return;
+
+    setDisplayName(data.display_name || "");
+    setEmail(data.email || user.email || "");
+    setAvatarUrl(data.avatar_url || "");
+    setDarkMode(data.dark_mode || false);
+    setEmailNotifications(data.email_notifications || false);
+  }
+
+  /* ---------------- DARK MODE ---------------- */
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [darkMode]);
+
+  /* ---------------- UPLOAD AVATAR ---------------- */
+
+  async function uploadAvatar(e: any) {
+    if (!user) return;
+
+    const file = e.target.files[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      alert("Please select an image file.");
-      e.target.value = "";
+    const filePath = `avatars/${user.id}-${Date.now()}`;
+
+    const { error } = await supabase.storage
+      .from("avatars")
+      .upload(filePath, file);
+
+    if (error) {
+      alert(error.message);
       return;
     }
 
-    // Optional size limit
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Image is too large (max 5MB).");
-      e.target.value = "";
-      return;
+    const { data } = supabase.storage
+      .from("avatars")
+      .getPublicUrl(filePath);
+
+    setAvatarUrl(data.publicUrl);
+
+    await supabase
+      .from("profiles")
+      .update({ avatar_url: data.publicUrl })
+      .eq("id", user.id);
+  }
+
+  /* ---------------- SAVE SETTINGS ---------------- */
+
+  async function handleSave() {
+    if (!user) return;
+
+    setSaving(true);
+    setMessage("");
+
+    try {
+      if (password) {
+        const { error } = await supabase.auth.updateUser({
+          password: password,
+        });
+
+        if (error) throw error;
+      }
+
+      await supabase
+        .from("profiles")
+        .update({
+          display_name: displayName,
+          dark_mode: darkMode,
+          email_notifications: emailNotifications,
+        })
+        .eq("id", user.id);
+
+      setMessage("Settings saved successfully.");
+    } catch (err: any) {
+      setMessage(err.message);
     }
 
-    const url = URL.createObjectURL(file);
-    setAvatarUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return url;
-    });
-  };
+    setSaving(false);
+  }
 
   return (
     <ManagerLayout>
-      <div className="space-y-6">
-        <div className="bg-white rounded-lg p-6 border">
-          <h2 className="text-xl font-semibold mb-6">Profile Information</h2>
+      <div className="max-w-5xl mx-auto space-y-8">
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            <div className="flex flex-col items-center gap-3">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleAvatarSelected}
+        {/* PAGE HEADER */}
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+          <p className="text-sm text-gray-500">
+            Manage your account and application preferences
+          </p>
+        </div>
+
+        {/* PROFILE */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-7 space-y-6">
+
+          <div className="flex items-center gap-3">
+            <Ionicons name="person-outline" size={20} />
+            <h2 className="font-semibold text-gray-900">Profile</h2>
+          </div>
+
+          <div className="flex items-center gap-6">
+
+            <div className="relative w-20 h-20">
+
+              <img
+                src={
+                  avatarUrl ||
+                  "https://ui-avatars.com/api/?name=" + displayName
+                }
+                className="w-20 h-20 rounded-full object-cover border-4 border-white shadow"
               />
 
-              <div className="h-28 w-28 rounded-full bg-gray-200 flex items-center justify-center text-3xl overflow-hidden">
-                {avatarUrl ? (
-                  <img
-                    src={avatarUrl}
-                    alt="Avatar preview"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  "👤"
-                )}
-              </div>
+              <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-1.5 rounded-full cursor-pointer shadow">
 
-              <div className="flex gap-3">
-                <button className="border rounded px-4 py-2" onClick={handlePickAvatar} type="button">
-                  Edit
-                </button>
-                <button className="bg-blue-500 text-white rounded px-4 py-2" type="button">
-                  Save
-                </button>
-              </div>
+                <Ionicons name="camera" size={14} />
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={uploadAvatar}
+                  className="hidden"
+                />
+
+              </label>
+
             </div>
 
-            <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2">
-                <p className="text-sm mb-1">Full Name</p>
-                <input className="w-full border rounded px-3 py-2" />
-              </div>
-
-              <div className="sm:col-span-2">
-                <p className="text-sm mb-1">Email Address</p>
-                <input className="w-full border rounded px-3 py-2" />
-              </div>
-
-              <div>
-                <p className="text-sm mb-1">Phone</p>
-                <input className="w-full border rounded px-3 py-2" />
-              </div>
-
-              <div>
-                <p className="text-sm mb-1">Role</p>
-                <select className="w-full border rounded px-3 py-2">
-                  <option>Manager</option>
-                  <option>Employee</option>
-                </select>
-              </div>
-            </div>
           </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+
+            <div>
+              <label className="text-sm text-gray-500">Display Name</label>
+
+              <input
+                className="mt-1 w-full border rounded-lg px-3 py-2"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+              />
+
+            </div>
+
+            <div>
+              <label className="text-sm text-gray-500">Email</label>
+
+              <input
+                disabled
+                className="mt-1 w-full border rounded-lg px-3 py-2 bg-gray-100"
+                value={email}
+              />
+
+            </div>
+
+          </div>
+
         </div>
 
-        {/* Lower cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg p-6 border">
-            <h3 className="text-lg font-semibold mb-4">Security</h3>
+        {/* SECURITY */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-7 space-y-5">
 
-            <div className="border rounded p-4">
-              <p className="text-sm text-gray-600 mb-2">Email</p>
-              <input className="w-full border rounded px-3 py-2 mb-3" />
-
-              <div className="flex gap-3">
-                <button className="border rounded px-4 py-2" type="button">
-                  Cancel
-                </button>
-                <button className="bg-blue-500 text-white rounded px-4 py-2" type="button">
-                  Reset Password
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between mt-6">
-              <p className="font-medium">Two-Fact Authentication</p>
-              <Toggle value={twoFA} onChange={setTwoFA} />
-            </div>
+          <div className="flex items-center gap-3">
+            <Ionicons name="lock-closed-outline" size={20} />
+            <h2 className="font-semibold text-gray-900">Security</h2>
           </div>
 
-          {/* Notifications */}
-          <div className="bg-white rounded-lg p-6 border">
-            <h3 className="text-lg font-semibold mb-4">
-              Notifications Settings
-            </h3>
+          <div>
+            <label className="text-sm text-gray-500">Change Password</label>
 
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <p>Shift Change Requests</p>
-                <Toggle value={shiftChange} onChange={setShiftChange} />
-              </div>
+            <input
+              type="password"
+              placeholder="New password"
+              className="mt-1 w-full border rounded-lg px-3 py-2"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
 
-              <div className="flex justify-between items-center">
-                <p>Timesheet Approvals</p>
-                <Toggle value={timesheet} onChange={setTimesheet} />
-              </div>
-
-              <div className="flex justify-between items-center">
-                <p>Maintenance Updates</p>
-                <Toggle value={maintenance} onChange={setMaintenance} />
-              </div>
-
-              <div className="flex justify-between items-center">
-                <p>Announcements</p>
-                <Toggle value={announcements} onChange={setAnnouncements} />
-              </div>
-
-              <div className="flex justify-between items-center">
-                <p>Issues Reported</p>
-                <Toggle value={issuesReported} onChange={setIssuesReported} />
-              </div>
-            </div>
           </div>
+
         </div>
+
+        {/* PREFERENCES */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-7 space-y-5">
+
+          <div className="flex items-center gap-3">
+            <Ionicons name="settings-outline" size={20} />
+            <h2 className="font-semibold text-gray-900">Preferences</h2>
+          </div>
+
+          <div className="flex items-center justify-between">
+
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                Email Notifications
+              </p>
+
+              <p className="text-xs text-gray-500">
+                Receive email alerts for important events
+              </p>
+            </div>
+
+            <Toggle
+              value={emailNotifications}
+              onChange={(v) => setEmailNotifications(v)}
+            />
+
+          </div>
+
+          <div className="flex items-center justify-between">
+
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                Dark Mode
+              </p>
+
+              <p className="text-xs text-gray-500">
+                Toggle dark interface theme
+              </p>
+            </div>
+
+            <Toggle
+              value={darkMode}
+              onChange={(v) => setDarkMode(v)}
+            />
+
+          </div>
+
+        </div>
+
+        {/* SAVE SECTION */}
+        <div className="flex items-center justify-between">
+
+          <div className="text-sm text-gray-500">{message}</div>
+
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="bg-blue-600 text-white px-8 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition shadow"
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+
+        </div>
+
       </div>
     </ManagerLayout>
   );

@@ -90,7 +90,7 @@ export default function LoginScreen() {
 
     if (!profile.is_approved) {
     router.replace("/(public)/pendingApproval");
-    setLoading(false);
+       setLoading(false);
     return;
 }
 

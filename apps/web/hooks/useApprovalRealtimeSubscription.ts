@@ -5,6 +5,10 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
 
 const __DEV__ = process.env.NODE_ENV !== "production";
+const POLL_INTERVAL_MS = 3000;
+
+/**
+ * Polls the profiles table every 3 seconds to check if is_approved has changed.
 const POLL_INTERVAL_MS = 15000;
 
 /**
