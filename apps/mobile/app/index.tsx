@@ -6,7 +6,7 @@ import { useAuth } from "../context/AuthContext";
 
 export default function IndexScreen() {
   const router = useRouter();
-  const { session, loading } = useAuth();
+  const { session, loading,profile } = useAuth();
 
   useEffect(() => {
   if (loading) return;
@@ -16,8 +16,13 @@ export default function IndexScreen() {
     return;
   }
 
+   if (!profile?.is_approved) {        
+      router.replace("/(public)/pendingApproval");
+      return;
+    }
+
   router.replace("/(tabs)");
-}, [session, loading]);
+}, [session, loading, profile]);
   return (
     <View className="flex-1 justify-center items-center bg-white">
       <ActivityIndicator size="large" color="#000" />

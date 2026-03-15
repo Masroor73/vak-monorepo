@@ -11,6 +11,7 @@ const ROUTE_LABELS: Record<string, string> = {
   "/settings": "Settings",
 };
 
+//web/app/components/Topbar.tsx
 export default function Topbar({
   onOpenSidebar,
 }: {

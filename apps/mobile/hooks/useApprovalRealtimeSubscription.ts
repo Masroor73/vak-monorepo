@@ -1,23 +1,11 @@
-//web/hooks/useApprovalRealtimeSubscription.ts
 import { useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
 
 const __DEV__ = process.env.NODE_ENV !== "production";
-const POLL_INTERVAL_MS = 3000;
-
-/**
- * Polls the profiles table every 3 seconds to check if is_approved has changed.
 const POLL_INTERVAL_MS = 15000;
 
-/**
- * Polls the profiles table every 15 seconds to check if is_approved has changed.
- * When is_approved flips to true, redirects the user to the dashboard.
- *
- * We use polling instead of realtime to avoid multiple Supabase client issues.
- * Mount this on the PendingApproval screen only.
- */
 export function useApprovalRealtimeSubscription() {
   const { user } = useAuth();
   const router = useRouter();
@@ -44,7 +32,6 @@ export function useApprovalRealtimeSubscription() {
       }
     };
 
-    // check immediately on mount, then every 3 seconds
     checkApproval();
     intervalRef.current = setInterval(checkApproval, POLL_INTERVAL_MS);
 

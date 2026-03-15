@@ -1,150 +1,267 @@
 import { useEffect, useState } from "react";
 import ManagerLayout from "./layouts/ManagerLayout";
 import { supabase } from "../lib/supabase";
-import { useAuthGuard } from "../hooks/useAuthGuard";
+import { useAuth } from "../context/AuthContext";
 
-type Employee = {
+type Profile = {
   id: string;
+  full_name: string;
   email: string;
+  role: string;
+};
+
+type Recognition = {
+  id: string;
+  message: string;
+  badge_icon: string;
+  receiver_id: string;
+  created_at: string;
+};
+
+type Notification = {
+  id: string;
+  message: string;
+  target: string;
+  created_at: string;
 };
 
 export default function Communication() {
-  useAuthGuard();
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
-  const [message, setMessage] = useState("");
-  const [type, setType] = useState("recognition");
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  const { profile } = useAuth();
+
+  const [activeTab,setActiveTab] = useState("announcements");
+
+  const [employees,setEmployees] = useState<Profile[]>([]);
+  const [recognitions,setRecognitions] = useState<Recognition[]>([]);
+  const [announcements,setAnnouncements] = useState<Notification[]>([]);
+
+  const [selectedEmployee,setSelectedEmployee] = useState("");
+  const [badge,setBadge] = useState("");
+  const [message,setMessage] = useState("");
+
+  const [announcementMessage,setAnnouncementMessage] = useState("");
+  const [target,setTarget] = useState("ALL");
+
+  useEffect(()=>{
     loadEmployees();
-  }, []);
+    loadRecognitions();
+    loadAnnouncements();
+  },[]);
 
-  async function loadEmployees() {
+  async function loadEmployees(){
+
     const { data } = await supabase
       .from("profiles")
-      .select("id,email");
+      .select("id, full_name, email, role")
+      .order("full_name",{ascending:true});
 
-    if (data) setEmployees(data);
+    setEmployees(data || []);
   }
 
-  function toggleEmployee(id: string) {
-    if (selectedEmployees.includes(id)) {
-      setSelectedEmployees(selectedEmployees.filter((e) => e !== id));
-    } else {
-      setSelectedEmployees([...selectedEmployees, id]);
-    }
+  async function loadRecognitions(){
+
+    const {data} = await supabase
+      .from("recognitions")
+      .select("*")
+      .order("created_at",{ascending:false});
+
+    setRecognitions(data || []);
   }
 
-  async function sendMessage() {
-    if (!message || selectedEmployees.length === 0) {
-      alert("Please select at least one employee and enter a message.");
-      return;
-    }
+  async function loadAnnouncements(){
 
-    setLoading(true);
+    const {data} = await supabase
+      .from("notifications")
+      .select("*")
+      .order("created_at",{ascending:false});
 
-    const messages = selectedEmployees.map((empId) => ({
-      recipient_id: empId,
-      message: message,
-      type: type,
-    }));
-
-    const { error } = await supabase
-      .from("messages")
-      .insert(messages);
-
-    if (!error) {
-      setMessage("");
-      setSelectedEmployees([]);
-      alert("Message sent successfully!");
-    }
-
-    setLoading(false);
+    setAnnouncements(data || []);
   }
 
-  return (
+  async function sendRecognition(){
+
+    if(!selectedEmployee || !badge || !message) return;
+
+    await supabase
+      .from("recognitions")
+      .insert({
+        sender_id: profile?.id,
+        receiver_id: selectedEmployee,
+        badge_icon: badge,
+        message: message
+      });
+
+    setSelectedEmployee("");
+    setBadge("");
+    setMessage("");
+
+    loadRecognitions();
+  }
+
+  async function sendAnnouncement(){
+
+    if(!announcementMessage) return;
+
+    await supabase
+      .from("notifications")
+      .insert({
+        message:announcementMessage,
+        target:target
+      });
+
+    setAnnouncementMessage("");
+    loadAnnouncements();
+  }
+
+  return(
     <ManagerLayout>
-      <div className="p-8 max-w-3xl">
 
-        <h1 className="text-2xl font-semibold mb-6">
-          Communication
-        </h1>
+      <div className="space-y-6">
 
-        <div className="bg-white border rounded-lg p-6 space-y-6">
+        <h1 className="text-2xl font-bold">Communication</h1>
 
-          {/* Select employees */}
-          <div>
-            <label className="text-sm font-medium">
-              Select Employees
-            </label>
+        {/* TABS */}
 
-            <div className="mt-2 border rounded p-3 max-h-40 overflow-y-auto space-y-2">
+        <div className="flex gap-4 border-b pb-2">
 
-              {employees.map((emp) => (
-                <label
-                  key={emp.id}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedEmployees.includes(emp.id)}
-                    onChange={() => toggleEmployee(emp.id)}
-                  />
-                  {emp.email}
-                </label>
-              ))}
+          <button
+            onClick={()=>setActiveTab("announcements")}
+            className={`px-3 py-1 ${activeTab==="announcements" ? "font-bold border-b-2 border-black":""}`}
+          >
+            Announcements
+          </button>
 
-            </div>
-          </div>
-
-          {/* Message type */}
-          <div>
-            <label className="text-sm font-medium">
-              Message Type
-            </label>
-
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="w-full border rounded p-2 mt-1"
-            >
-              <option value="recognition">Recognition</option>
-              <option value="announcement">Announcement</option>
-              <option value="message">Direct Message</option>
-            </select>
-          </div>
-
-          {/* Message */}
-          <div>
-            <label className="text-sm font-medium">
-              Message
-            </label>
-
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              className="w-full border rounded p-3 mt-1 h-28"
-              placeholder="Write your message..."
-            />
-          </div>
-
-          {/* Send */}
-          <div className="flex justify-end">
-
-            <button
-              onClick={sendMessage}
-              disabled={loading}
-              className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-            >
-              {loading ? "Sending..." : "Send Message"}
-            </button>
-
-          </div>
+          <button
+            onClick={()=>setActiveTab("recognition")}
+            className={`px-3 py-1 ${activeTab==="recognition" ? "font-bold border-b-2 border-black":""}`}
+          >
+            Recognition
+          </button>
 
         </div>
 
+        {/* ANNOUNCEMENTS TAB */}
+
+        {activeTab==="announcements" && (
+
+          <div className="space-y-4">
+
+            <textarea
+              placeholder="Write announcement..."
+              value={announcementMessage}
+              onChange={(e)=>setAnnouncementMessage(e.target.value)}
+              className="w-full border rounded-lg p-3"
+            />
+
+            {/* RADIO BUTTONS */}
+
+            <div className="flex gap-4 text-sm">
+
+              <label>
+                <input
+                  type="radio"
+                  value="ALL"
+                  checked={target==="ALL"}
+                  onChange={()=>setTarget("ALL")}
+                /> All Employees
+              </label>
+
+              <label>
+                <input
+                  type="radio"
+                  value="MANAGER"
+                  checked={target==="MANAGER"}
+                  onChange={()=>setTarget("MANAGER")}
+                /> Managers Only
+              </label>
+
+              <label>
+                <input
+                  type="radio"
+                  value="SPECIFIC"
+                  checked={target==="SPECIFIC"}
+                  onChange={()=>setTarget("SPECIFIC")}
+                /> Specific
+              </label>
+
+            </div>
+
+            <button
+              onClick={sendAnnouncement}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+            >
+              Send Announcement
+            </button>
+
+            {announcements.map(a=>(
+              <div key={a.id} className="border rounded-lg p-4">
+                📢 {a.message}
+              </div>
+            ))}
+
+          </div>
+
+        )}
+
+        {/* RECOGNITION TAB */}
+
+        {activeTab==="recognition" && (
+
+          <div className="space-y-4">
+
+            <select
+              value={selectedEmployee}
+              onChange={(e)=>setSelectedEmployee(e.target.value)}
+              className="border rounded-lg px-3 py-2"
+            >
+              <option value="">Select Employee</option>
+              {employees.map(e=>(
+                <option key={e.id} value={e.id}>
+                  {e.full_name}
+                </option>
+              ))}
+            </select>
+
+            {/* EMOJI PICKER */}
+
+            <div className="flex gap-3 text-xl">
+              {["⭐","🏆","💪","🎯","🤝","🌟"].map((e)=>(
+                <button
+                  key={e}
+                  onClick={()=>setBadge(e)}
+                  className={`border p-2 rounded ${badge===e?"bg-blue-200":""}`}
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
+
+            <textarea
+              placeholder="Write recognition message..."
+              value={message}
+              onChange={(e)=>setMessage(e.target.value)}
+              className="w-full border rounded-lg p-3"
+            />
+
+            <button
+              onClick={sendRecognition}
+              className="bg-black text-white px-4 py-2 rounded-lg"
+            >
+              Send Recognition
+            </button>
+
+            {recognitions.map(r=>(
+              <div key={r.id} className="border rounded-lg p-4">
+                ⭐ {r.message}
+              </div>
+            ))}
+
+          </div>
+
+        )}
+
       </div>
+
     </ManagerLayout>
   );
 }

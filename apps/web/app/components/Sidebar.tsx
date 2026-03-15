@@ -6,56 +6,57 @@ import { Ionicons } from "@expo/vector-icons";
 type NavItem = {
   label: string;
   href: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  activeIcon: keyof typeof Ionicons.glyphMap;
+  icon: any;
+  activeIcon: any;
   badge?: number;
 };
 
 const MAIN_NAV: NavItem[] = [
   {
-    label:      "Shift Management",
-    href:       "/shifts",
-    icon:       "calendar-outline",
+    label: "Shifts",
+    href: "/shifts",
+    icon: "calendar-outline",
     activeIcon: "calendar",
   },
   {
-    label:      "Tasks & Waste",
-    href:       "/tasks",
-    icon:       "checkmark-circle-outline",
+    label: "Tasks & Waste",
+    href: "/tasks",
+    icon: "checkmark-circle-outline",
     activeIcon: "checkmark-circle",
   },
   {
-    label:      "Swap Requests",
-    href:       "/swap-requests",
-    icon:       "swap-horizontal-outline",
+    label: "Swap Requests",
+    href: "/swap-requests",
+    icon: "swap-horizontal-outline",
     activeIcon: "swap-horizontal",
+    badge: 3,
   },
   {
-    label:      "Communication",
-    href:       "/communication",
-    icon:       "megaphone-outline",
+    label: "Communication",
+    href: "/communication",
+    icon: "megaphone-outline",
     activeIcon: "megaphone",
   },
 ];
 
 const ADMIN_NAV: NavItem[] = [
   {
-    label:      "User Management",
-    href:       "/user-management",
-    icon:       "people-outline",
+    label: "User Management",
+    href: "/user-management",
+    icon: "people-outline",
     activeIcon: "people",
   },
   {
-    label:      "Settings",
-    href:       "/settings",
-    icon:       "settings-outline",
+    label: "Settings",
+    href: "/settings",
+    icon: "settings-outline",
     activeIcon: "settings",
   },
 ];
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const router   = useRouter();
+  const router = useRouter();
   const { signOut } = useAuth();
 
   const handleLogout = async () => {
@@ -69,28 +70,25 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
   const NavLink = ({ item }: { item: NavItem }) => {
     const active = pathname === item.href;
+
     return (
       <Link
         href={item.href}
         onPress={onNavigate}
-        className={[
-          "flex items-center gap-3 px-3 py-3 text-[14px] font-medium transition-all relative",
+        className={`flex items-center gap-3 px-3 py-3 text-[14px] font-medium transition-all relative ${
           active
             ? "bg-auth-blue/15 text-auth-white border border-auth-blue/25"
-            : "text-auth-textSecondary hover:text-auth-white hover:bg-white/5 border border-transparent",
-        ].join(" ")}
+            : "text-auth-textSecondary hover:text-auth-white hover:bg-white/5 border border-transparent"
+        }`}
       >
-        {/* Active left strip */}
         {active && (
           <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[60%] bg-auth-blue rounded-r-full" />
         )}
 
-        {/* Icon box */}
         <span
-          className={[
-            "w-[30px] h-[30px] flex items-center justify-center flex-shrink-0 rounded-[7px]",
-            active ? "bg-auth-blue/20" : "bg-white/[0.06]",
-          ].join(" ")}
+          className={`w-[30px] h-[30px] flex items-center justify-center flex-shrink-0 rounded-[7px] ${
+            active ? "bg-auth-blue/20" : "bg-white/[0.06]"
+          }`}
         >
           <Ionicons
             name={active ? item.activeIcon : item.icon}
@@ -99,10 +97,11 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           />
         </span>
 
-        <span className="flex-1 text-[14px] leading-none">{item.label}</span>
+        <span className="flex-1 text-[14px] leading-none">
+          {item.label}
+        </span>
 
-        {/* Badge */}
-        {item.badge !== undefined && item.badge > 0 && (
+        {item.badge && (
           <span className="bg-auth-blue text-white text-[11px] font-bold rounded-full px-2 py-[2px] min-w-[22px] text-center leading-none">
             {item.badge}
           </span>
@@ -113,43 +112,40 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <aside className="h-screen w-[240px] flex flex-col bg-auth-bg border-r border-auth-border px-3 py-6 overflow-hidden flex-shrink-0">
-
-      {/* ── Logo ── */}
+      
       <div className="px-3 mb-10">
         <span className="text-[19px] font-black tracking-[0.22em] text-auth-white">
           V<span className="text-auth-blue">.</span>
-          A<span className="text-auth-pending">.</span>
-          K
+          A<span className="text-auth-pending">.</span>K
         </span>
       </div>
 
-      {/* ── Main nav ── */}
       <nav className="flex flex-col gap-0.5">
         <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-auth-textMuted px-3 mb-2">
           Main
         </p>
+
         {MAIN_NAV.map((item) => (
           <NavLink key={item.href} item={item} />
         ))}
       </nav>
 
-      {/* ── Admin nav ── */}
       <nav className="flex flex-col gap-0.5 mt-6">
         <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-auth-textMuted px-3 mb-2">
           Admin
         </p>
+
         {ADMIN_NAV.map((item) => (
           <NavLink key={item.href} item={item} />
         ))}
       </nav>
 
-      {/* ── Logout ── */}
       <button
         onClick={handleLogout}
         className="mt-auto mx-1 flex items-center gap-3 px-3 py-3 text-[14px] font-medium text-auth-textSecondary border border-auth-border rounded-[8px] hover:border-red-500/30 hover:text-red-400 hover:bg-red-500/5 transition-all"
       >
         <span className="w-[30px] h-[30px] flex items-center justify-center bg-white/[0.06] rounded-[7px] flex-shrink-0">
-          <Ionicons name="log-out-outline" size={16} color="currentColor" />
+          <Ionicons name="log-out-outline" size={16} />
         </span>
         Sign out
       </button>
