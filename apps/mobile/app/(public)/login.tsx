@@ -68,13 +68,25 @@ export default function LoginScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused]     = useState(false);
 
-  const { session, loading, signUp, login } = useAuth();
+  const { session, loading, signUp, login, signInWithGoogle } = useAuth();
   const [isLoading, setIsLoading]   = useState(false);
   const [activeTab, setActiveTab]   = useState<"signin" | "signup">("signin");
   const [rememberMe, setRememberMe] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   
   const onForgotPassword = () => router.push("/(public)/forgetPassword");
+  
+  const handleGoogleSignIn = async () => {
+  setIsLoading(true);
+  try {
+    const { error } = await signInWithGoogle();
+    if (error && error !== "CANCELLED") {
+      Alert.alert("Error", "Google sign in failed. Please try again.");
+    }
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const signInForm = useForm<LoginInput>({
     resolver: zodResolver(LoginSchema),
@@ -230,7 +242,7 @@ export default function LoginScreen() {
                   <Text className="text-white text-md mx-3">or</Text>
                   <View className="flex-1 h-px bg-white" />
                 </View>
-                <GoogleButton onPress={() => console.log("Google login clicked")} />
+                <GoogleButton onPress={handleGoogleSignIn} />
               </>
             ) : (
               <>
@@ -330,7 +342,7 @@ export default function LoginScreen() {
                   <Text className="text-white text-md mx-3">or</Text>
                   <View className="flex-1 h-px bg-white" />
                 </View>
-                <GoogleButton onPress={() => console.log("Google login clicked")} />
+                <GoogleButton onPress={handleGoogleSignIn} />
               </>
             )}
           </View>

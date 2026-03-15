@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase, supabasePersistent, supabaseTemporary, setSupabaseClient } from '../lib/supabase';
 import { Profile } from '@vak/contract';
+import { signInWithGoogle as signInWithGoogleUtil } from "../lib/googleAuth";
 
 type AuthContextType = {
   session: Session | null;
@@ -14,6 +15,7 @@ type AuthContextType = {
   signOut: () => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   login: (email: string, password: string, rememberMe: boolean) => Promise<{ data?: any; error?: string; pendingApproval?: boolean }>;
+  signInWithGoogle: () => Promise<{ error?: string }>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -27,6 +29,7 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
   signUp: async () => ({ error: null }),
   login: async () => ({ error: "Not implemented" }),
+  signInWithGoogle: async () => ({ error: "Not implemented" }),
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -198,6 +201,18 @@ useEffect(() => {
   }
 };
 
+// -------------------- Google Sign In --------------------
+const signInWithGoogle = async (): Promise<{ error?: string }> => {
+  try {
+    const success = await signInWithGoogleUtil();
+    if (!success) return { error: "CANCELLED" };
+    return {};
+  } catch (err: any) {
+    console.error("Google sign in error:", err);
+    return { error: err.message ?? "UNKNOWN_ERROR" };
+  }
+};
+
 // -------------------- Role helpers --------------------
   const isAdmin = profile?.role === 'OWNER';
   const isManager = profile?.role === 'MANAGER' || isAdmin;
@@ -206,7 +221,7 @@ useEffect(() => {
   // -------------------- Provider --------------------
   return (
     <AuthContext.Provider 
-      value={{ session, user, profile, loading, isAdmin, isManager, isEmployee, signOut, signUp, login }}
+      value={{ session, user, profile, loading, isAdmin, isManager, isEmployee, signOut, signUp, login, signInWithGoogle }}
     >
       {children}
     </AuthContext.Provider>
