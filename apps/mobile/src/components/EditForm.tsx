@@ -9,7 +9,7 @@ const EditForm = () => {
     const { control, formState: { errors } } = useFormContext<ProfileUpdateInput>()
     return (
         <View>
-            <Text className='font-medium my-8 ml-8 text-lg'>Your Information</Text>
+            <Text className='font-medium my-8 ml-8 text-lg text-gray-300'>Your Information</Text>
             <View className='mb-4 flex gap-4 ' >
                 {PROFILE_FIELDS.map((item, index) => (
                     <Controller

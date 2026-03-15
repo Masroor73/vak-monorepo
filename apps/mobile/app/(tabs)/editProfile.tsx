@@ -30,7 +30,7 @@ const EditProfile = () => {
                 </View>
                 <EditForm />
                 <View className='items-center'>
-                    <PrimaryButton className="bg-brand-secondary" title='Save Changes' onPress={methods.handleSubmit(onSubmit)}/>
+                    <PrimaryButton className="bg-brand-secondary" title='Save Changes' onPress={methods.handleSubmit(onSubmit)} />
                 </View>
             </ScrollView>
         </FormProvider>

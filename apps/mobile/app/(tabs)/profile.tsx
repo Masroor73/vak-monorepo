@@ -10,6 +10,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useRouter } from "expo-router";
 import LocationBottomSheet from "@/src/components/LocationBottomSheet";
 import PrivacyPolicySheet from '@/src/components/PrivacyPolicySheet';
+import HelpSupportSheet from '@/src/components/HelpSupportSheet';
 
 type Tab = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -31,6 +32,8 @@ const Profile = () => {
   const [isNotificationSheetOpen, setIsNotificationSheetOpen] = useState(false);
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState<boolean>(false);
+  const [showHelpSupport, setShowHelpSupport] = useState<boolean>(false);
+
 
   const handleOpenNotification = useCallback(() => {
     setIsNotificationSheetOpen(true);
@@ -69,7 +72,7 @@ const Profile = () => {
     {
       icon: "help-circle-outline",
       label: "Help and Support",
-      onPress: () => { },
+      onPress: () => setShowHelpSupport(true),
     },
   ];
 
@@ -89,6 +92,8 @@ const Profile = () => {
         <NotificationBottomSheet open={isNotificationSheetOpen} onClose={() => setIsNotificationSheetOpen(false)} />
         <LocationBottomSheet open={isLocationSheetOpen} onClose={() => setIsLocationSheetOpen(false)} />
         {showPrivacyPolicy && <PrivacyPolicySheet onClose={() => setShowPrivacyPolicy(false)} />}
+        {showHelpSupport && <HelpSupportSheet onClose={() => setShowHelpSupport(false)} />}
+
 
       </SafeAreaView >
     </GestureHandlerRootView >
