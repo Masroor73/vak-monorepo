@@ -1,9 +1,14 @@
-import React from "react";
+
+//apps/mobile/app/(tabs)/profile.tsx
+import React, { useCallback, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
-import { useRouter } from "expo-router";
 import Header from "@/src/components/Header";
 import UserInfo from "@/src/components/UserInfo";
+import NotificationBottomSheet from "@/src/components/NotificationBottomSheet";
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+
 
 type Tab = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -11,19 +16,22 @@ type Tab = {
   onPress: () => void;
 };
 
-function Tab({ icon, label, onPress }: Tab) {
+function TabItem({ icon, label, onPress }: Tab) {
   return (
-    <TouchableOpacity
-      className="flex-row items-center py-5 border-b border-gray-200"
-      onPress={onPress}
-    >
-      <Ionicons name={icon} size={24} color="#333" />
-      <Text className="ml-4 text-base">{label}</Text>
+    <TouchableOpacity className="flex-row items-center py-5 border-b border-gray-600" onPress={onPress}>
+      <Ionicons name={icon} size={24} />
+      <Text className="ml-4">{label}</Text>
     </TouchableOpacity>
   );
 }
 
 const Profile = () => {
+  const [isNotificationSheetOpen, setIsNotificationSheetOpen] = useState(false);
+
+  const handleOpenNotification = useCallback(() => {
+    setIsNotificationSheetOpen(true);
+  }, []);
+
   const router = useRouter();
 
   const tabs: Tab[] = [
@@ -50,7 +58,7 @@ const Profile = () => {
     {
       icon: "settings-outline",
       label: "Notification Preferences",
-      onPress: () => {},
+      onPress: handleOpenNotification,
     },
     {
       icon: "help-circle-outline",
@@ -60,22 +68,21 @@ const Profile = () => {
   ];
 
   return (
-    <ScrollView className="flex-1 bg-white">
-      <Header title="My Profile" />
+    <GestureHandlerRootView className="flex-1">
+      <SafeAreaView className="flex-1 bg-white">
+        <ScrollView>
+          <Header title="My Profile" />
+          <UserInfo />
+          <View className="px-8 mt-2">
+            {tabs.map((item, index) => (
+              <TabItem key={index} icon={item.icon} label={item.label} onPress={item.onPress} />
+            ))}
+          </View>
+        </ScrollView>
 
-      <UserInfo />
-
-      <View className="px-8 mt-2">
-        {tabs.map((item, index) => (
-          <Tab
-            key={index}
-            icon={item.icon}
-            label={item.label}
-            onPress={item.onPress}
-          />
-        ))}
-      </View>
-    </ScrollView>
+        <NotificationBottomSheet open={isNotificationSheetOpen} onClose={() => setIsNotificationSheetOpen(false)} />
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 };
 
