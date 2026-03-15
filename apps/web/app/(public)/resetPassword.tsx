@@ -16,12 +16,14 @@ export default function ResetPasswordScreen() {
   const [sessionEstablished, setSessionEstablished] = useState(false);
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event) => {
+    // 1. Setup auth listener and capture the subscription for cleanup
+    const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
         setSessionEstablished(true);
       }
     });
 
+    // 2. Manual Fallback Verification
     const verifyToken = async () => {
       const token_hash = params.token as string;
       const type = params.type as string;
@@ -42,7 +44,12 @@ export default function ResetPasswordScreen() {
     };
 
     verifyToken();
-  }, [params]);
+
+    // 3. Cleanup function to prevent memory leaks
+    return () => {
+      data.subscription.unsubscribe();
+    };
+  }, [params, sessionEstablished]);
 
   const handleUpdatePassword = async () => {
     if (!password || password.length < 6) {

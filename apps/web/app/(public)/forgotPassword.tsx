@@ -16,8 +16,12 @@ export default function ForgotPasswordScreen() {
     setLoading(true);
     setMessage(null);
 
+    // Dynamically construct the redirect URL based on the current environment
+    // This works on localhost during dev AND on Vercel during production
+    const redirectUrl = `${window.location.origin}/(public)/resetPassword`;
+
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "http://localhost:8082/(public)/resetPassword",
+      redirectTo: redirectUrl,
     });
 
     if (error) {
