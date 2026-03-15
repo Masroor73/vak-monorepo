@@ -8,7 +8,7 @@ import NotificationBottomSheet from "@/src/components/NotificationBottomSheet";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-
+import { useRouter } from "expo-router";
 
 type Tab = {
   icon: keyof typeof Ionicons.glyphMap;
