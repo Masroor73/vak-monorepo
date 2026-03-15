@@ -58,13 +58,12 @@ export default function LoginScreen() {
     }
 
     // ── Remember me ────────────────────────────────────────────────────────
-    // Supabase persists sessions in localStorage by default.
-    // If rememberMe is false, we store a flag so we can clear
-    // the session when the browser is reopened.
-    if (!rememberMe) {
-      sessionStorage.setItem("vak_session_temp", "true");
-    } else {
+    if (rememberMe) {
+      localStorage.setItem("vak_remember_me", "true");
       sessionStorage.removeItem("vak_session_temp");
+    } else {
+      localStorage.removeItem("vak_remember_me");
+      sessionStorage.setItem("vak_session_temp", "true");
     }
 
     const { data: profile, error: profileError } = await supabase

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { supabase, supabasePersistent, supabaseTemporary, setSupabaseClient } from '../lib/supabase';
 import { Profile } from '@vak/contract';
 
 type AuthContextType = {
@@ -13,7 +13,7 @@ type AuthContextType = {
   isEmployee: boolean;
   signOut: () => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
-  login: (email: string, password: string) => Promise<{ data?: any; error?: string; pendingApproval?: boolean }>; // ← updated
+  login: (email: string, password: string, rememberMe: boolean) => Promise<{ data?: any; error?: string; pendingApproval?: boolean }>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -37,33 +37,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // -------------------- Auth state initialization --------------------
-  useEffect(() => {
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        setLoading(false);
-        return;
-      }
+// -------------------- Auth state initialization --------------------
+useEffect(() => {
+  const init = async () => {
+    const { data: { session } } = await supabasePersistent.auth.getSession();
+    if (session?.user) {
+      setSupabaseClient(true);
       await fetchProfile(session.user.id);
-    };
+    } else {
+      setLoading(false);
+    }
+  };
 
-    init();
+  init();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!session?.user) {
-        setSession(null);
-        setUser(null);
-        setProfile(null);
-        setLoading(false);
-        return;
-      }
+  const { data: { subscription } } = supabasePersistent.auth.onAuthStateChange(async (_event, session) => {
+    if (!session?.user) {
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
 
-      await fetchProfile(session.user.id);
-    });
+    await fetchProfile(session.user.id);
+  });
 
-    return () => subscription.unsubscribe();
-  }, []);
+  return () => subscription.unsubscribe();
+}, []);
 
   // -------------------- Fetch profile --------------------
   const fetchProfile = async (userId: string) => {
@@ -152,10 +153,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   // -------------------- Login --------------------
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string,rememberMe: boolean) => {
   try {
+    const client = rememberMe ? supabasePersistent : supabaseTemporary;
     const { data: loginData, error } =
-      await supabase.auth.signInWithPassword({ email, password });
+      await client.auth.signInWithPassword({ email, password });
 
     if (error || !loginData.session) {
       return { error: "INVALID_CREDENTIALS" };

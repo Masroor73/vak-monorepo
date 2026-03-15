@@ -109,7 +109,7 @@ export default function LoginScreen() {
   const onLogin = async (data: LoginInput) => {
     setIsLoading(true); setLoginError(null);
     try {
-      const { error,  pendingApproval } = await login(data.email, data.password);
+      const { error,  pendingApproval } = await login(data.email, data.password, rememberMe);
       if (error === "INVALID_CREDENTIALS") { setLoginError("Invalid email or password"); return; }
       if (error === "ACCESS_DENIED")       { Alert.alert("Access Denied", "Only employees can access this app."); return; }
       if (pendingApproval)                 { router.replace("/(public)/pendingApproval"); return; }

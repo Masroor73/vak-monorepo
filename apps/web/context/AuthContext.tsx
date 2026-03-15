@@ -35,26 +35,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      else setLoading(false);
-    });
+  const isTemp      = sessionStorage.getItem("vak_session_temp");
+  const rememberMe  = localStorage.getItem("vak_remember_me");
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
-        setLoading(false);
-      }
-    });
+  supabase.auth.getSession().then(async ({ data: { session } }) => {
+    if (session && !isTemp && !rememberMe) {
+      // Browser was reopened without Remember Me → sign out
+      await supabase.auth.signOut();
+      setLoading(false);
+      return;
+    }
+    setSession(session);
+    setUser(session?.user ?? null);
+    if (session?.user) fetchProfile(session.user.id);
+    else setLoading(false);
+  });
 
-    return () => subscription.unsubscribe();
-  }, []);
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    setSession(session);
+    setUser(session?.user ?? null);
+    if (session?.user) {
+      fetchProfile(session.user.id);
+    } else {
+      setProfile(null);
+      setLoading(false);
+    }
+  });
+
+  return () => subscription.unsubscribe();
+}, []);
 
   const fetchProfile = async (userId: string) => {
     try {
