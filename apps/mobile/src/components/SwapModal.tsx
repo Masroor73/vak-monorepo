@@ -74,6 +74,9 @@ export default function SwapModal({
       }
 
       setEligibleShifts((data as EligibleShift[]) || []);
+    } catch (err) {
+      console.log("Load shifts error:", err);
+      Alert.alert("Error", "Failed to load shifts.");
     } finally {
       setLoading(false);
     }
@@ -88,25 +91,42 @@ export default function SwapModal({
     try {
       setSending(true);
 
-      const { error } = await supabase.from("shift_swaps").insert({
-        requester_id: user.id,
-        recipient_id: selectedEmployee,
-        shift_id: shiftId,
-        target_shift_id: selectedShift,
-        status: "PENDING",
-        reason: "Shift swap request",
-      });
+      const { error } = await supabase.from("shift_swaps").insert([
+        {
+          requester_id: user.id,
+          recipient_id: selectedEmployee,
+          shift_id: shiftId,
+          status: "PENDING",
+          reason: "Shift swap request",
+        },
+      ]);
 
       if (error) {
-        console.log("Swap request error:", error);
+        console.log("Swap request error:", JSON.stringify(error, null, 2));
         Alert.alert("Error", "Failed to send swap request.");
         return;
       }
 
+      /* SEND PENDING NOTIFICATION */
+await supabase.from("notifications").insert([
+{
+user_id: user.id,
+type: "SHIFT_SWAP",
+title: "Shift Swap Request",
+message: "🟡 Your shift swap request is PENDING",
+is_read: false,
+related_entity_id: shiftId
+}
+])
+
       Alert.alert("Success", "Swap request sent successfully.");
+
       setSelectedShift(null);
       setSelectedEmployee(null);
       onClose();
+    } catch (err) {
+      console.log("Swap request exception:", err);
+      Alert.alert("Error", "Failed to send swap request.");
     } finally {
       setSending(false);
     }

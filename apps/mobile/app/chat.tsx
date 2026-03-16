@@ -5,38 +5,21 @@ import { useAuth } from "@/context/AuthContext";
 
 type Swap = {
   id: string;
+  shift_id: string;
+  recipient_id: string;
   status: string;
   reason: string | null;
   created_at: string;
 };
 
-export default function Messages() {
+export default function ChatScreen() {
   const { user } = useAuth();
   const [swaps, setSwaps] = useState<Swap[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-  loadSwaps();
-
-  const channel = supabase
-    .channel("swap-updates")
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "shift_swaps",
-      },
-      () => {
-        loadSwaps();
-      }
-    )
-    .subscribe();
-
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, []);
+    loadSwaps();
+  }, []);
 
   async function loadSwaps() {
     if (!user) return;
@@ -48,7 +31,7 @@ export default function Messages() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.log("Swap error:", error);
+      console.log("Swap load error:", error);
       setLoading(false);
       return;
     }
@@ -57,16 +40,16 @@ export default function Messages() {
     setLoading(false);
   }
 
-  function getStatus(status: string) {
+  function getStatusEmoji(status: string) {
     if (status === "PENDING") return "🟡 Pending";
     if (status === "APPROVED") return "🟢 Approved";
-    if (status === "DECLINED" || status === "DENIED")  return "🔴 Denied";
+    if (status === "DECLINED") return "🔴 Declined";
     return status;
   }
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <View className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" />
         <Text>Loading messages...</Text>
       </View>
@@ -74,42 +57,33 @@ export default function Messages() {
   }
 
   return (
-    <ScrollView style={{ padding: 16 }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 16 }}>
-        Shift Swap Updates
-      </Text>
+    <ScrollView className="p-4">
+      <Text className="text-xl font-bold mb-4">Shift Swap Updates</Text>
 
       {swaps.length === 0 && (
-        <Text style={{ color: "gray" }}>No swap requests yet.</Text>
+        <Text className="text-gray-500">No swap requests yet.</Text>
       )}
 
       {swaps.map((swap) => (
         <View
           key={swap.id}
-          style={{
-            padding: 16,
-            borderWidth: 1,
-            borderColor: "#ddd",
-            borderRadius: 8,
-            marginBottom: 10,
-            backgroundColor: "#fff",
-          }}
+          className="p-4 border rounded-lg mb-3 bg-white"
         >
-          <Text style={{ fontWeight: "600" }}>
+          <Text className="font-semibold">
             Shift Swap Request
           </Text>
 
-          <Text style={{ marginTop: 5 }}>
-            Status: {getStatus(swap.status)}
+          <Text className="mt-2">
+            Status: {getStatusEmoji(swap.status)}
           </Text>
 
           {swap.reason && (
-            <Text style={{ color: "gray", marginTop: 5 }}>
+            <Text className="text-gray-500 mt-1">
               Reason: {swap.reason}
             </Text>
           )}
 
-          <Text style={{ fontSize: 12, color: "#999", marginTop: 8 }}>
+          <Text className="text-xs text-gray-400 mt-2">
             {new Date(swap.created_at).toLocaleString()}
           </Text>
         </View>

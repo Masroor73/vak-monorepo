@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -19,6 +19,25 @@ export default function Index() {
   const now = new Date();
   const { user } = useAuth();
   const { data: shifts, isLoading, isError, error } = useShifts(user?.id);
+
+  const [temperature, setTemperature] = useState<number | null>(null);
+
+  const fetchWeather = async () => {
+    try {
+      const res = await fetch(
+        "https://api.open-meteo.com/v1/forecast?latitude=51.0447&longitude=-114.0719&current_weather=true"
+      );
+
+      const data = await res.json();
+      setTemperature(data.current_weather.temperature);
+    } catch (err) {
+      console.log("Weather error:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchWeather();
+  }, []);
 
   const firstName = useMemo(() => {
     const full =
@@ -149,6 +168,8 @@ export default function Index() {
           </View>
 
           <View className="flex-row flex-wrap gap-5 ml-2">
+
+            {/* DATE */}
             <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2 gap-1.5">
               <Ionicons name="calendar-outline" size={12} color="red" />
               <Text className="text-white/65 text-[11px] font-medium">
@@ -156,13 +177,18 @@ export default function Index() {
               </Text>
             </View>
 
-            <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2 gap-1.5">
+            {/* WEATHER */}
+            <Pressable
+              onPress={fetchWeather}
+              className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2 gap-1.5"
+            >
               <Ionicons name="cloud" size={12} color="white" />
               <Text className="text-white/65 text-[11px] font-medium">
-                15°C
+                {temperature ? `${temperature}°C` : "--°C"}
               </Text>
-            </View>
+            </Pressable>
 
+            {/* SHIFT STATUS */}
             <View
               className={`flex-row items-center gap-1.5 rounded-[20px] px-3 py-1.5 border ${
                 hasShiftToday
