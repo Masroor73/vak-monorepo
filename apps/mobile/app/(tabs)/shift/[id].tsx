@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { View, Text, Pressable, ScrollView, Image, Alert } from "react-native";
+import { View, Text, Pressable, ScrollView, Image, Alert, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBadge } from "@vak/ui";
 import WhiteArrow from "../../../assets/WhiteArrow.svg";
@@ -8,6 +8,7 @@ import { Shift } from "@vak/contract";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import ClockInButton from "../../../src/components/ClockInButton";
 import SwapModal from "../../../src/components/SwapModal";
+import { supabase } from "@/lib/supabase";
 
 function formatTime(dateStr: string) {
   return new Date(dateStr).toLocaleTimeString([], {
@@ -46,8 +47,6 @@ export default function ShiftDetails() {
 
   const [showClockIn, setShowClockIn] = useState(false);
   const [swapVisible, setSwapVisible] = useState(false);
-
-  const [showClockIn, setShowClockIn] = useState(false);
   const [shift, setShift] = useState<Shift | null>(null);
   const [loading, setLoading] = useState(true);
 
