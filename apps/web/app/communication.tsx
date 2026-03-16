@@ -5,6 +5,8 @@ import { useAuth } from "../context/AuthContext";
 
 /* ================================
    TYPES
+  ================================= */
+
 type Profile = {
   id: string;
   full_name: string;
