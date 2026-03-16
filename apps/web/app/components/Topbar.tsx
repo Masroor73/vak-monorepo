@@ -30,7 +30,6 @@ export default function Topbar({
   const avatarLetter = user?.email?.[0]?.toUpperCase() ?? "M";
   const displayName = user?.email?.split("@")[0] ?? "Manager";
 
-  // close menu if clicking outside
   useEffect(() => {
     const handleClick = (e: any) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -69,26 +68,12 @@ export default function Topbar({
             </>
           )}
         </div>
-      </div>
 
-      {/* Search */}
-      <div className="flex-1 flex justify-center px-6 max-w-2xl mx-auto">
-        <div className="w-full h-10 bg-gray-100 border border-gray-200 rounded-lg flex items-center px-4 gap-3 focus-within:border-blue-500 focus-within:bg-white transition">
-
-          <Ionicons name="search-outline" size={16} color="#8b92a5" />
-
-          <input
-            type="text"
-            placeholder="Search employees, shifts, tasks..."
-            className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400"
-          />
-        </div>
       </div>
 
       {/* Right section */}
       <div className="flex items-center gap-3 relative" ref={menuRef}>
 
-        {/* User Button */}
         <div
           onClick={() => setOpenMenu(!openMenu)}
           className="flex items-center gap-3 bg-gray-100 border border-gray-200 rounded-lg pl-2 pr-4 py-1 cursor-pointer hover:bg-gray-200 transition"
@@ -110,7 +95,6 @@ export default function Topbar({
           <Ionicons name="chevron-down" size={12} color="#8b92a5" />
         </div>
 
-        {/* Popup Menu */}
         {openMenu && (
           <div className="absolute right-0 top-12 w-56 bg-white border rounded-lg shadow-lg p-3 space-y-2 z-50">
 
