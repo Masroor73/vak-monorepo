@@ -1,28 +1,22 @@
 {
   "expo": {
     "name": "mobile",
-    "scheme": "vak",
-    "platforms": ["ios", "android"],
     "slug": "mobile",
+    "scheme": "vak",
     "version": "1.0.0",
     "orientation": "portrait",
+    "platforms": ["ios", "android"],
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    },
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "plugins": [
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "Allow V.A.K to access your photos to attach food wastage images.",
-          "cameraPermission": "Allow V.A.K to use your camera to take food wastage photos."
-        }
-      ]
-    ],
     "ios": {
       "supportsTablet": true
     },
@@ -31,14 +25,10 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.READ_EXTERNAL_STORAGE"
-      ]
+      "predictiveBackGestureEnabled": false
     },
     "web": {
+      "bundler": "metro",
       "favicon": "./assets/favicon.png"
     }
   }
