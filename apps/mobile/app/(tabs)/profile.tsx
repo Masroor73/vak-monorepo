@@ -28,11 +28,6 @@ const Profile = () => {
 
   const tabs: Tab[] = [
     {
-      icon: "calendar-outline",
-      label: "Set Availability",
-      onPress: () => router.push("/availability"),
-    },
-    {
       icon: "globe-outline",
       label: "Location",
       onPress: () => {},

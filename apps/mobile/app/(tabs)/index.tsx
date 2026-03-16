@@ -222,7 +222,6 @@ export default function Index() {
               <Text className="text-[15px] font-bold text-gray-800">
                 No shift today
               </Text>
-
               <Text className="text-[12px] text-gray-400 text-center px-6">
                 You're off the clock — enjoy your time off!
               </Text>
