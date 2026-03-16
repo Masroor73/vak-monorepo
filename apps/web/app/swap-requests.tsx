@@ -33,7 +33,6 @@ export default function SwapRequests() {
   useEffect(() => {
     loadData();
 
-    // REALTIME SUBSCRIPTION
     const channel = supabase
       .channel("swap_requests_updates")
       .on(
@@ -55,29 +54,28 @@ export default function SwapRequests() {
   }, []);
 
   async function loadData() {
-    setLoading(true);
+  setLoading(true);
 
-    const { data: swaps } = await supabase
-      .from("shift_swaps")
-      .select(`
-        *,
-        shifts (
-          date,
-          start_time,
-          end_time
-        )
-      `)
-      .order("created_at", { ascending: false });
+  const { data: swaps } = await supabase
+    .from("shift_swaps")
+    .select(`
+      *,
+      shifts (
+        start_time,
+        end_time
+      )
+    `)
+    .order("created_at", { ascending: false });
 
-    const { data: users } = await supabase
-      .from("profiles")
-      .select("id,email");
+  const { data: users } = await supabase
+    .from("profiles")
+    .select("id,email");
 
-    if (swaps) setRequests(swaps);
-    if (users) setProfiles(users);
+  if (swaps) setRequests(swaps);
+  if (users) setProfiles(users);
 
-    setLoading(false);
-  }
+  setLoading(false);
+}
 
   function getUserName(id: string | null) {
     if (!id) return "Any Team Member";
@@ -103,7 +101,6 @@ export default function SwapRequests() {
     loadData();
   }
 
-  // FILTERED REQUESTS
   const filteredRequests =
     filter === "ALL"
       ? requests
@@ -120,8 +117,6 @@ export default function SwapRequests() {
         <h1 className="text-2xl font-semibold mb-6">
           Swap Requests
         </h1>
-
-        {/* FILTER TABS */}
 
         <div className="flex gap-4 mb-6 text-sm">
 
@@ -168,7 +163,6 @@ export default function SwapRequests() {
                 className="flex justify-between items-start border rounded-lg p-5 bg-white"
               >
 
-                {/* LEFT SIDE */}
                 <div className="max-w-[70%]">
 
                   <p className="font-semibold text-sm">
@@ -176,11 +170,29 @@ export default function SwapRequests() {
                     {getUserName(req.recipient_id)}
                   </p>
 
-                  {/* SHIFT INFO */}
                   {req.shifts && (
                     <p className="text-xs text-gray-500 mt-1">
-                      Shift: {req.shifts.date} | {req.shifts.start_time} - {req.shifts.end_time}
-                    </p>
+  Shift:{" "}
+  {new Date(req.shifts.start_time).toLocaleString("en-CA", {
+    timeZone: "America/Edmonton",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })}{" "}
+  •{" "}
+  {new Date(req.shifts.start_time).toLocaleTimeString("en-CA", {
+    timeZone: "America/Edmonton",
+    hour: "numeric",
+    minute: "2-digit",
+  })}{" "}
+  –{" "}
+  {new Date(req.shifts.end_time).toLocaleTimeString("en-CA", {
+    timeZone: "America/Edmonton",
+    hour: "numeric",
+    minute: "2-digit",
+  })}{" "}
+  MST
+</p>
                   )}
 
                   <p className="text-gray-500 text-xs mt-1">
@@ -196,7 +208,6 @@ export default function SwapRequests() {
 
                 </div>
 
-                {/* RIGHT SIDE */}
                 <div className="flex gap-2">
 
                   {req.status !== "APPROVED" && (
