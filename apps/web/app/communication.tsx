@@ -113,6 +113,12 @@ export default function Communication() {
     loadAnnouncements();
   }
 
+  function getEmployeeName(id: string) {
+    const emp = employees.find(e => e.id === id);
+    if (!emp) return "Unknown Employee";
+    return emp.full_name ? `${emp.full_name} (${emp.email})` : emp.email;
+  }
+
   return(
     <ManagerLayout>
 
@@ -152,8 +158,6 @@ export default function Communication() {
               onChange={(e)=>setAnnouncementMessage(e.target.value)}
               className="w-full border rounded-lg p-3"
             />
-
-            {/* RADIO BUTTONS */}
 
             <div className="flex gap-4 text-sm">
 
@@ -209,29 +213,35 @@ export default function Communication() {
 
           <div className="space-y-4">
 
+            {/* EMPLOYEE DROPDOWN */}
+
             <select
               value={selectedEmployee}
               onChange={(e)=>setSelectedEmployee(e.target.value)}
-              className="border rounded-lg px-3 py-2"
+              className="border rounded-lg px-3 py-2 w-full"
             >
               <option value="">Select Employee</option>
-              {employees.map(e=>(
-                <option key={e.id} value={e.id}>
-                  {e.full_name}
+
+              {employees.map(emp=>(
+                <option key={emp.id} value={emp.id}>
+                  {emp.full_name ? `${emp.full_name} (${emp.email})` : emp.email}
                 </option>
               ))}
+
             </select>
 
             {/* EMOJI PICKER */}
 
             <div className="flex gap-3 text-xl">
-              {["⭐","🏆","💪","🎯","🤝","🌟"].map((e)=>(
+              {["⭐","🏆","💪","🎯","🤝","🌟"].map((emoji) => (
                 <button
-                  key={e}
-                  onClick={()=>setBadge(e)}
-                  className={`border p-2 rounded ${badge===e?"bg-blue-200":""}`}
+                  key={emoji}
+                  type="button"
+                  onClick={() => setBadge(emoji)}
+                  className={`w-10 h-10 flex items-center justify-center border rounded-lg transition
+                  ${badge === emoji ? "bg-blue-500 text-white border-blue-500" : "bg-white hover:bg-gray-100"}`}
                 >
-                  {e}
+                  {emoji}
                 </button>
               ))}
             </div>
@@ -250,9 +260,19 @@ export default function Communication() {
               Send Recognition
             </button>
 
+            {/* RECOGNITION LIST */}
+
             {recognitions.map(r=>(
-              <div key={r.id} className="border rounded-lg p-4">
-                ⭐ {r.message}
+              <div key={r.id} className="border rounded-lg p-4 space-y-1">
+
+                <div className="font-medium">
+                  {r.badge_icon} {r.message}
+                </div>
+
+                <div className="text-xs text-gray-500">
+                  Sent to: {getEmployeeName(r.receiver_id)}
+                </div>
+
               </div>
             ))}
 

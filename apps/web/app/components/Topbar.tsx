@@ -1,4 +1,5 @@
-import { usePathname } from "expo-router";
+import { useState, useRef, useEffect } from "react";
+import { usePathname, useRouter } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -11,19 +12,35 @@ const ROUTE_LABELS: Record<string, string> = {
   "/settings": "Settings",
 };
 
-//web/app/components/Topbar.tsx
 export default function Topbar({
   onOpenSidebar,
 }: {
   onOpenSidebar?: () => void;
 }) {
+
   const pathname = usePathname();
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, signOut } = useAuth();
+
+  const [openMenu,setOpenMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const currentLabel = ROUTE_LABELS[pathname] ?? "Dashboard";
   const isHome = pathname === "/";
   const avatarLetter = user?.email?.[0]?.toUpperCase() ?? "M";
   const displayName = user?.email?.split("@")[0] ?? "Manager";
+
+  // close menu if clicking outside
+  useEffect(() => {
+    const handleClick = (e: any) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpenMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   return (
     <header className="h-16 flex items-center justify-between px-5 md:px-7 bg-white border-b border-gray-200 flex-shrink-0">
@@ -69,23 +86,13 @@ export default function Topbar({
       </div>
 
       {/* Right section */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 relative" ref={menuRef}>
 
-        {/* Notifications */}
-        <button
-          className="relative h-10 w-10 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center hover:bg-gray-200 transition"
-          aria-label="Notifications"
+        {/* User Button */}
+        <div
+          onClick={() => setOpenMenu(!openMenu)}
+          className="flex items-center gap-3 bg-gray-100 border border-gray-200 rounded-lg pl-2 pr-4 py-1 cursor-pointer hover:bg-gray-200 transition"
         >
-          <Ionicons name="notifications-outline" size={18} color="#5a6170" />
-
-          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-blue-500 border-2 border-white" />
-        </button>
-
-        {/* Divider */}
-        <div className="w-px h-6 bg-gray-200" />
-
-        {/* User */}
-        <div className="flex items-center gap-3 bg-gray-100 border border-gray-200 rounded-lg pl-2 pr-4 py-1 cursor-pointer hover:bg-gray-200 transition">
 
           <div className="w-8 h-8 rounded-md bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
             {avatarLetter}
@@ -103,7 +110,38 @@ export default function Topbar({
           <Ionicons name="chevron-down" size={12} color="#8b92a5" />
         </div>
 
+        {/* Popup Menu */}
+        {openMenu && (
+          <div className="absolute right-0 top-12 w-56 bg-white border rounded-lg shadow-lg p-3 space-y-2 z-50">
+
+            <div className="px-2 pb-2 border-b">
+              <div className="text-sm font-semibold text-gray-900 capitalize">
+                {displayName}
+              </div>
+              <div className="text-xs text-gray-500">
+                {user?.email}
+              </div>
+            </div>
+
+            <button
+              onClick={() => router.push("/settings")}
+              className="w-full text-left text-sm px-2 py-2 rounded hover:bg-gray-100"
+            >
+              Settings
+            </button>
+
+            <button
+              onClick={signOut}
+              className="w-full text-left text-sm px-2 py-2 rounded hover:bg-gray-100 text-red-500"
+            >
+              Sign Out
+            </button>
+
+          </div>
+        )}
+
       </div>
+
     </header>
   );
 }

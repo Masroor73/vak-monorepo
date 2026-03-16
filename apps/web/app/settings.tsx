@@ -6,56 +6,67 @@ import { Ionicons } from "@expo/vector-icons";
 import Toggle from "./components/Toggle";
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
+  const [phone, setPhone] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
 
   const [emailNotifications, setEmailNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+
+  const [deletePassword, setDeletePassword] = useState("");
+
+  const [editMode, setEditMode] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
-  /* ---------------- LOAD SETTINGS ---------------- */
+  /* LOAD PROFILE */
 
   useEffect(() => {
     if (!user) return;
-    loadSettings();
+    loadProfile();
   }, [user]);
 
-  async function loadSettings() {
-    if (!user) return;
-
-    const { data } = await supabase
+  async function loadProfile() {
+    const { data, error } = await supabase
       .from("profiles")
       .select("*")
-      .eq("id", user.id)
+      .eq("id", user?.id)
       .single();
+
+    if (error) {
+      console.error(error);
+      return;
+    }
 
     if (!data) return;
 
-    setDisplayName(data.display_name || "");
-    setEmail(data.email || user.email || "");
+    setDisplayName(data.full_name || "");
+    setEmail(data.email || "");
+    setPhone(data.phone_number || "");
     setAvatarUrl(data.avatar_url || "");
-    setDarkMode(data.dark_mode || false);
-    setEmailNotifications(data.email_notifications || false);
   }
 
-  /* ---------------- DARK MODE ---------------- */
+  /* VALIDATION */
 
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [darkMode]);
+  function validateName(name: string) {
+    const regex = /^[a-zA-Z\s]{2,40}$/;
+    return regex.test(name);
+  }
 
-  /* ---------------- UPLOAD AVATAR ---------------- */
+  function validatePhone(phone: string) {
+    const regex = /^[0-9]{7,15}$/;
+    return regex.test(phone);
+  }
+
+  function validateEmail(email: string) {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  }
+
+  /* AVATAR UPLOAD */
 
   async function uploadAvatar(e: any) {
     if (!user) return;
@@ -86,33 +97,42 @@ export default function SettingsPage() {
       .eq("id", user.id);
   }
 
-  /* ---------------- SAVE SETTINGS ---------------- */
+  /* SAVE PROFILE */
 
-  async function handleSave() {
+  async function saveProfile() {
     if (!user) return;
+
+    if (!validateName(displayName)) {
+      alert("Name must contain only letters.");
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      alert("Enter a valid email.");
+      return;
+    }
+
+    if (!validatePhone(phone)) {
+      alert("Contact number must contain only digits.");
+      return;
+    }
 
     setSaving(true);
     setMessage("");
 
     try {
-      if (password) {
-        const { error } = await supabase.auth.updateUser({
-          password: password,
-        });
-
-        if (error) throw error;
-      }
-
       await supabase
         .from("profiles")
         .update({
-          display_name: displayName,
-          dark_mode: darkMode,
-          email_notifications: emailNotifications,
+          full_name: displayName,
+          email: email,
+          phone_number: phone,
+          avatar_url: avatarUrl
         })
         .eq("id", user.id);
 
-      setMessage("Settings saved successfully.");
+      setMessage("Profile updated successfully.");
+      setEditMode(false);
     } catch (err: any) {
       setMessage(err.message);
     }
@@ -120,41 +140,70 @@ export default function SettingsPage() {
     setSaving(false);
   }
 
+  /* DELETE ACCOUNT */
+
+  async function deleteAccount() {
+    if (!user) return;
+
+    if (!deletePassword) {
+      alert("Please enter your password.");
+      return;
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: user.email!,
+      password: deletePassword
+    });
+
+    if (error) {
+      alert("Incorrect password.");
+      return;
+    }
+
+    await supabase
+      .from("profiles")
+      .delete()
+      .eq("id", user.id);
+
+    await signOut();
+
+    window.location.href = "/(public)/login";
+  }
+
   return (
     <ManagerLayout>
-      <div className="max-w-5xl mx-auto space-y-8">
+      <div className="max-w-6xl mx-auto space-y-8">
 
-        {/* PAGE HEADER */}
+        {/* HEADER */}
+
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
           <p className="text-sm text-gray-500">
-            Manage your account and application preferences
+            Manage your account information
           </p>
         </div>
 
-        {/* PROFILE */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-7 space-y-6">
+        {/* PROFILE CARD */}
 
-          <div className="flex items-center gap-3">
-            <Ionicons name="person-outline" size={20} />
-            <h2 className="font-semibold text-gray-900">Profile</h2>
-          </div>
+        <div className="bg-white rounded-xl shadow-sm border p-8 flex gap-10">
 
-          <div className="flex items-center gap-6">
+          {/* AVATAR */}
 
-            <div className="relative w-20 h-20">
+          <div className="flex flex-col items-center gap-4">
+
+            <div className="relative w-32 h-32">
 
               <img
                 src={
                   avatarUrl ||
                   "https://ui-avatars.com/api/?name=" + displayName
                 }
-                className="w-20 h-20 rounded-full object-cover border-4 border-white shadow"
+                className="w-32 h-32 rounded-full object-cover border shadow"
               />
 
-              <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-1.5 rounded-full cursor-pointer shadow">
+              <label className="absolute bottom-2 right-2 bg-blue-600 text-white p-2 rounded-full cursor-pointer shadow">
 
-                <Ionicons name="camera" size={14} />
+                <Ionicons name="camera" size={16} />
 
                 <input
                   type="file"
@@ -169,26 +218,68 @@ export default function SettingsPage() {
 
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4">
+          {/* PROFILE INFO */}
+
+          <div className="flex-1 grid grid-cols-2 gap-6">
 
             <div>
-              <label className="text-sm text-gray-500">Display Name</label>
+              <label className="text-sm text-gray-500">Name</label>
 
               <input
-                className="mt-1 w-full border rounded-lg px-3 py-2"
+                disabled={!editMode}
+                className="mt-1 w-full border rounded-lg px-3 py-2 disabled:bg-gray-100"
                 value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+                  setDisplayName(value);
+                }}
               />
-
             </div>
 
             <div>
               <label className="text-sm text-gray-500">Email</label>
 
               <input
-                disabled
-                className="mt-1 w-full border rounded-lg px-3 py-2 bg-gray-100"
+                type="email"
+                disabled={!editMode}
+                className="mt-1 w-full border rounded-lg px-3 py-2 disabled:bg-gray-100"
                 value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm text-gray-500">Contact Number</label>
+
+              <input
+                type="tel"
+                inputMode="numeric"
+                maxLength={15}
+                disabled={!editMode}
+                className="mt-1 w-full border rounded-lg px-3 py-2 disabled:bg-gray-100"
+                value={phone}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, "");
+                  setPhone(value);
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between mt-6">
+
+              <div>
+                <p className="text-sm font-medium text-gray-900">
+                  Email Notifications
+                </p>
+
+                <p className="text-xs text-gray-500">
+                  Receive alerts for important updates
+                </p>
+              </div>
+
+              <Toggle
+                value={emailNotifications}
+                onChange={(v) => setEmailNotifications(v)}
               />
 
             </div>
@@ -197,88 +288,70 @@ export default function SettingsPage() {
 
         </div>
 
-        {/* SECURITY */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-7 space-y-5">
+        {/* EDIT / SAVE BUTTON */}
 
-          <div className="flex items-center gap-3">
-            <Ionicons name="lock-closed-outline" size={20} />
-            <h2 className="font-semibold text-gray-900">Security</h2>
+        <div className="flex items-center justify-end gap-3">
+
+          {!editMode && (
+            <button
+              onClick={() => setEditMode(true)}
+              className="bg-gray-800 text-white px-6 py-2.5 rounded-lg hover:bg-gray-900 transition"
+            >
+              Edit Profile
+            </button>
+          )}
+
+          {editMode && (
+            <button
+              onClick={saveProfile}
+              disabled={saving}
+              className="bg-blue-600 text-white px-8 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition shadow"
+            >
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
+          )}
+
+        </div>
+
+        {message && (
+          <div className="text-sm text-green-600">
+            {message}
           </div>
+        )}
 
-          <div>
-            <label className="text-sm text-gray-500">Change Password</label>
+        {/* DANGER ZONE */}
+
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 space-y-4">
+
+          <h3 className="text-red-700 font-semibold">
+            Danger Zone
+          </h3>
+
+          <p className="text-sm text-red-600">
+            Permanently delete your account and all associated data.
+          </p>
+
+          <div className="max-w-sm">
+
+            <label className="text-sm text-gray-600">
+              Enter password to confirm
+            </label>
 
             <input
               type="password"
-              placeholder="New password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              placeholder="Your password"
               className="mt-1 w-full border rounded-lg px-3 py-2"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
             />
 
           </div>
-
-        </div>
-
-        {/* PREFERENCES */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-7 space-y-5">
-
-          <div className="flex items-center gap-3">
-            <Ionicons name="settings-outline" size={20} />
-            <h2 className="font-semibold text-gray-900">Preferences</h2>
-          </div>
-
-          <div className="flex items-center justify-between">
-
-            <div>
-              <p className="text-sm font-medium text-gray-900">
-                Email Notifications
-              </p>
-
-              <p className="text-xs text-gray-500">
-                Receive email alerts for important events
-              </p>
-            </div>
-
-            <Toggle
-              value={emailNotifications}
-              onChange={(v) => setEmailNotifications(v)}
-            />
-
-          </div>
-
-          <div className="flex items-center justify-between">
-
-            <div>
-              <p className="text-sm font-medium text-gray-900">
-                Dark Mode
-              </p>
-
-              <p className="text-xs text-gray-500">
-                Toggle dark interface theme
-              </p>
-            </div>
-
-            <Toggle
-              value={darkMode}
-              onChange={(v) => setDarkMode(v)}
-            />
-
-          </div>
-
-        </div>
-
-        {/* SAVE SECTION */}
-        <div className="flex items-center justify-between">
-
-          <div className="text-sm text-gray-500">{message}</div>
 
           <button
-            onClick={handleSave}
-            disabled={saving}
-            className="bg-blue-600 text-white px-8 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition shadow"
+            onClick={deleteAccount}
+            className="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition"
           >
-            {saving ? "Saving..." : "Save Changes"}
+            Permanently Delete Account
           </button>
 
         </div>

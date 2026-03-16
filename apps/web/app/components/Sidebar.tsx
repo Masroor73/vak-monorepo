@@ -2,6 +2,8 @@
 import { Link, usePathname, useRouter } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabase";
 
 type NavItem = {
   label: string;
@@ -29,7 +31,6 @@ const MAIN_NAV: NavItem[] = [
     href: "/swap-requests",
     icon: "swap-horizontal-outline",
     activeIcon: "swap-horizontal",
-    badge: 3,
   },
   {
     label: "Communication",
@@ -59,6 +60,21 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
   const { signOut } = useAuth();
 
+  const [swapCount, setSwapCount] = useState(0);
+
+  useEffect(() => {
+    loadSwapRequests();
+  }, []);
+
+  async function loadSwapRequests() {
+    const { data } = await supabase
+      .from("shift_swaps")
+      .select("id")
+      .in("status", ["PENDING", "MANAGER_REVIEW"]);
+
+    setSwapCount(data?.length || 0);
+  }
+
   const handleLogout = async () => {
     try {
       await signOut();
@@ -70,6 +86,8 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
   const NavLink = ({ item }: { item: NavItem }) => {
     const active = pathname === item.href;
+
+    const showSwapBadge = item.href === "/swap-requests" && swapCount > 0;
 
     return (
       <Link
@@ -101,9 +119,10 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           {item.label}
         </span>
 
-        {item.badge && (
+        {/* Dynamic Swap Badge */}
+        {showSwapBadge && (
           <span className="bg-auth-blue text-white text-[11px] font-bold rounded-full px-2 py-[2px] min-w-[22px] text-center leading-none">
-            {item.badge}
+            {swapCount}
           </span>
         )}
       </Link>
