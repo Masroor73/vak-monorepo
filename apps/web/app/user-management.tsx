@@ -5,7 +5,7 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import ManagerLayout from "./layouts/ManagerLayout";
 import { Profile } from "@vak/contract";
-import { Toggle } from "./components/Toggle";
+import Toggle from "./components/Toggle";
 import { useAuthGuard } from "../hooks/useAuthGuard";
 
 export default function UserManagement() {

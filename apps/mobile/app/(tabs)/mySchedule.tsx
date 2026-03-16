@@ -15,12 +15,14 @@ import { useShifts } from "../../hooks/useShifts";
 import SwapModal from "../../src/components/SwapModal";
 
 /* ───────── Helpers ───────── */
+
 const WEEKDAY_SHORT = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
 function buildWeekDays(anchorDate: Date) {
   const days: Date[] = [];
   const dow = anchorDate.getDay();
   const monday = new Date(anchorDate);
+
   monday.setDate(anchorDate.getDate() - ((dow + 6) % 7));
 
   for (let i = 0; i < 7; i++) {
@@ -41,6 +43,7 @@ function isSameLocalDate(d1: Date, d2: Date) {
 }
 
 /* ───────── Screen ───────── */
+
 export default function MySchedule() {
   const router = useRouter();
   const { user } = useAuth();
@@ -124,6 +127,7 @@ export default function MySchedule() {
 
       const newAnchor = new Date(today);
       newAnchor.setDate(today.getDate() + next * 7);
+
       const newWeekDays = buildWeekDays(newAnchor);
 
       setSelectedDate(next === 0 ? today : newWeekDays[0]);
@@ -158,6 +162,7 @@ export default function MySchedule() {
 
   return (
     <View className="flex-1 bg-brand-background">
+      {/* HEADER */}
       <View className="bg-brand-secondary pt-6 pb-16 px-5">
         <View className="flex-row items-center justify-between mb-5">
           <Pressable
@@ -172,44 +177,7 @@ export default function MySchedule() {
           </Text>
         </View>
 
-        <View className="flex-row items-center gap-4 mb-6 mt-3">
-          <View
-            className={`rounded-full px-5 py-2 border ${
-              weekType === "current"
-                ? "bg-brand-success/15 border-brand-success/30"
-                : weekType === "past"
-                ? "bg-red-500/15 border-red-500/30"
-                : "bg-yellow-200/20 border-yellow-300/40"
-            }`}
-          >
-            <Text
-              className={`text-xs font-semibold ${
-                weekType === "current"
-                  ? "text-brand-success"
-                  : weekType === "past"
-                  ? "text-red-400"
-                  : "text-yellow-300"
-              }`}
-            >
-              {weekType === "current"
-                ? "This Week"
-                : weekType === "past"
-                ? "Past Week"
-                : "Upcoming Week"}
-            </Text>
-          </View>
-
-          <View
-            className={`rounded-full px-5 py-2 border ${weekShiftPill.bg} ${weekShiftPill.border}`}
-          >
-            <Text className={`text-xs font-semibold ${weekShiftPill.text}`}>
-              {weekShiftCount > 0
-                ? `${weekShiftCount} shift${weekShiftCount !== 1 ? "s" : ""} this week`
-                : "No shifts this week"}
-            </Text>
-          </View>
-        </View>
-
+        {/* WEEK SELECTOR */}
         <View className="flex-row items-center">
           <Pressable
             onPress={() => changeWeek("prev")}
@@ -226,7 +194,6 @@ export default function MySchedule() {
           >
             {weekDays.map((day, i) => {
               const isSelected = isSameLocalDate(day, selectedDate);
-              const hasShift = getShiftsForDate(day).length > 0;
 
               return (
                 <Pressable
@@ -257,26 +224,6 @@ export default function MySchedule() {
                   >
                     {day.getDate()}
                   </Text>
-
-                  <View
-                    style={{
-                      height: 8,
-                      marginTop: 2,
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
-                  >
-                    {hasShift ? (
-                      <View
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: 4,
-                          backgroundColor: "#22c55e",
-                        }}
-                      />
-                    ) : null}
-                  </View>
                 </Pressable>
               );
             })}
@@ -305,17 +252,26 @@ export default function MySchedule() {
               })}
             </Text>
           </View>
+
+          <View
+            className={`mt-3 self-start rounded-full px-3 py-1 border ${weekShiftPill.bg} ${weekShiftPill.border}`}
+          >
+            <Text className={`text-xs font-semibold ${weekShiftPill.text}`}>
+              {weekShiftCount} {weekShiftCount === 1 ? "shift" : "shifts"} this
+              week
+            </Text>
+          </View>
         </View>
       </View>
 
-      <View className="-mt-8 flex-1">
+      {/* Shift Sheet */}
+      <View className="-mt-9 flex-1 px-2">
         <ScrollView
           className="flex-1"
           contentContainerStyle={{
             paddingHorizontal: 16,
             paddingBottom: 32,
           }}
-          showsVerticalScrollIndicator={false}
         >
           <View className="bg-white rounded-xl overflow-hidden shadow-xl">
             {selectedDayShifts.length === 0 ? (
@@ -328,8 +284,8 @@ export default function MySchedule() {
                 </Text>
               </View>
             ) : (
-              <View className="px-5 py-5 gap-3">
-                {selectedDayShifts.map((shift: Shift, index: number) => {
+              <View className="px-5 py-5 gap-5">
+                {selectedDayShifts.map((shift: Shift) => {
                   const start = new Date(shift.start_time).toLocaleTimeString(
                     [],
                     {
@@ -360,37 +316,24 @@ export default function MySchedule() {
                       </View>
 
                       <Pressable
-                        onPress={() =>
-                          router.push(`/(tabs)/shift/${shift.id}` as any)
-                        }
-                        className="bg-brand-secondaryLight rounded-2xl py-5 items-center justify-center flex-row gap-2 mt-3"
-                      >
-                        <Ionicons
-                          name="chevron-forward-outline"
-                          size={18}
-                          color="#ffffff"
-                        />
+                        onPress={() => router.push(`/(tabs)/shift/${shift.id}` as any)}
+                        className="bg-brand-secondaryLight rounded-xl py-5 items-center justify-center mt-5"
+>
                         <Text className="text-white font-bold text-sm tracking-widest uppercase">
                           View Details
-                        </Text>
-                      </Pressable>
+  </Text>
+</Pressable>
 
                       <Pressable
                         onPress={() => {
-                          setSelectedShiftId(shift.id ?? null);
-                          setSelectedShiftRole(shift.role_at_time_of_shift);
-                          setSwapVisible(true);
+                          // placeholder until swap modal is wired back in
                         }}
-                        className="bg-blue-500 rounded-2xl py-5 items-center justify-center mt-3"
+                        className="bg-blue-500 rounded-2xl py-5 items-center justify-center mt-2"
                       >
                         <Text className="text-white font-bold text-sm tracking-widest uppercase">
                           Request Swap
                         </Text>
                       </Pressable>
-
-                      {index < selectedDayShifts.length - 1 && (
-                        <View className="h-px bg-gray-100 mt-3" />
-                      )}
                     </View>
                   );
                 })}
