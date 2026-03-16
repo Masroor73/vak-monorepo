@@ -173,7 +173,7 @@ export default function ShiftDetails() {
                 <StatusBadge status={shift.status} />
 
                 {shift.id && (
-                  <Text className="text-xs text-gray-400 font-medium">
+                  <Text className="text-lg text-gray-800 font-medium">
                     #{String(shift.id).split("-")[1] ?? shift.id}
                   </Text>
                 )}
@@ -183,65 +183,65 @@ export default function ShiftDetails() {
                 {formatRole(shift.role_at_time_of_shift)}
               </Text>
 
-              <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
-                <Ionicons name="calendar-outline" size={16} color="#3b82f6" />
+              <View className="flex-row items-center gap-3 mb-4 bg-gray-50 rounded-lg px-4 py-3 border border-gray-400">
+                <Ionicons name="calendar-outline" size={20} color="#3b82f6" />
 
                 <View>
-                  <Text className="text-[10px] text-gray-400 font-semibold uppercase">
+                  <Text className="text-[13px] text-gray-600 font-semibold uppercase">
                     Date
                   </Text>
 
-                  <Text className="text-sm font-bold text-gray-800">
+                  <Text className="text-md font-bold text-gray-800">
                     {dateLabel}
                   </Text>
                 </View>
               </View>
 
-              <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
-                <Ionicons name="time-outline" size={16} color="#3b82f6" />
+              <View className="flex-row items-center gap-3 mb-4 bg-gray-50 rounded-lg px-4 py-3 border border-gray-400">
+                <Ionicons name="time-outline" size={20} color="#3b82f6" />
 
                 <View className="flex-1">
-                  <Text className="text-[10px] text-gray-400 font-semibold uppercase">
+                  <Text className="text-[13px] text-gray-600 font-semibold uppercase">
                     Time
                   </Text>
 
-                  <Text className="text-sm font-bold text-gray-800">
+                  <Text className="text-md font-bold text-gray-800">
                     {startTime} — {endTime}
                   </Text>
                 </View>
 
-                <Text className="text-xs text-gray-400 font-semibold">
+                <Text className="text-lg text-gray-800 font-semibold">
                   {duration}h
                 </Text>
               </View>
 
-              <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
-                <Ionicons name="location-outline" size={16} color="#3b82f6" />
+              <View className="flex-row items-center gap-3 mb-4 bg-gray-50 rounded-lg px-4 py-3 border border-gray-400">
+                <Ionicons name="location-outline" size={20} color="#3b82f6" />
 
                 <View>
-                  <Text className="text-[10px] text-gray-400 font-semibold uppercase">
+                  <Text className="text-[13px] text-gray-600 font-semibold uppercase">
                     Location
                   </Text>
 
-                  <Text className="text-sm font-bold text-gray-800">
+                  <Text className="text-md font-bold text-gray-800">
                     {shift.location_id}
                   </Text>
                 </View>
               </View>
 
-              <View className="flex-row items-center gap-3 mb-3 bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
+              <View className="flex-row items-center gap-3 mb-4 bg-gray-50 rounded-lg px-4 py-3 border border-gray-400">
                 <MaterialCommunityIcons
                   name="coffee-outline"
-                  size={16}
+                  size={20}
                   color="#3b82f6"
                 />
 
                 <View>
-                  <Text className="text-[10px] text-gray-400 font-semibold uppercase">
+                  <Text className="text-[13px] text-gray-600 font-semibold uppercase">
                     Unpaid Break
                   </Text>
 
-                  <Text className="text-sm font-bold text-gray-800">
+                  <Text className="text-md font-bold text-gray-800">
                     {shift.unpaid_break_minutes ?? 45} min
                   </Text>
                 </View>
