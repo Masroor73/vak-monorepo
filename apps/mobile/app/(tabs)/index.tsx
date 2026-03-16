@@ -160,9 +160,18 @@ export default function Index() {
             elevation: 6,
           }}
         >
-          <Pressable onPress={() => router.push("/(tabs)/mySchedule")}>
-            <Text className="text-blue-600 font-semibold">View Schedule</Text>
-          </Pressable>
+          <View className="flex-row items-center justify-between mb-3">
+            <View className="flex-row items-center gap-2">
+              <View className="w-2.5 h-2.5 rounded-full bg-brand-success" />
+              <Text className="text-xs font-bold text-gray-500 tracking-widest uppercase">
+                Today's Shift
+              </Text>
+            </View>
+
+            <Pressable onPress={() => router.push("/(tabs)/mySchedule" as any)}>
+              <Text className="text-blue-600 font-semibold text-sm">View Schedule</Text>
+            </Pressable>
+          </View>
 
           {hasShiftToday && todayShift ? (
             <>
