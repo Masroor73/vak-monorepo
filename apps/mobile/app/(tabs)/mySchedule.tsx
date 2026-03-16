@@ -349,12 +349,12 @@ export default function MySchedule() {
           <View className="bg-white rounded-xl overflow-hidden shadow-xl">
             {selectedDayShifts.length === 0 ? (
               <View className="px-5 py-10 items-center">
-                <Text className="text-base font-bold text-gray-800 text-center">
+                <Text className="text-xl font-bold text-gray-800 text-center">
                   No shifts scheduled
                 </Text>
 
-                <Text className="text-xs text-gray-400 text-center mt-2">
-                  Enjoy your day off — nothing on the clock!
+                <Text className="text-lg text-gray-400 text-center mt-2">
+                  Enjoy your day off! nothing on the clock!
                 </Text>
               </View>
             ) : (
