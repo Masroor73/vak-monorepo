@@ -1,19 +1,32 @@
 import { useMemo } from "react";
-import { View, Text, Alert, Pressable, ScrollView } from "react-native";
-import { MOCK_USER, MOCK_SHIFTS } from "../../constants/mockData";
+import {
+  View,
+  Text,
+  Alert,
+  Pressable,
+  ScrollView,
+  ActivityIndicator,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { ShiftStatusCard } from "@vak/ui";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import ClockInButton from "../../src/components/ClockInButton";
+import { useAuth } from "../../context/AuthContext";
+import { useShifts } from "../../hooks/useShifts";
 
 export default function Index() {
   const router = useRouter();
   const now = new Date();
+  const { user } = useAuth();
+  const { data: shifts, isLoading, isError, error } = useShifts(user?.id);
 
   const firstName = useMemo(() => {
-    const full = MOCK_USER.full_name || "";
+    const full =
+      user?.user_metadata?.full_name ||
+      user?.email ||
+      "";
     return full.trim().split(" ")[0] || "User";
-  }, []);
+  }, [user]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -29,20 +42,26 @@ export default function Index() {
   });
 
   const todayShift = useMemo(() => {
-    const base = MOCK_SHIFTS[0];
+    const liveShifts = shifts ?? [];
+    const today = new Date();
+
+    const base = liveShifts.find((shift) => {
+      const shiftDate = new Date(shift.start_time);
+      return (
+        shiftDate.getFullYear() === today.getFullYear() &&
+        shiftDate.getMonth() === today.getMonth() &&
+        shiftDate.getDate() === today.getDate()
+      );
+    });
+
     if (!base) return null;
 
-    const shiftStart = new Date(base.start_time);
-    const shiftEnd = new Date(base.end_time);
-
-    const start = new Date();
-    start.setHours(shiftStart.getHours(), shiftStart.getMinutes(), 0, 0);
-
-    const end = new Date();
-    end.setHours(shiftEnd.getHours(), shiftEnd.getMinutes(), 0, 0);
-
-    return { ...base, _start: start, _end: end };
-  }, []);
+    return {
+      ...base,
+      _start: new Date(base.start_time),
+      _end: new Date(base.end_time),
+    };
+  }, [shifts]);
 
   const hasShiftToday = !!todayShift;
 
@@ -51,6 +70,30 @@ export default function Index() {
       hour: "numeric",
       minute: "2-digit",
     });
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-brand-background">
+        <ActivityIndicator size="large" color="#063386" />
+        <Text className="mt-4 text-gray-500 font-medium">
+          Loading home screen...
+        </Text>
+      </View>
+    );
+  }
+
+  if (isError) {
+    return (
+      <View className="flex-1 items-center justify-center bg-brand-background px-4">
+        <Text className="text-center text-red-500 font-bold text-lg">
+          Error loading home screen
+        </Text>
+        <Text className="mt-2 text-sm text-gray-500 text-center">
+          {String(error?.message ?? error)}
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView className="flex-1 bg-brand-background">
@@ -67,7 +110,6 @@ export default function Index() {
             opacity: 0.55,
           }}
         />
-
         <View
           style={{
             position: "absolute",
@@ -96,7 +138,6 @@ export default function Index() {
                 <Text className="text-[21px] font-bold text-white tracking-[0.2px]">
                   {firstName}
                 </Text>
-
                 <MaterialCommunityIcons
                   name="hand-wave"
                   size={22}
@@ -110,7 +151,6 @@ export default function Index() {
           <View className="flex-row flex-wrap gap-5 ml-2">
             <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2 gap-1.5">
               <Ionicons name="calendar-outline" size={12} color="red" />
-
               <Text className="text-white/65 text-[11px] font-medium">
                 {topDate}
               </Text>
@@ -118,7 +158,6 @@ export default function Index() {
 
             <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2 gap-1.5">
               <Ionicons name="cloud" size={12} color="white" />
-
               <Text className="text-white/65 text-[11px] font-medium">
                 15°C
               </Text>
@@ -141,13 +180,12 @@ export default function Index() {
                     : "rgba(255,255,255,0.35)",
                 }}
               />
-
               <Text
                 className={`text-[11px] font-semibold ${
                   hasShiftToday ? "text-brand-success" : "text-white/65"
                 }`}
               >
-                {hasShiftToday ? "1 shift today" : "No shifts"}
+                {hasShiftToday ? "Shift today" : "No shifts"}
               </Text>
             </View>
           </View>
@@ -168,15 +206,12 @@ export default function Index() {
           <View className="flex-row items-center justify-between mb-3">
             <View className="flex-row items-center gap-2">
               <View className="w-2.5 h-2.5 rounded-full bg-brand-success" />
-
               <Text className="text-xs font-bold text-gray-500 tracking-widest uppercase">
                 Today's Shift
               </Text>
             </View>
 
-            <Pressable
-              onPress={() => router.push("/(tabs)/mySchedule" as any)}
-            >
+            <Pressable onPress={() => router.push("/(tabs)/mySchedule" as any)}>
               <Text className="text-blue-600 font-semibold text-sm">
                 View Schedule
               </Text>
@@ -187,9 +222,9 @@ export default function Index() {
             <>
               <ShiftStatusCard
                 title="Morning Shift"
-                subtitle={`${formatTime(
-                  todayShift._start
-                )} — ${formatTime(todayShift._end)}`}
+                subtitle={`${formatTime(todayShift._start)} — ${formatTime(
+                  todayShift._end
+                )}`}
               />
 
               <View
@@ -201,13 +236,17 @@ export default function Index() {
                 }}
               >
                 <ClockInButton
-                  userId={MOCK_USER.id}
+                  userId={user?.id || ""}
                   shiftId={todayShift.id || "demo-shift"}
                   onDone={() => {
                     Alert.alert("Clock in successful");
                   }}
                 />
               </View>
+
+              <Text style={{ marginTop: 10, color: "#9CA3AF" }}>
+                You have 0 incomplete tasks
+              </Text>
             </>
           ) : (
             <View className="items-center py-6 gap-3">
@@ -218,6 +257,7 @@ export default function Index() {
               <Text className="text-[15px] font-bold text-gray-800">
                 No shift today
               </Text>
+
               <Text className="text-[12px] text-gray-400 text-center px-6">
                 You're off the clock — enjoy your time off!
               </Text>
