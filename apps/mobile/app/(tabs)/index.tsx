@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -20,13 +20,49 @@ export default function Index() {
   const { user } = useAuth();
   const { data: shifts, isLoading, isError, error } = useShifts(user?.id);
 
+  const [temperature, setTemperature] = useState<string>("--°C");
+  const [isWeatherLoading, setIsWeatherLoading] = useState(true);
+  const [isClockedIn, setIsClockedIn] = useState(false);
+
   const firstName = useMemo(() => {
-    const full =
-      user?.user_metadata?.full_name ||
-      user?.email ||
-      "";
+    const full = user?.user_metadata?.full_name || user?.email || "";
     return full.trim().split(" ")[0] || "User";
   }, [user]);
+
+  useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        setIsWeatherLoading(true);
+
+        const latitude = 51.0447;
+        const longitude = -114.0719;
+
+        const response = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&temperature_unit=celsius&timezone=auto`
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch weather");
+        }
+
+        const data = await response.json();
+        const temp = data?.current?.temperature_2m;
+
+        if (typeof temp === "number") {
+          setTemperature(`${Math.round(temp)}°C`);
+        } else {
+          setTemperature("--°C");
+        }
+      } catch (err) {
+        console.error("Weather fetch error:", err);
+        setTemperature("--°C");
+      } finally {
+        setIsWeatherLoading(false);
+      }
+    };
+
+    fetchWeather();
+  }, []);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -70,6 +106,16 @@ export default function Index() {
       hour: "numeric",
       minute: "2-digit",
     });
+
+  const handleClockInDone = () => {
+    setIsClockedIn(true);
+    Alert.alert("Clock in successful");
+  };
+
+  const handleClockOut = () => {
+    setIsClockedIn(false);
+    Alert.alert("Clock out successful");
+  };
 
   if (isLoading) {
     return (
@@ -159,7 +205,7 @@ export default function Index() {
             <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2 gap-1.5">
               <Ionicons name="cloud" size={12} color="white" />
               <Text className="text-white/65 text-[11px] font-medium">
-                15°C
+                {isWeatherLoading ? "Loading..." : temperature}
               </Text>
             </View>
 
@@ -235,13 +281,31 @@ export default function Index() {
                   backgroundColor: "#F8FAFC",
                 }}
               >
-                <ClockInButton
-                  userId={user?.id || ""}
-                  shiftId={todayShift.id || "demo-shift"}
-                  onDone={() => {
-                    Alert.alert("Clock in successful");
-                  }}
-                />
+                {!isClockedIn ? (
+                  <ClockInButton
+                    userId={user?.id || ""}
+                    shiftId={todayShift.id || "demo-shift"}
+                    onDone={handleClockInDone}
+                  />
+                ) : (
+                  <View>
+                    <View className="flex-row items-center mb-4">
+                      <View className="w-2.5 h-2.5 rounded-full bg-green-500 mr-2" />
+                      <Text className="text-green-600 font-semibold text-base">
+                        You are currently clocked in
+                      </Text>
+                    </View>
+
+                    <Pressable
+                      onPress={handleClockOut}
+                      className="bg-red-500 rounded-xl py-4 items-center justify-center"
+                    >
+                      <Text className="text-white font-bold text-base">
+                        Clock Out
+                      </Text>
+                    </Pressable>
+                  </View>
+                )}
               </View>
 
               <Text style={{ marginTop: 10, color: "#9CA3AF" }}>
