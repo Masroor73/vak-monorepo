@@ -208,10 +208,6 @@ export default function Index() {
                   }}
                 />
               </View>
-
-              <Text style={{ marginTop: 10, color: "#9CA3AF" }}>
-                You have 0 incomplete tasks
-              </Text>
             </>
           ) : (
             <View className="items-center py-6 gap-3">
