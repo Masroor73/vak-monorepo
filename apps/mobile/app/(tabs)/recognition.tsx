@@ -1,6 +1,6 @@
 // apps/mobile/app/(tabs)/recognition.tsx
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   RefreshControl,
   Image,
 } from "react-native";
-import { supabase } from "../lib/supabase";
+import { supabase } from "../../lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Feather } from "@expo/vector-icons";
 

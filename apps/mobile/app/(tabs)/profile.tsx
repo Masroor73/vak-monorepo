@@ -33,11 +33,6 @@ const Profile = () => {
       onPress: () => router.push("/availability"),
     },
     {
-      icon: "trophy-outline",
-      label: "Recognition",
-      onPress: () => router.push("/recognition"),
-    },
-    {
       icon: "globe-outline",
       label: "Location",
       onPress: () => {},
