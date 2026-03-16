@@ -74,11 +74,14 @@ export default function SettingsPage() {
     const file = e.target.files[0];
     if (!file) return;
 
-    const filePath = `avatars/${user.id}-${Date.now()}`;
+    const fileExt = file.name.split(".").pop();
+    const filePath = `avatars/${user.id}.${fileExt}`;
 
     const { error } = await supabase.storage
       .from("avatars")
-      .upload(filePath, file);
+      .upload(filePath, file, {
+        upsert: true
+      });
 
     if (error) {
       alert(error.message);
@@ -89,11 +92,13 @@ export default function SettingsPage() {
       .from("avatars")
       .getPublicUrl(filePath);
 
-    setAvatarUrl(data.publicUrl);
+    const newAvatarUrl = data.publicUrl;
+
+    setAvatarUrl(newAvatarUrl);
 
     await supabase
       .from("profiles")
-      .update({ avatar_url: data.publicUrl })
+      .update({ avatar_url: newAvatarUrl })
       .eq("id", user.id);
   }
 
@@ -174,8 +179,6 @@ export default function SettingsPage() {
     <ManagerLayout>
       <div className="max-w-6xl mx-auto space-y-8">
 
-        {/* HEADER */}
-
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
           <p className="text-sm text-gray-500">
@@ -183,11 +186,7 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        {/* PROFILE CARD */}
-
         <div className="bg-white rounded-xl shadow-sm border p-8 flex gap-10">
-
-          {/* AVATAR */}
 
           <div className="flex flex-col items-center gap-4">
 
@@ -217,8 +216,6 @@ export default function SettingsPage() {
             </div>
 
           </div>
-
-          {/* PROFILE INFO */}
 
           <div className="flex-1 grid grid-cols-2 gap-6">
 
@@ -288,8 +285,6 @@ export default function SettingsPage() {
 
         </div>
 
-        {/* EDIT / SAVE BUTTON */}
-
         <div className="flex items-center justify-end gap-3">
 
           {!editMode && (
@@ -318,8 +313,6 @@ export default function SettingsPage() {
             {message}
           </div>
         )}
-
-        {/* DANGER ZONE */}
 
         <div className="bg-red-50 border border-red-200 rounded-xl p-6 space-y-4">
 
