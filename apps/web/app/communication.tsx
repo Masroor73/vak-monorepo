@@ -3,6 +3,10 @@ import ManagerLayout from "./layouts/ManagerLayout";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 
+/* ================================
+   TYPES
+================================ */
+
 type Profile = {
   id: string;
   full_name: string;
@@ -35,12 +39,23 @@ export default function Communication() {
   const [recognitions,setRecognitions] = useState<Recognition[]>([]);
   const [announcements,setAnnouncements] = useState<Notification[]>([]);
 
+  const [showHistory,setShowHistory] = useState(false);
+
   const [selectedEmployee,setSelectedEmployee] = useState("");
   const [badge,setBadge] = useState("");
   const [message,setMessage] = useState("");
 
   const [announcementMessage,setAnnouncementMessage] = useState("");
   const [target,setTarget] = useState("ALL");
+
+  /* NEW STATE FOR MULTIPLE EMPLOYEES */
+  const [selectedEmployees,setSelectedEmployees] = useState<string[]>([]);
+
+  /* ================================
+     TEXT SIZE CONTROL
+  ================================= */
+
+  const [textSize,setTextSize] = useState("text-sm");
 
   useEffect(()=>{
     loadEmployees();
@@ -78,6 +93,10 @@ export default function Communication() {
     setAnnouncements(data || []);
   }
 
+  /* ================================
+     SEND RECOGNITION
+  ================================= */
+
   async function sendRecognition(){
 
     if(!selectedEmployee || !badge || !message) return;
@@ -98,18 +117,42 @@ export default function Communication() {
     loadRecognitions();
   }
 
+  /* ================================
+     SEND ANNOUNCEMENT
+  ================================= */
+
   async function sendAnnouncement(){
 
     if(!announcementMessage) return;
 
-    await supabase
-      .from("notifications")
-      .insert({
-        message:announcementMessage,
-        target:target
-      });
+    if(target === "SPECIFIC"){
+
+      for(const empId of selectedEmployees){
+
+        await supabase
+          .from("notifications")
+          .insert({
+            message:announcementMessage,
+            target:"SPECIFIC",
+            receiver_id: empId
+          });
+
+      }
+
+    }else{
+
+      await supabase
+        .from("notifications")
+        .insert({
+          message:announcementMessage,
+          target:target
+        });
+
+    }
 
     setAnnouncementMessage("");
+    setSelectedEmployees([]);
+
     loadAnnouncements();
   }
 
@@ -126,7 +169,7 @@ export default function Communication() {
 
         <h1 className="text-2xl font-bold">Communication</h1>
 
-        {/* TABS */}
+        {/* TAB NAVIGATION */}
 
         <div className="flex gap-4 border-b pb-2">
 
@@ -146,7 +189,9 @@ export default function Communication() {
 
         </div>
 
-        {/* ANNOUNCEMENTS TAB */}
+        {/* ================================
+           ANNOUNCEMENTS TAB
+        ================================= */}
 
         {activeTab==="announcements" && (
 
@@ -190,9 +235,33 @@ export default function Communication() {
 
             </div>
 
+            {/* MULTIPLE EMPLOYEE SELECTOR */}
+
+            {target === "SPECIFIC" && (
+
+              <select
+                multiple
+                value={selectedEmployees}
+                onChange={(e)=>{
+                  const values = Array.from(e.target.selectedOptions,option=>option.value);
+                  setSelectedEmployees(values);
+                }}
+                className="w-full border rounded-lg p-2 h-32"
+              >
+
+                {employees.map(emp=>(
+                  <option key={emp.id} value={emp.id}>
+                    {emp.full_name ? `${emp.full_name} (${emp.email})` : emp.email}
+                  </option>
+                ))}
+
+              </select>
+
+            )}
+
             <button
               onClick={sendAnnouncement}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+              className="bg-black text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
             >
               Send Announcement
             </button>
@@ -207,13 +276,13 @@ export default function Communication() {
 
         )}
 
-        {/* RECOGNITION TAB */}
+        {/* ================================
+           RECOGNITION TAB
+        ================================= */}
 
         {activeTab==="recognition" && (
 
           <div className="space-y-4">
-
-            {/* EMPLOYEE DROPDOWN */}
 
             <select
               value={selectedEmployee}
@@ -230,7 +299,7 @@ export default function Communication() {
 
             </select>
 
-            {/* EMOJI PICKER */}
+            {/* BADGE SELECTOR */}
 
             <div className="flex gap-3 text-xl">
               {["⭐","🏆","💪","🎯","🤝","🌟"].map((emoji) => (
@@ -246,23 +315,54 @@ export default function Communication() {
               ))}
             </div>
 
+            {/* TEXT SIZE CONTROL */}
+
+            <div>
+              <label className="text-sm text-gray-600 mr-2">Text Size</label>
+              <select
+                onChange={(e)=>setTextSize(e.target.value)}
+                className="border rounded-md px-2 py-1 text-sm"
+              >
+                <option value="text-sm">Small</option>
+                <option value="text-base">Normal</option>
+                <option value="text-lg">Large</option>
+              </select>
+            </div>
+
+            {/* FIXED TEXTBOX WITH SCROLL */}
+
             <textarea
               placeholder="Write recognition message..."
               value={message}
               onChange={(e)=>setMessage(e.target.value)}
-              className="w-full border rounded-lg p-3"
+              rows={3}
+              className={`w-full border rounded-lg p-3 resize-none overflow-y-auto max-h-24 ${textSize}`}
             />
 
-            <button
-              onClick={sendRecognition}
-              className="bg-black text-white px-4 py-2 rounded-lg"
-            >
-              Send Recognition
-            </button>
+            {/* BUTTONS */}
 
-            {/* RECOGNITION LIST */}
+            <div className="flex gap-3">
 
-            {recognitions.map(r=>(
+              <button
+                onClick={sendRecognition}
+                className="w-48 bg-black text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              >
+                Send Recognition
+              </button>
+
+              <button
+                onClick={()=>setShowHistory(!showHistory)}
+                className="w-48 bg-black text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              >
+                {showHistory ? "Hide Past Recognitions" : "See Past Recognitions"}
+              </button>
+
+            </div>
+
+            {/* HISTORY */}
+
+            {showHistory && recognitions.map(r=>(
+
               <div key={r.id} className="border rounded-lg p-4 space-y-1">
 
                 <div className="font-medium">
@@ -273,7 +373,12 @@ export default function Communication() {
                   Sent to: {getEmployeeName(r.receiver_id)}
                 </div>
 
+                <div className="text-xs text-gray-400">
+                  {new Date(r.created_at).toLocaleString()}
+                </div>
+
               </div>
+
             ))}
 
           </div>
