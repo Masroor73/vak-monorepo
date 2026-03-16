@@ -202,7 +202,7 @@ export default function MySchedule() {
             }`}
           >
             <Text
-              className={`text-xs font-semibold ${
+              className={`text-md font-semibold ${
                 weekType === "current"
                   ? "text-brand-success"
                   : weekType === "past"
@@ -221,7 +221,7 @@ export default function MySchedule() {
           <View
             className={`rounded-full px-5 py-2 border ${weekShiftPill.bg} ${weekShiftPill.border}`}
           >
-            <Text className={`text-xs font-semibold ${weekShiftPill.text}`}>
+            <Text className={`text-md font-semibold ${weekShiftPill.text}`}>
               {weekShiftCount > 0
                 ? `${weekShiftCount} shift${
                     weekShiftCount !== 1 ? "s" : ""
@@ -243,7 +243,7 @@ export default function MySchedule() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 6 }}
+            contentContainerStyle={{ gap: 7 }}
             className="flex-1"
           >
             {weekDays.map((day, i) => {
@@ -254,7 +254,7 @@ export default function MySchedule() {
                 <Pressable
                   key={day.toDateString()}
                   onPress={() => setSelectedDate(day)}
-                  className={`items-center rounded-2xl min-w-[44px] ${
+                  className={`items-center rounded-xl min-w-[44px] ${
                     isSelected ? "bg-white" : "bg-white/10"
                   }`}
                   style={{
@@ -322,10 +322,10 @@ export default function MySchedule() {
 
         {/* Selected Day */}
         <View className="mt-6">
-          <View className="flex-row items-center gap-2">
+          <View className="flex-row items-center gap-3">
             <View className="w-2 h-2 rounded-full bg-brand-primary" />
 
-            <Text className="text-xs font-bold text-white tracking-widest uppercase">
+            <Text className="text-md font-bold text-white tracking-widest uppercase">
               {selectedDate.toLocaleDateString([], {
                 weekday: "long",
                 month: "short",
@@ -376,16 +376,16 @@ export default function MySchedule() {
 
                   return (
                     <View key={shift.id}>
-                      <View className="bg-gray-50 rounded-2xl px-4 py-4 border border-gray-200">
-                        <Text className="text-base font-bold text-gray-800">
+                      <View className="bg-gray-50 rounded p-5 border border-gray-400 mb-5">
+                        <Text className="text-xl font-bold text-gray-800">
                           {shift.role_at_time_of_shift}
                         </Text>
 
-                        <Text className="text-xs text-gray-400 mt-0.5">
+                        <Text className="text-lg text-gray-600 mt-0.5">
                           {shift.location_id}
                         </Text>
 
-                        <Text className="text-sm text-gray-500 mt-1 font-medium">
+                        <Text className="text-lg text-gray-500 mt-1 font-medium">
                           {start} — {end}
                         </Text>
                       </View>
