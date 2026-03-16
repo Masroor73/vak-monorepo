@@ -226,6 +226,7 @@ export default function ShiftDetails() {
                   </Text>
                 </View>
               </View>
+
               
             </View>
           </View>
