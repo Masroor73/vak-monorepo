@@ -63,33 +63,31 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
     (async () => {
       await requestPermission();
 
-      const { status } =
-        await Location.requestForegroundPermissionsAsync();
+      const { status } = await Location.requestForegroundPermissionsAsync();
 
       setHasLocationPerm(status === "granted");
 
       if (status === "granted") {
-        locationWatcher.current =
-          await Location.watchPositionAsync(
-            {
-              accuracy: Location.Accuracy.High,
-              distanceInterval: 1,
-            },
-            (loc: any) => {
-              const coords = loc.coords;
+        locationWatcher.current = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.High,
+            distanceInterval: 1,
+          },
+          (loc: any) => {
+            const coords = loc.coords;
 
-              setLocation(coords);
+            setLocation(coords);
 
-              const dist = calculateDistance(
-                coords.latitude,
-                coords.longitude,
-                RESTAURANT_LAT,
-                RESTAURANT_LNG
-              );
+            const dist = calculateDistance(
+              coords.latitude,
+              coords.longitude,
+              RESTAURANT_LAT,
+              RESTAURANT_LNG
+            );
 
-              setDistance(Math.round(dist));
-            }
-          );
+            setDistance(Math.round(dist));
+          }
+        );
       }
     })();
 
@@ -121,7 +119,6 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
 
       const timestamp = Date.now();
 
-      // ✅ RLS SAFE PATH
       const path = `${userId}/${timestamp}.jpg`;
 
       const { error: uploadError } = await supabase.storage
@@ -183,11 +180,7 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
       {distance !== null && distance <= ALLOWED_RADIUS ? (
         <>
           {!previewUri ? (
-            <CameraView
-              ref={cameraRef}
-              style={styles.camera}
-              facing="front"
-            >
+            <CameraView ref={cameraRef} style={styles.camera} facing="front">
               <TouchableOpacity
                 style={styles.captureButton}
                 onPress={takePicture}
@@ -197,15 +190,10 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
             </CameraView>
           ) : (
             <>
-              <Image
-                source={{ uri: previewUri }}
-                style={styles.preview}
-              />
+              <Image source={{ uri: previewUri }} style={styles.preview} />
 
               <View style={styles.actionRow}>
-                <TouchableOpacity
-                  onPress={() => setPreviewUri(null)}
-                >
+                <TouchableOpacity onPress={() => setPreviewUri(null)}>
                   <Text style={styles.cancel}>Retake</Text>
                 </TouchableOpacity>
 
@@ -221,9 +209,7 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
           )}
         </>
       ) : (
-        <Text style={styles.tooFar}>
-          Walk closer to workplace
-        </Text>
+        <Text style={styles.tooFar}>Walk closer to workplace</Text>
       )}
     </View>
   );
