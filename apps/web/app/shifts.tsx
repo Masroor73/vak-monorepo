@@ -104,7 +104,33 @@ export default function ShiftsPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!isManager) { router.replace("/"); return; }
+    
+    // Initial fetch
     fetchData();
+
+    // Subscribe to realtime changes on the shifts table
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen for INSERT, UPDATE, and DELETE
+          schema: 'public',
+          table: 'shifts',
+        },
+        () => {
+          // Whenever a shift is changed (even from the mobile app), 
+          // instantly refetch the grid data without reloading the page.
+          console.log("Realtime event received! Refreshing shifts...");
+          fetchShifts(); 
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [authLoading, isManager, weekStart]);
 
   const fetchData = async () => {
