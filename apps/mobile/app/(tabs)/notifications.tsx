@@ -18,10 +18,10 @@ export type Notification = {
 }
 
 const TYPE_CONFIG = {
-  SHIFT_PUBLISHED: { icon: 'calendar', color: '#0d1b3e', bg: '#eef2ff' },
-  SWAP_REQUEST:    { icon: 'repeat',   color: '#D97706', bg: '#FEF3C7' },
-  SWAP_APPROVED:   { icon: 'check-circle', color: '#059669', bg: '#D1FAE5' },
-  GENERAL:         { icon: 'bell',     color: '#6B7280', bg: '#F3F4F6' },
+  SHIFT_PUBLISHED: { icon: 'calendar',     color: '#0d1b3e', bg: '#c7d0f0' },
+  SWAP_REQUEST:    { icon: 'repeat',        color: '#92400E', bg: '#FDE68A' },
+  SWAP_APPROVED:   { icon: 'check-circle',  color: '#065F46', bg: '#A7F3D0' },
+  GENERAL:         { icon: 'bell',          color: '#1F2937', bg: '#E5E7EB' },
 } as const
 
 function formatTime(dateStr: string): string {
@@ -102,30 +102,36 @@ export default function NotificationsScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#0d1b3e" />
       <SafeAreaView className="flex-1 bg-brand-background" edges={['bottom']}>
 
-        {/* Header */}
-<View className="bg-brand-secondary px-5 py-6 flex-row items-center">
-  <Pressable
-    onPress={() => router.back()}
-    className="w-10 h-10 rounded-full bg-white/10 items-center justify-center"
-  >
-    <WhiteArrow width={16} height={16} />
-  </Pressable>
+        {/* Header — title only, no mark all read */}
+        <View className="bg-brand-secondary px-5 py-6 flex-row items-center">
+          <Pressable
+            onPress={() => router.back()}
+            className="w-10 h-10 rounded-full bg-white/10 items-center justify-center"
+          >
+            <WhiteArrow width={16} height={16} />
+          </Pressable>
 
-  <Text className="text-white text-[17px] font-medium flex-1 text-center mr-10">
-    Notifications
-  </Text>
+          <Text className="text-white text-[17px] font-medium flex-1 text-center mr-10">
+            Notifications
+          </Text>
+        </View>
 
-  {unreadCount > 0 && (
-    <TouchableOpacity onPress={markAllAsRead} activeOpacity={0.7}>
-      <Text className="text-brand-primary text-[12px] font-medium">
-        Mark all read
-      </Text>
-    </TouchableOpacity>
-  )}
-</View>
-
+        {/* Tab selector + Mark all read row */}
         <View className="px-4 pt-4 pb-2">
           <TabSelector active={active} setActive={setActive} />
+
+          {unreadCount > 0 && (
+            <TouchableOpacity
+              onPress={markAllAsRead}
+              activeOpacity={0.7}
+              className="flex-row items-center gap-2 mt-3 self-end"
+            >
+              <Feather name="check-square" size={15} color="#0d1b3e" />
+              <Text className="text-[13px] font-semibold text-brand-secondary">
+                Mark all as read ({unreadCount})
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {loading ? (
@@ -179,23 +185,23 @@ function NotificationCard({
     >
       {/* Icon */}
       <View
-        className="w-10 h-10 rounded-xl items-center justify-center mt-0.5 flex-shrink-0"
+        className="w-11 h-11 rounded-xl items-center justify-center mt-0.5 flex-shrink-0"
         style={{ backgroundColor: config.bg }}
       >
-        <Feather name={config.icon as any} size={18} color={config.color} />
+        <Feather name={config.icon as any} size={20} color={config.color} />
       </View>
 
       {/* Content */}
       <View className="flex-1">
         <View className="flex-row items-start justify-between gap-2 mb-1">
-          <Text className="text-[13px] font-semibold text-brand-secondary flex-1">
+          <Text className="text-[15px] font-bold text-gray-900 flex-1">
             {notification.title}
           </Text>
-          <Text className="text-[11px] text-gray-400 flex-shrink-0">
+          <Text className="text-[12px] text-gray-500 flex-shrink-0 font-medium">
             {formatTime(notification.created_at)}
           </Text>
         </View>
-        <Text className="text-[13px] text-gray-500 leading-5">
+        <Text className="text-[14px] text-gray-700 leading-5 font-medium">
           {notification.message}
         </Text>
 
@@ -203,7 +209,7 @@ function NotificationCard({
         {!notification.is_read && (
           <View className="flex-row items-center gap-1 mt-2">
             <View className="w-1.5 h-1.5 rounded-full bg-brand-primary" />
-            <Text className="text-[11px] text-brand-primary font-medium">Unread</Text>
+            <Text className="text-[12px] text-brand-primary font-semibold">Unread</Text>
           </View>
         )}
       </View>

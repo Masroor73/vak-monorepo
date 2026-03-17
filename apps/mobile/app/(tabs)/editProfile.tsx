@@ -169,6 +169,14 @@ export default function EditProfileScreen() {
     )
   }
 
+  const cardShadow = {
+    shadowColor: '#0d1b3e',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 8,
+  }
+
   return (
     <>
       <StatusBar barStyle="light-content" backgroundColor="#0d1b3e" />
@@ -200,11 +208,12 @@ export default function EditProfileScreen() {
               </View>
 
               {/* Avatar card */}
-              <View className="mx-4 mt-4">
+              <View className="mx-4 mt-8">
                 <TouchableOpacity
                   onPress={() => setShowPhotoPicker(!showPhotoPicker)}
                   activeOpacity={0.8}
                   className="bg-white rounded-2xl p-3.5 flex-row items-center gap-3.5"
+                  style={cardShadow}
                   disabled={uploadingPhoto}
                 >
                   <View className="w-14 h-14 rounded-full bg-brand-secondary items-center justify-center">
@@ -224,10 +233,10 @@ export default function EditProfileScreen() {
                     )}
                   </View>
                   <View className="flex-1">
-                    <Text className="text-[15px] font-semibold text-brand-secondary">
+                    <Text className="text-[16px] font-bold text-gray-900">
                       {watchedFullName || '—'}
                     </Text>
-                    <Text className={`text-[12px] mt-0.5 ${uploadingPhoto ? 'text-brand-primary' : 'text-gray-400'}`}>
+                    <Text className={`text-[13px] mt-0.5 ${uploadingPhoto ? 'text-brand-primary' : 'text-gray-600'}`}>
                       {uploadingPhoto ? 'Uploading photo...' : 'Tap to change photo'}
                     </Text>
                   </View>
@@ -246,7 +255,7 @@ export default function EditProfileScreen() {
 
                 {/* Inline picker */}
                 {showPhotoPicker && !uploadingPhoto && (
-                  <View className="mt-2 bg-white rounded-2xl overflow-hidden border border-gray-100">
+                  <View className="mt-2 bg-white rounded-2xl overflow-hidden border border-gray-100" style={cardShadow}>
                     <TouchableOpacity
                       onPress={() => { setShowPhotoPicker(false); pickImage('camera') }}
                       activeOpacity={0.7}
@@ -256,8 +265,8 @@ export default function EditProfileScreen() {
                         <Feather name="camera" size={16} color="#fff" />
                       </View>
                       <View className="flex-1">
-                        <Text className="text-[14px] font-semibold text-gray-900">Take a photo</Text>
-                        <Text className="text-[12px] text-gray-400 mt-0.5">Use your camera</Text>
+                        <Text className="text-[15px] font-bold text-gray-900">Take a photo</Text>
+                        <Text className="text-[13px] text-gray-600 mt-0.5">Use your camera</Text>
                       </View>
                       <Feather name="chevron-right" size={15} color="#c0c0c0" />
                     </TouchableOpacity>
@@ -271,10 +280,10 @@ export default function EditProfileScreen() {
                     >
                       <View className="w-9 h-9 rounded-[10px] bg-brand-secondary items-center justify-center">
                         <Feather name="image" size={16} color="#fff" />
-                      </View>
+                      </View>s
                       <View className="flex-1">
-                        <Text className="text-[14px] font-semibold text-gray-900">Choose from library</Text>
-                        <Text className="text-[12px] text-gray-400 mt-0.5">Pick an existing photo</Text>
+                        <Text className="text-[15px] font-bold text-gray-900">Choose from library</Text>
+                        <Text className="text-[13px] text-gray-600 mt-0.5">Pick an existing photo</Text>
                       </View>
                       <Feather name="chevron-right" size={15} color="#c0c0c0" />
                     </TouchableOpacity>
@@ -283,7 +292,7 @@ export default function EditProfileScreen() {
               </View>
 
               {/* Form card */}
-              <View className="mx-4 mt-3 bg-white rounded-2xl p-4 gap-3.5">
+              <View className="mx-4 mt-8 mb-6 bg-white rounded-xl p-4 gap-3.5" style={cardShadow}>
                 <Controller
                   control={control}
                   name="full_name"
@@ -333,7 +342,7 @@ export default function EditProfileScreen() {
               {/* Save button */}
               <View className="mx-4 mt-3">
                 <TouchableOpacity
-                  className={`rounded-xl h-12 items-center justify-center ${uploadingPhoto ? 'bg-gray-400' : 'bg-brand-secondary'}`}
+                  className={`rounded-xl h-16 items-center justify-center ${uploadingPhoto ? 'bg-gray-400' : 'bg-brand-secondary'}`}
                   onPress={handleSubmit(onSave)}
                   disabled={saving || uploadingPhoto}
                   activeOpacity={0.85}
@@ -364,15 +373,15 @@ function FormField({
 }) {
   return (
     <View>
-      <Text className="text-[13px] font-medium text-gray-900 mb-1.5">
+      <Text className="text-[14px] font-semibold text-gray-900 mb-1.5">
         {label}
       </Text>
       <TextInput
-        className={`h-11 bg-gray-50 rounded-xl px-3.5 text-[14px] text-gray-900 border ${error ? 'border-damascus-primary' : 'border-gray-200'}`}
+        className={`h-18 bg-gray-50 rounded-xl px-5 text-[15px] text-gray-900 border ${error ? 'border-damascus-primary' : 'border-gray-200'}`}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#c0c0c0"
+        placeholderTextColor="#9ca3af"
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize}
       />
