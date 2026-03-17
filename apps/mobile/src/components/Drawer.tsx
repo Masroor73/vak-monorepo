@@ -29,12 +29,6 @@ const SECTIONS = (pendingTasksCount: number, newRecognitionCount: number) => [
       { label: "Set Availability", subtitle: "Update your schedule", route: "/(tabs)/setAvailability", icon: <Ionicons name="calendar-outline" size={18} color="red" />, badge: null, badgeRed: false },
     ],
   },
-  {
-    label: "REPORTS",
-    items: [
-      { label: "Report Food Wastage", subtitle: "Log waste incidents", route: "/(tabs)/foodWastage", icon: <Ionicons name="trash-outline" size={18} color="silver" />, badge: null, badgeRed: false },
-    ],
-  },
 ];
 
 export default function Drawer({ isOpen, toggleDrawer, pendingTasksCount = 0, newRecognitionCount = 0 }: Props) {
