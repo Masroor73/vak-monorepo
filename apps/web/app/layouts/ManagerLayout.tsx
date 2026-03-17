@@ -1,8 +1,11 @@
 import { ReactNode, useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
+import { useAuth } from "../../context/AuthContext";
 
 export default function ManagerLayout({ children }: { children: ReactNode }) {
+
+  const { profile } = useAuth();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -27,22 +30,28 @@ export default function ManagerLayout({ children }: { children: ReactNode }) {
       {/* Mobile Sidebar */}
       {open && (
         <div className="md:hidden fixed inset-0 z-50 flex">
+
+          {/* Background overlay */}
           <div
             className="absolute inset-0 bg-black/50"
             onClick={() => setOpen(false)}
           />
 
-          <div className="relative w-64 bg-white">
+          {/* Sidebar panel */}
+          <div className="relative w-64 bg-white h-full">
             <Sidebar onNavigate={() => setOpen(false)} />
           </div>
+
         </div>
       )}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-y-auto">
 
+        {/* Top Navigation */}
         <Topbar onOpenSidebar={() => setOpen(true)} />
 
+        {/* Page Content */}
         <main className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto">
           {children}
         </main>
