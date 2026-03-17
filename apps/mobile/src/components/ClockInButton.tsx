@@ -106,10 +106,10 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
   };
 
   const submitClockIn = async () => {
-    if (!previewUri || !location) {
-      Alert.alert("Missing photo or location");
-      return;
-    }
+  if (!previewUri || !location) {
+  Alert.alert("Missing photo or location")
+  return;
+}
 
     setUploading(true);
 
@@ -122,15 +122,14 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
       const path = `${userId}/${timestamp}.jpg`;
 
       const { error: uploadError } = await supabase.storage
-        .from("shift-proofs")
-        .upload(path, blob, {
-          contentType: "image/jpeg",
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-
+      .from("shift-proofs")
+      .upload(path, blob, {
+        contentType: "image/jpeg",
+        upsert: false,
+      });
+if (uploadError) throw uploadError;
       const { data } = supabase.storage
+
         .from("shift-proofs")
         .getPublicUrl(path);
 
