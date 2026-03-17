@@ -20,14 +20,13 @@ export default function UserManagement() {
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [saving, setSaving] = useState(false);
   const [togglingApproval, setTogglingApproval] = useState<string | null>(null);
-  const [deletingUser, setDeletingUser] = useState<Profile | null>(null);
-  const [deleteConfirmText, setDeleteConfirmText] = useState("");
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
-    if (!isManager) { router.replace("/"); return; }
+    if (!isManager) {
+      router.replace("/");
+      return;
+    }
     fetchUsers();
   }, [authLoading, isManager]);
 
@@ -37,8 +36,14 @@ export default function UserManagement() {
       .from("profiles")
       .select("*")
       .order("full_name", { ascending: true });
+
     if (!error && data) {
-      setUsers(data.map((row) => ({ ...row, role: row.role as Profile["role"] })) as Profile[]);
+      setUsers(
+        data.map((row) => ({
+          ...row,
+          role: row.role as Profile["role"],
+        })) as Profile[]
+      );
     }
     setLoading(false);
   };
@@ -46,12 +51,16 @@ export default function UserManagement() {
   const handleSaveEdit = async () => {
     if (!editingUser) return;
     setSaving(true);
+
     const { error } = await supabase
       .from("profiles")
       .update({ role: editingUser.role })
       .eq("id", editingUser.id);
+
     if (!error) {
-      setUsers((prev) => prev.map((u) => (u.id === editingUser.id ? editingUser : u)));
+      setUsers((prev) =>
+        prev.map((u) => (u.id === editingUser.id ? editingUser : u))
+      );
       setEditingUser(null);
     }
     setSaving(false);
@@ -59,53 +68,20 @@ export default function UserManagement() {
 
   const handleToggleApproval = async (user: Profile) => {
     setTogglingApproval(user.id);
+
     const { error } = await supabase
       .from("profiles")
       .update({ is_approved: !user.is_approved })
       .eq("id", user.id);
+
     if (!error) {
       setUsers((prev) =>
-        prev.map((u) => u.id === user.id ? { ...u, is_approved: !u.is_approved } : u)
+        prev.map((u) =>
+          u.id === user.id ? { ...u, is_approved: !u.is_approved } : u
+        )
       );
     }
     setTogglingApproval(null);
-  };
-
-  const canDelete = (user: Profile) => {
-    if (user.id === currentUser?.id) return false;
-    if (user.role === "OWNER") return false;
-    if (user.role === "MANAGER" && !isAdmin) return false;
-    return true;
-  };
-
-  const handleDeleteUser = async () => {
-    if (!deletingUser) return;
-    if (deleteConfirmText !== deletingUser.full_name) {
-      setDeleteError("Name does not match.");
-      return;
-    }
-    setDeleteLoading(true);
-    setDeleteError(null);
-    try {
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", deletingUser.id);
-      if (profileError) throw profileError;
-
-      const { error: authError } = await supabase.rpc("admin_delete_user", {
-        target_user_id: deletingUser.id,
-      });
-      if (authError) throw authError;
-
-      setUsers((prev) => prev.filter((u) => u.id !== deletingUser.id));
-      setDeletingUser(null);
-      setDeleteConfirmText("");
-    } catch (err: any) {
-      setDeleteError(err.message ?? "Could not delete user.");
-    } finally {
-      setDeleteLoading(false);
-    }
   };
 
   const filtered = users.filter((u) => {
@@ -123,11 +99,13 @@ export default function UserManagement() {
   return (
     <ManagerLayout>
       <div className="space-y-6">
+        {/* Header */}
         <div>
           <h1 className="text-2xl font-bold">User Management</h1>
           <p className="text-gray-500 text-sm mt-1">{users.length} total users</p>
         </div>
 
+        {/* Filters */}
         <div className="bg-white rounded-lg border p-4 flex flex-col sm:flex-row gap-3">
           <input
             className="border rounded-full px-4 py-2 text-sm flex-1"
@@ -147,9 +125,12 @@ export default function UserManagement() {
           </select>
         </div>
 
+        {/* Table */}
         <div className="bg-white rounded-lg border overflow-hidden">
           {loading ? (
-            <div className="px-6 py-16 text-center text-gray-400 text-sm">Loading users...</div>
+            <div className="px-6 py-16 text-center text-gray-400 text-sm">
+              Loading users...
+            </div>
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b">
@@ -163,8 +144,10 @@ export default function UserManagement() {
               </thead>
               <tbody className="divide-y">
                 {filtered.map((user) => {
+                  // Prevent manager from editing themselves or anyone with a higher role
                   const isSelf = user.id === currentUser?.id;
-                  const isHigherRole = user.role === "OWNER" && !isAdmin;
+                  const isHigherRole =
+                    user.role === "OWNER" && !isAdmin;
                   const canEdit = !isSelf && !isHigherRole;
 
                   return (
@@ -172,50 +155,54 @@ export default function UserManagement() {
                       <td className="px-6 py-4 font-medium">{user.full_name ?? "—"}</td>
                       <td className="px-6 py-4 text-gray-500">{user.email}</td>
                       <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          user.role === "OWNER" ? "bg-purple-100 text-purple-700"
-                          : user.role === "MANAGER" ? "bg-blue-100 text-blue-700"
-                          : "bg-gray-100 text-gray-700"
-                        }`}>
-                          {user.role === "OWNER" ? "Owner" : user.role === "MANAGER" ? "Manager" : "Employee"}
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            user.role === "OWNER"
+                              ? "bg-purple-100 text-purple-700"
+                              : user.role === "MANAGER"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-gray-100 text-gray-700"
+                          }`}
+                        >
+                          {user.role === "OWNER"
+                            ? "Owner"
+                            : user.role === "MANAGER"
+                            ? "Manager"
+                            : "Employee"}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         {togglingApproval === user.id ? (
                           <span className="text-xs text-gray-400">Saving...</span>
                         ) : (
-                          <Toggle value={user.is_approved} onChange={() => handleToggleApproval(user)} />
+                          <Toggle
+                            value={user.is_approved}
+                            onChange={() => handleToggleApproval(user)}
+                          />
                         )}
                       </td>
-                      {/* ── updated actions cell ── */}
                       <td className="px-6 py-4 text-left">
-                        <div className="flex items-center gap-3">
-                          {canEdit ? (
-                            <button
-                              onClick={() => setEditingUser(user)}
-                              className="text-blue-600 hover:underline"
-                            >
-                              Edit
-                            </button>
-                          ) : (
-                            <span className="text-xs text-gray-300">{isSelf ? "You" : "—"}</span>
-                          )}
-                          {canDelete(user) && (
-                            <button
-                              onClick={() => { setDeletingUser(user); setDeleteConfirmText(""); setDeleteError(null); }}
-                              className="text-red-500 hover:underline"
-                            >
-                              Delete
-                            </button>
-                          )}
-                        </div>
+                        {canEdit ? (
+                          <button
+                            onClick={() => setEditingUser(user)}
+                            className="text-blue-600 hover:underline text-xs"
+                          >
+                            Edit
+                          </button>
+                        ) : (
+                          <span className="text-xs text-gray-300">
+                            {isSelf ? "You" : "—"}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );
                 })}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-10 text-center text-gray-400">No users found.</td>
+                    <td colSpan={5} className="px-6 py-10 text-center text-gray-400">
+                      No users found.
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -224,14 +211,16 @@ export default function UserManagement() {
         </div>
       </div>
 
-      {/* Edit Modal — unchanged */}
+      {/* Edit Modal */}
       {editingUser && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl space-y-4">
             <h2 className="text-lg font-semibold">Edit User</h2>
             <div>
               <p className="text-sm mb-1">Name</p>
-              <p className="text-sm font-medium text-gray-800">{editingUser.full_name ?? "—"}</p>
+              <p className="text-sm font-medium text-gray-800">
+                {editingUser.full_name ?? "—"}
+              </p>
             </div>
             <div>
               <p className="text-sm mb-1">Email</p>
@@ -247,57 +236,33 @@ export default function UserManagement() {
               <select
                 className="w-full border rounded px-3 py-2"
                 value={editingUser.role}
-                onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as Profile["role"] })}
+                onChange={(e) =>
+                  setEditingUser({
+                    ...editingUser,
+                    role: e.target.value as Profile["role"],
+                  })
+                }
               >
                 {assignableRoles.map((r) => (
-                  <option key={r} value={r}>{r.charAt(0) + r.slice(1).toLowerCase()}</option>
+                  <option key={r} value={r}>
+                    {r.charAt(0) + r.slice(1).toLowerCase()}
+                  </option>
                 ))}
               </select>
             </div>
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setEditingUser(null)} className="flex-1 border rounded px-4 py-2 text-sm">Cancel</button>
-              <button onClick={handleSaveEdit} disabled={saving} className="flex-1 bg-black text-white rounded px-4 py-2 text-sm disabled:opacity-50">
-                {saving ? "Saving..." : "Save Changes"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {deletingUser && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">Delete user?</h2>
-            <div className="bg-gray-50 rounded-lg p-3 text-sm">
-              <p className="font-semibold text-gray-900">{deletingUser.full_name ?? "—"}</p>
-              <p className="text-gray-400 text-xs mt-0.5">{deletingUser.email}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600 mb-1.5">
-                Type <span className="font-semibold">{deletingUser.full_name}</span> to confirm
-              </p>
-              <input
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
-                placeholder="Type full name to confirm"
-                value={deleteConfirmText}
-                onChange={(e) => { setDeleteConfirmText(e.target.value); setDeleteError(null); }}
-              />
-              {deleteError && <p className="text-red-700 mt-1">{deleteError}</p>}
-            </div>
-            <div className="flex gap-3">
               <button
-                onClick={() => setDeletingUser(null)}
-                disabled={deleteLoading}
-                className="flex-1 border rounded-lg px-4 py-2 text-sm"
+                onClick={() => setEditingUser(null)}
+                className="flex-1 border rounded px-4 py-2 text-sm"
               >
                 Cancel
               </button>
               <button
-                onClick={handleDeleteUser}
-                disabled={deleteLoading || deleteConfirmText !== deletingUser.full_name}
-                className="flex-1 bg-red-600 text-white rounded-lg px-4 py-2 font-medium disabled:opacity-40"
+                onClick={handleSaveEdit}
+                disabled={saving}
+                className="flex-1 bg-black text-white rounded px-4 py-2 text-sm disabled:opacity-50"
               >
-                {deleteLoading ? "Deleting..." : "Delete user"}
+                {saving ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>
