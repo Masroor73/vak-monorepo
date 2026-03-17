@@ -193,20 +193,20 @@ export default function Index() {
 
           <View className="flex-row flex-wrap gap-5 ml-2">
             <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2 gap-1.5">
-              <Ionicons name="calendar-outline" size={12} color="red" />
-              <Text className="text-white/65 text-[11px] font-medium">{topDate}</Text>
+              <Ionicons name="calendar-outline" size={15} color="red" />
+              <Text className="text-white text-[13px] font-medium">{topDate}</Text>
             </View>
 
             <Pressable onPress={handleRefreshWeather} className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2 gap-1.5">
-              <Ionicons name="cloud" size={12} color="white" />
-              <Text className="text-white/65 text-[11px] font-medium">
+              <Ionicons name="cloud" size={15} color="white" />
+              <Text className="text-white text-[13px] font-medium">
                 {isWeatherLoading ? "Loading..." : temperature}
               </Text>
             </Pressable>
 
-            <View className={`flex-row items-center gap-1.5 rounded-[20px] px-3 py-1.5 border ${hasShiftToday ? "bg-brand-success/15 border-brand-success/30" : "bg-white/10 border-white/10"}`}>
-              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: hasShiftToday ? "#4ade80" : "rgba(255,255,255,0.35)" }} />
-              <Text className={`text-[11px] font-semibold ${hasShiftToday ? "text-brand-success" : "text-white/65"}`}>
+            <View className={`flex-row items-center gap-2 rounded-[20px] px-3 py-1.5 border ${hasShiftToday ? "bg-brand-success/15 border-brand-success/30" : "bg-white/10 border-white/10"}`}>
+              <View style={{ width: 7, height: 7, borderRadius: 3, backgroundColor: hasShiftToday ? "#ffffff" : "rgba(255,255,255,0.35)" }} />
+              <Text className={`text-[13px] font-semibold ${hasShiftToday ? "text-brand-success" : "text-white"}`}>
                 {hasShiftToday ? "Shift today" : "No shifts"}
               </Text>
             </View>
@@ -218,14 +218,14 @@ export default function Index() {
         <View className="bg-white rounded px-5 pt-5 pb-5 mb-3" style={{ shadowColor: "#0d1b3e", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 18, elevation: 6 }}>
           <View className="flex-row items-center justify-between mb-3">
             <View className="flex-row items-center gap-2">
-              <View className="w-2.5 h-2.5 rounded-full bg-brand-success" />
-              <Text className="text-xs font-bold text-gray-500 tracking-widest uppercase">
+              <View className={`w-3 h-3 rounded-full ${hasShiftToday ? "bg-brand-success" : "bg-gray-300"}`} />
+              <Text className="text-md font-bold text-gray-500 tracking-widest uppercase">
                 Today's Shift
               </Text>
             </View>
 
             <Pressable onPress={() => router.push("/(tabs)/mySchedule" as any)}>
-              <Text className="text-blue-600 font-semibold text-sm">
+              <Text className="text-blue-600 font-semibold text-lg">
                 View Schedule
               </Text>
             </Pressable>
@@ -238,7 +238,6 @@ export default function Index() {
                 subtitle={`${formatTime(todayShift._start)} — ${formatTime(todayShift._end)}`}
               />
 
-              {/* ✅ ONLY CHANGE HERE */}
               <View
                 style={{
                   marginTop: 10,
@@ -277,11 +276,11 @@ export default function Index() {
                 <Ionicons name="moon-outline" size={35} color="#eab308" />
               </View>
 
-              <Text className="text-[15px] font-bold text-gray-800">
+              <Text className="text-[20px] font-extrabold text-gray-800">
                 No shift today
               </Text>
 
-              <Text className="text-[15px] text-gray-400 text-center px-6">
+              <Text className="text-[16px] font-semibold text-gray-600 text-center px-6">
                 You're off the clock! enjoy your time off!
               </Text>
             </View>
