@@ -293,14 +293,14 @@ export default function Index() {
         >
           <View className="flex-row items-center justify-between mb-3">
             <View className="flex-row items-center gap-2">
-              <View className="w-2.5 h-2.5 rounded-full bg-brand-success" />
-              <Text className="text-xs font-bold text-gray-500 tracking-widest uppercase">
+              <View className={`w-3 h-3 rounded-full ${hasShiftToday ? "bg-brand-success" : "bg-gray-300"}`} />
+              <Text className="text-md font-bold text-gray-500 tracking-widest uppercase">
                 Today's Shift
               </Text>
             </View>
 
             <Pressable onPress={() => router.push("/(tabs)/mySchedule" as any)}>
-              <Text className="text-blue-600 font-semibold text-sm">
+              <Text className="text-blue-600 font-semibold text-lg">
                 View Schedule
               </Text>
             </Pressable>
@@ -349,10 +349,6 @@ export default function Index() {
                   </View>
                 )}
               </View>
-
-              <Text style={{ marginTop: 10, color: "#9CA3AF" }}>
-                You have 0 incomplete tasks
-              </Text>
             </>
           ) : (
             <View className="items-center py-6 gap-3">
@@ -360,12 +356,12 @@ export default function Index() {
                 <Ionicons name="moon-outline" size={35} color="#eab308" />
               </View>
 
-              <Text className="text-[15px] font-bold text-gray-800">
+              <Text className="text-[20px] font-extrabold text-gray-800">
                 No shift today
               </Text>
 
-              <Text className="text-[12px] text-gray-400 text-center px-6">
-                You're off the clock — enjoy your time off!
+              <Text className="text-[16px] font-semibold text-gray-600 text-center px-6">
+                You're off the clock! enjoy your time off!
               </Text>
             </View>
           )}
