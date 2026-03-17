@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Text, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, ActivityIndicator, Pressable, Alert } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 
@@ -16,27 +16,27 @@ export default function Messages() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-  loadSwaps();
+    loadSwaps();
 
-  const channel = supabase
-    .channel("swap-updates")
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "shift_swaps",
-      },
-      () => {
-        loadSwaps();
-      }
-    )
-    .subscribe();
+    const channel = supabase
+      .channel("swap-updates")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "shift_swaps",
+        },
+        () => {
+          loadSwaps();
+        }
+      )
+      .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, []);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   async function loadSwaps() {
     if (!user) return;
@@ -60,9 +60,33 @@ export default function Messages() {
   function getStatus(status: string) {
     if (status === "PENDING") return "🟡 Pending";
     if (status === "APPROVED") return "🟢 Approved";
-    if (status === "DECLINED" || status === "DENIED")  return "🔴 Denied";
+    if (status === "DECLINED" || status === "DENIED") return "🔴 Denied";
     return status;
   }
+
+  // DELETE SWAP REQUEST
+async function handleDelete(swap: Swap) {
+
+  if (swap.status !== "PENDING") {
+    Alert.alert("Cannot delete", "This request has already been approved.");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("shift_swaps")
+    .delete()
+    .eq("id", swap.id);
+
+  if (error) {
+    Alert.alert("Delete failed", error.message);
+    return;
+  }
+
+  // update UI immediately
+  setSwaps((prev) => prev.filter((s) => s.id !== swap.id));
+
+  Alert.alert("Swap request deleted");
+}
 
   if (loading) {
     return (
@@ -112,6 +136,34 @@ export default function Messages() {
           <Text style={{ fontSize: 12, color: "#999", marginTop: 8 }}>
             {new Date(swap.created_at).toLocaleString()}
           </Text>
+
+          {/* DELETE BUTTON */}
+          {swap.status === "PENDING" && (
+            <Pressable
+              onPress={() =>
+                Alert.alert(
+                  "Delete request?",
+                  "Are you sure you want to delete this swap request?",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  { text: "Delete", onPress: () => handleDelete(swap) }
+                ]
+              )
+            }
+              style={{
+                marginTop: 10,
+                backgroundColor: "#ef4444",
+                padding: 10,
+                borderRadius: 6,
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: "white", fontWeight: "600" }}>
+                Delete Request
+              </Text>
+            </Pressable>
+          )}
+
         </View>
       ))}
     </ScrollView>
