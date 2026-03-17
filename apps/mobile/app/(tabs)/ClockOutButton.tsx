@@ -1,6 +1,6 @@
 import { Alert } from "react-native";
 import { PrimaryButton } from "@vak/ui";
-import { supabase } from "../../lib/supabase";
+import { supabase } from "../../../web/lib/supabase";
 
 type ClockOutButtonProps = {
   shiftId: string;
