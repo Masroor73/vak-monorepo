@@ -42,18 +42,12 @@ export default function Index() {
           `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&temperature_unit=celsius&timezone=auto`
         );
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch weather");
-        }
+        if (!response.ok) throw new Error("Failed to fetch weather");
 
         const data = await response.json();
         const temp = data?.current?.temperature_2m;
 
-        if (typeof temp === "number") {
-          setTemperature(`${Math.round(temp)}°C`);
-        } else {
-          setTemperature("--°C");
-        }
+        setTemperature(typeof temp === "number" ? `${Math.round(temp)}°C` : "--°C");
       } catch (err) {
         console.error("Weather fetch error:", err);
         setTemperature("--°C");
@@ -144,6 +138,7 @@ export default function Index() {
 
   const handleRefreshWeather = (event: GestureResponderEvent) => {
     setIsWeatherLoading(true);
+
     const fetchWeatherData = async () => {
       try {
         const latitude = 51.0447;
@@ -153,18 +148,12 @@ export default function Index() {
           `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&temperature_unit=celsius&timezone=auto`
         );
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch weather");
-        }
+        if (!response.ok) throw new Error("Failed to fetch weather");
 
         const data = await response.json();
         const temp = data?.current?.temperature_2m;
 
-        if (typeof temp === "number") {
-          setTemperature(`${Math.round(temp)}°C`);
-        } else {
-          setTemperature("--°C");
-        }
+        setTemperature(typeof temp === "number" ? `${Math.round(temp)}°C` : "--°C");
       } catch (err) {
         console.error("Weather fetch error:", err);
         setTemperature("--°C");
@@ -179,30 +168,8 @@ export default function Index() {
   return (
     <ScrollView className="flex-1 bg-brand-background">
       <View className="bg-brand-secondary pb-[100px] overflow-hidden">
-        <View
-          style={{
-            position: "absolute",
-            top: -50,
-            right: -50,
-            width: 200,
-            height: 200,
-            borderRadius: 100,
-            backgroundColor: "#1a3278",
-            opacity: 0.55,
-          }}
-        />
-        <View
-          style={{
-            position: "absolute",
-            bottom: 30,
-            left: -30,
-            width: 130,
-            height: 130,
-            borderRadius: 65,
-            backgroundColor: "#162550",
-            opacity: 0.7,
-          }}
-        />
+        <View style={{ position: "absolute", top: -50, right: -50, width: 200, height: 200, borderRadius: 100, backgroundColor: "#1a3278", opacity: 0.55 }} />
+        <View style={{ position: "absolute", bottom: 30, left: -30, width: 130, height: 130, borderRadius: 65, backgroundColor: "#162550", opacity: 0.7 }} />
 
         <View className="px-6 pt-7">
           <View className="flex-row items-center space-x-5 mb-[18px] p-2">
@@ -219,60 +186,27 @@ export default function Index() {
                 <Text className="text-[21px] font-bold text-white tracking-[0.2px]">
                   {firstName}
                 </Text>
-                <MaterialCommunityIcons
-                  name="hand-wave"
-                  size={22}
-                  color="#eab308"
-                  style={{ marginLeft: 6 }}
-                />
+                <MaterialCommunityIcons name="hand-wave" size={22} color="#eab308" style={{ marginLeft: 6 }} />
               </View>
             </View>
           </View>
 
           <View className="flex-row flex-wrap gap-5 ml-2">
-
-            {/* DATE */}
             <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2 gap-1.5">
               <Ionicons name="calendar-outline" size={12} color="red" />
-              <Text className="text-white/65 text-[11px] font-medium">
-                {topDate}
-              </Text>
+              <Text className="text-white/65 text-[11px] font-medium">{topDate}</Text>
             </View>
 
-            {/* WEATHER */}
-            <Pressable
-              onPress={handleRefreshWeather}
-              className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2 gap-1.5"
-            >
+            <Pressable onPress={handleRefreshWeather} className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2 gap-1.5">
               <Ionicons name="cloud" size={12} color="white" />
               <Text className="text-white/65 text-[11px] font-medium">
                 {isWeatherLoading ? "Loading..." : temperature}
               </Text>
             </Pressable>
 
-            {/* SHIFT STATUS */}
-            <View
-              className={`flex-row items-center gap-1.5 rounded-[20px] px-3 py-1.5 border ${
-                hasShiftToday
-                  ? "bg-brand-success/15 border-brand-success/30"
-                  : "bg-white/10 border-white/10"
-              }`}
-            >
-              <View
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: hasShiftToday
-                    ? "#4ade80"
-                    : "rgba(255,255,255,0.35)",
-                }}
-              />
-              <Text
-                className={`text-[11px] font-semibold ${
-                  hasShiftToday ? "text-brand-success" : "text-white/65"
-                }`}
-              >
+            <View className={`flex-row items-center gap-1.5 rounded-[20px] px-3 py-1.5 border ${hasShiftToday ? "bg-brand-success/15 border-brand-success/30" : "bg-white/10 border-white/10"}`}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: hasShiftToday ? "#4ade80" : "rgba(255,255,255,0.35)" }} />
+              <Text className={`text-[11px] font-semibold ${hasShiftToday ? "text-brand-success" : "text-white/65"}`}>
                 {hasShiftToday ? "Shift today" : "No shifts"}
               </Text>
             </View>
@@ -281,16 +215,7 @@ export default function Index() {
       </View>
 
       <View className="-mt-16 px-4">
-        <View
-          className="bg-white rounded px-5 pt-5 pb-5 mb-3"
-          style={{
-            shadowColor: "#0d1b3e",
-            shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: 0.1,
-            shadowRadius: 18,
-            elevation: 6,
-          }}
-        >
+        <View className="bg-white rounded px-5 pt-5 pb-5 mb-3" style={{ shadowColor: "#0d1b3e", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 18, elevation: 6 }}>
           <View className="flex-row items-center justify-between mb-3">
             <View className="flex-row items-center gap-2">
               <View className="w-2.5 h-2.5 rounded-full bg-brand-success" />
@@ -310,14 +235,13 @@ export default function Index() {
             <>
               <ShiftStatusCard
                 title="Morning Shift"
-                subtitle={`${formatTime(todayShift._start)} — ${formatTime(
-                  todayShift._end
-                )}`}
+                subtitle={`${formatTime(todayShift._start)} — ${formatTime(todayShift._end)}`}
               />
 
+              {/* ✅ ONLY CHANGE HERE */}
               <View
                 style={{
-                  marginTop: 25,
+                  marginTop: 10,
                   padding: 15,
                   borderRadius: 12,
                   backgroundColor: "#F8FAFC",
@@ -338,10 +262,7 @@ export default function Index() {
                       </Text>
                     </View>
 
-                    <Pressable
-                      onPress={handleClockOut}
-                      className="bg-red-500 rounded-xl py-4 items-center justify-center"
-                    >
+                    <Pressable onPress={handleClockOut} className="bg-red-500 rounded-xl py-4 items-center justify-center">
                       <Text className="text-white font-bold text-base">
                         Clock Out
                       </Text>
