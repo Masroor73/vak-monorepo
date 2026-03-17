@@ -1,24 +1,79 @@
-//web/app/components/Sidebar.tsx
+// web/app/components/Sidebar.tsx
 import { Link, usePathname, useRouter } from "expo-router";
-import { useState } from "react";
-import StatusModal from "./StatusModal";
 import { useAuth } from "../../context/AuthContext";
+import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabase";
 
-const items = [
-  { label: "Dashboard", href: "/" },
-  { label: "Team", href: "/team" },
-  { label: "Operations", href: "/operations" },
-  { label: "Analyze Reports", href: "/analyze-reports" },
-  { label: "Communication", href: "/communication" },
-  { label: "Settings", href: "/settings" },
-  { label: "User Management", href: "/user-management" },
+type NavItem = {
+  label: string;
+  href: string;
+  icon: any;
+  activeIcon: any;
+  badge?: number;
+};
+
+const MAIN_NAV: NavItem[] = [
+  {
+    label: "Shift Management",
+    href: "/shifts",
+    icon: "calendar-outline",
+    activeIcon: "calendar",
+  },
+  {
+    label: "Tasks & Waste",
+    href: "/tasks",
+    icon: "checkmark-circle-outline",
+    activeIcon: "checkmark-circle",
+  },
+  {
+    label: "Swap Requests",
+    href: "/swap-requests",
+    icon: "swap-horizontal-outline",
+    activeIcon: "swap-horizontal",
+  },
+  {
+    label: "Communication",
+    href: "/communication",
+    icon: "megaphone-outline",
+    activeIcon: "megaphone",
+  },
+];
+
+const ADMIN_NAV: NavItem[] = [
+  {
+    label: "User Management",
+    href: "/user-management",
+    icon: "people-outline",
+    activeIcon: "people",
+  },
+  {
+    label: "Settings",
+    href: "/settings",
+    icon: "settings-outline",
+    activeIcon: "settings",
+  },
 ];
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const [modalOpen, setModalOpen] = useState(false);
   const router = useRouter();
   const { signOut } = useAuth();
+
+  const [swapCount, setSwapCount] = useState(0);
+
+  useEffect(() => {
+    loadSwapRequests();
+  }, []);
+
+  async function loadSwapRequests() {
+    const { data } = await supabase
+      .from("shift_swaps")
+      .select("id")
+      .in("status", ["PENDING", "MANAGER_REVIEW"]);
+
+    setSwapCount(data?.length || 0);
+  }
 
   const handleLogout = async () => {
     try {
@@ -29,52 +84,90 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     }
   };
 
+  const NavLink = ({ item }: { item: NavItem }) => {
+    const active = pathname === item.href;
+
+    const showSwapBadge = item.href === "/swap-requests" && swapCount > 0;
+
+    return (
+      <Link
+        href={item.href}
+        onPress={onNavigate}
+        className={`flex items-center gap-3 px-3 py-3 text-[14px] font-medium transition-all relative ${
+          active
+            ? "bg-auth-blue/15 text-auth-white border border-auth-blue/25"
+            : "text-auth-textSecondary hover:text-auth-white hover:bg-white/5 border border-transparent"
+        }`}
+      >
+        {active && (
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[60%] bg-auth-blue rounded-r-full" />
+        )}
+
+        <span
+          className={`w-[30px] h-[30px] flex items-center justify-center flex-shrink-0 rounded-[7px] ${
+            active ? "bg-auth-blue/20" : "bg-white/[0.06]"
+          }`}
+        >
+          <Ionicons
+            name={active ? item.activeIcon : item.icon}
+            size={16}
+            color={active ? "#3B6FFF" : "#9CA3AF"}
+          />
+        </span>
+
+        <span className="flex-1 text-[14px] leading-none">
+          {item.label}
+        </span>
+
+        {/* Dynamic Swap Badge */}
+        {showSwapBadge && (
+          <span className="bg-auth-blue text-white text-[11px] font-bold rounded-full px-2 py-[2px] min-w-[22px] text-center leading-none">
+            {swapCount}
+          </span>
+        )}
+      </Link>
+    );
+  };
+
   return (
-    <aside className="h-screen w-64 text-white flex flex-col px-5 py-6 bg-black border-r border-white/20">
-      <div className="flex items-center justify-center pt-4 pb-10">
-        <img src="/logo.png" alt="Logo" className="h-32 w-32 object-contain" />
+    <aside className="h-screen w-[240px] flex flex-col bg-auth-bg border-r border-auth-border px-3 py-6 overflow-hidden flex-shrink-0">
+      
+      <div className="px-3 mb-10">
+        <span className="text-[19px] font-black tracking-[0.22em] text-auth-white">
+          V<span className="text-auth-blue">.</span>
+          A<span className="text-auth-pending">.</span>K
+        </span>
       </div>
 
-      <nav className="flex flex-col gap-3 text-base">
-        {items.map((item) => {
-          const active = pathname === item.href;
+      <nav className="flex flex-col gap-0.5">
+        <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-auth-textMuted px-3 mb-2">
+          Main
+        </p>
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onPress={onNavigate}
-              className={[
-                "w-full px-5 py-4 rounded-full transition flex items-center gap-4",
-                active
-                  ? "bg-white text-black font-semibold"
-                  : "text-[#62CCEF] hover:bg-white/5",
-              ].join(" ")}
-            >
+        {MAIN_NAV.map((item) => (
+          <NavLink key={item.href} item={item} />
+        ))}
+      </nav>
 
-              <span className="h-6 w-6 flex items-center justify-center shrink-0">
-              </span>
+      <nav className="flex flex-col gap-0.5 mt-6">
+        <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-auth-textMuted px-3 mb-2">
+          Admin
+        </p>
 
-              <span className="text-lg">{item.label}</span>
-            </Link>
-          );
-        })}
+        {ADMIN_NAV.map((item) => (
+          <NavLink key={item.href} item={item} />
+        ))}
       </nav>
 
       <button
         onClick={handleLogout}
-        className="mt-auto bg-white text-black rounded-full px-5 py-3 text-sm font-medium hover:bg-white/90 transition"
+        className="mt-auto mx-1 flex items-center gap-3 px-3 py-3 text-[14px] font-medium text-auth-textSecondary border border-auth-border rounded-[8px] hover:border-red-500/30 hover:text-red-400 hover:bg-red-500/5 transition-all"
       >
-        Logout
+        <span className="w-[30px] h-[30px] flex items-center justify-center bg-white/[0.06] rounded-[7px] flex-shrink-0">
+          <Ionicons name="log-out-outline" size={16} />
+        </span>
+        Sign out
       </button>
-
-      <StatusModal
-        open={modalOpen}
-        type="success"
-        title="Logged out"
-        message="Logout UI clicked (auth not implemented yet)."
-        onClose={() => setModalOpen(false)}
-      />
     </aside>
   );
 }

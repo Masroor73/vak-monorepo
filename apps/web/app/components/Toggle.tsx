@@ -1,10 +1,11 @@
-//web/app/components/Toggle.tsx
+// web/app/components/Toggle.tsx
+
 type ToggleProps = {
   value: boolean;
   onChange: (v: boolean) => void;
 };
 
-export function Toggle({ value, onChange }: ToggleProps) {
+function Toggle({ value, onChange }: ToggleProps) {
   return (
     <button
       onClick={() => onChange(!value)}
@@ -21,3 +22,5 @@ export function Toggle({ value, onChange }: ToggleProps) {
     </button>
   );
 }
+
+export default Toggle;

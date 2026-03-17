@@ -1,53 +1,131 @@
-//web/app/components/Topbar.tsx
+import { useState, useRef, useEffect } from "react";
+import { usePathname, useRouter } from "expo-router";
+import { useAuth } from "../../context/AuthContext";
+import { Ionicons } from "@expo/vector-icons";
+
+const ROUTE_LABELS: Record<string, string> = {
+  "/shifts": "Shifts",
+  "/tasks": "Tasks & Waste",
+  "/swap-requests": "Swap Requests",
+  "/communication": "Communication",
+  "/user-management": "User Management",
+  "/settings": "Settings",
+};
+
 export default function Topbar({
   onOpenSidebar,
 }: {
   onOpenSidebar?: () => void;
 }) {
+
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user, signOut } = useAuth();
+
+  const [openMenu,setOpenMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const currentLabel = ROUTE_LABELS[pathname] ?? "Dashboard";
+  const isHome = pathname === "/";
+  const avatarLetter = user?.email?.[0]?.toUpperCase() ?? "M";
+  const displayName = user?.email?.split("@")[0] ?? "Manager";
+
+  useEffect(() => {
+    const handleClick = (e: any) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpenMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
   return (
-    <header className="h-20 flex items-center justify-between px-5 md:px-8">
+    <header className="h-16 flex items-center justify-between px-5 md:px-7 bg-white border-b border-gray-200 flex-shrink-0">
+
+      {/* Left section */}
       <div className="flex items-center gap-3">
+
         <button
-          className="md:hidden h-11 w-11 rounded-2xl bg-white border border-black/10 shadow-sm"
+          className="md:hidden h-10 w-10 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center hover:bg-gray-200 transition"
           onClick={onOpenSidebar}
           aria-label="Open menu"
         >
-          <span className="text-lg">≡</span>
+          <Ionicons name="menu-outline" size={20} color="#5a6170" />
         </button>
-      </div>
 
-      <div className="flex-1 flex justify-center px-4">
-        <div className="w-full max-w-xl">
-          <div className="h-12 w-full bg-white rounded-full border border-black/10 shadow-[0_6px_18px_rgba(0,0,0,0.10)] flex items-center px-5">
-            <input
-              type="text"
-              placeholder="Search..."
-              className="flex-1 bg-transparent outline-none text-sm text-black placeholder:text-black/40"
-            />
-            <span className="text-black/50">🔎</span>
-          </div>
+        {/* Breadcrumb */}
+        <div className="hidden md:flex items-center gap-2 text-sm">
+          <span className="text-gray-400 font-medium">Dashboard</span>
+
+          {!isHome && (
+            <>
+              <Ionicons name="chevron-forward" size={12} color="#c8ccd8" />
+              <span className="text-gray-900 font-semibold">
+                {currentLabel}
+              </span>
+            </>
+          )}
         </div>
+
       </div>
 
-      <div className="flex items-center">
-        <div className="h-12 px-3 rounded-full bg-[#62CCEF] flex items-center gap-2 shadow-[0_6px_18px_rgba(0,0,0,0.12)]">
-          <button
-            className="h-9 w-9 rounded-full bg-white/25 flex items-center justify-center"
-            aria-label="Notifications"
-            title="Notifications"
-          >
-            🔔
-          </button>
+      {/* Right section */}
+      <div className="flex items-center gap-3 relative" ref={menuRef}>
 
-          <div className="h-9 w-9 rounded-full bg-white flex items-center justify-center font-bold text-[#0B1220]">
-            M
+        <div
+          onClick={() => setOpenMenu(!openMenu)}
+          className="flex items-center gap-3 bg-gray-100 border border-gray-200 rounded-lg pl-2 pr-4 py-1 cursor-pointer hover:bg-gray-200 transition"
+        >
+
+          <div className="w-8 h-8 rounded-md bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+            {avatarLetter}
           </div>
 
-          <div className="h-9 px-4 rounded-full bg-white flex items-center">
-            <span className="text-[#0B1220] text-sm font-semibold">Manager</span>
+          <div className="hidden sm:block leading-tight">
+            <div className="text-sm font-semibold text-gray-900 capitalize">
+              {displayName}
+            </div>
+            <div className="text-xs text-gray-400 uppercase tracking-wide">
+              Admin
+            </div>
           </div>
+
+          <Ionicons name="chevron-down" size={12} color="#8b92a5" />
         </div>
+
+        {openMenu && (
+          <div className="absolute right-0 top-12 w-56 bg-white border rounded-lg shadow-lg p-3 space-y-2 z-50">
+
+            <div className="px-2 pb-2 border-b">
+              <div className="text-sm font-semibold text-gray-900 capitalize">
+                {displayName}
+              </div>
+              <div className="text-xs text-gray-500">
+                {user?.email}
+              </div>
+            </div>
+
+            <button
+              onClick={() => router.push("/settings")}
+              className="w-full text-left text-sm px-2 py-2 rounded hover:bg-gray-100"
+            >
+              Settings
+            </button>
+
+            <button
+              onClick={signOut}
+              className="w-full text-left text-sm px-2 py-2 rounded hover:bg-gray-100 text-red-500"
+            >
+              Sign Out
+            </button>
+
+          </div>
+        )}
+
       </div>
+
     </header>
   );
 }

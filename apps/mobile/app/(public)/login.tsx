@@ -129,7 +129,7 @@ export default function LoginScreen() {
       const { error, pendingApproval } = await login(data.email, data.password, rememberMe);
       if (error === "INVALID_CREDENTIALS") { setLoginError("Invalid email or password"); return; }
       if (error === "ACCESS_DENIED")       { Alert.alert("Access Denied", "Only employees can access this app."); return; }
-      if (pendingApproval)                 { router.replace("/(public)/pendingApproval"); return; }
+      if (pendingApproval)                 { router.replace("/(public)/pendingApproval" as any); return; }
       if (error)                           { setLoginError("Something went wrong. Please try again."); return; }
       router.replace("/(tabs)");
     } finally {
