@@ -270,10 +270,6 @@ export default function Index() {
                   </View>
                 )}
               </View>
-
-              <Text style={{ marginTop: 10, color: "#9CA3AF" }}>
-                You have 0 incomplete tasks
-              </Text>
             </>
           ) : (
             <View className="items-center py-6 gap-3">
@@ -285,8 +281,8 @@ export default function Index() {
                 No shift today
               </Text>
 
-              <Text className="text-[12px] text-gray-400 text-center px-6">
-                You're off the clock — enjoy your time off!
+              <Text className="text-[15px] text-gray-400 text-center px-6">
+                You're off the clock! enjoy your time off!
               </Text>
             </View>
           )}
