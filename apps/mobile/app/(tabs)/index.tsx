@@ -205,7 +205,7 @@ export default function Index() {
             </Pressable>
 
             <View className={`flex-row items-center gap-2 rounded-[20px] px-3 py-1.5 border ${hasShiftToday ? "bg-brand-success/15 border-brand-success/30" : "bg-white/10 border-white/10"}`}>
-              <View style={{ width: 7, height: 7, borderRadius: 3, backgroundColor: hasShiftToday ? "#ffffff" : "rgba(255,255,255,0.35)" }} />
+              <View style={{ width: 7, height: 7, borderRadius: 3, backgroundColor: hasShiftToday ? "#4ade80" : "#ffffff" }} />
               <Text className={`text-[13px] font-semibold ${hasShiftToday ? "text-brand-success" : "text-white"}`}>
                 {hasShiftToday ? "Shift today" : "No shifts"}
               </Text>
@@ -215,7 +215,7 @@ export default function Index() {
       </View>
 
       <View className="-mt-16 px-4">
-        <View className="bg-white rounded px-5 pt-5 pb-5 mb-3" style={{ shadowColor: "#0d1b3e", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 18, elevation: 6 }}>
+        <View className="bg-white rounded-sm px-5 pt-5 pb-5 mb-3" style={{ shadowColor: "#0d1b3e", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 18, elevation: 6 }}>
           <View className="flex-row items-center justify-between mb-3">
             <View className="flex-row items-center gap-2">
               <View className={`w-3 h-3 rounded-full ${hasShiftToday ? "bg-brand-success" : "bg-gray-300"}`} />
