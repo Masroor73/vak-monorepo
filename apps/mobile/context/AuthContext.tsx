@@ -1,6 +1,7 @@
+// apps/mobile/context/AuthContext.tsx
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase, supabasePersistent, supabaseTemporary, setSupabaseClient } from '../lib/supabase';
+import { createSupabaseClient, supabase } from '../lib/supabase';
 import { Profile } from '@vak/contract';
 import { signInWithGoogle as signInWithGoogleUtil } from "../lib/googleAuth";
 
@@ -34,119 +35,131 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
+// -------------------- Persistent client reused across app --------------------
+const persistentClient = createSupabaseClient(true);
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser]       = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-// -------------------- Auth state initialization --------------------
-useEffect(() => {
-  const init = async () => {
-    const { data: { session } } = await supabasePersistent.auth.getSession();
-    if (session?.user) {
-      setSupabaseClient(true);
-      await fetchProfile(session.user.id);
-    } else {
+  // -------------------- Fetch profile helper --------------------
+  const fetchProfile = async (
+    userId: string,
+    activeSession: Session,
+    activeUser: User,
+    client: ReturnType<typeof createSupabaseClient>
+  ) => {
+    try {
+      const { data, error } = await client
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      if (error || !data) {
+        await client.auth.signOut();
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        return;
+      }
+
+      if (data.role !== "EMPLOYEE") {
+        await client.auth.signOut();
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        return;
+      }
+
+      setSession(activeSession);
+      setUser(activeUser);
+      setProfile(data as Profile);
+
+    } catch (err) {
+      console.error("Unexpected error fetching profile:", err);
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+    } finally {
       setLoading(false);
     }
   };
 
-  init();
+  // -------------------- Auth state initialization --------------------
+  useEffect(() => {
+    const init = async () => {
+      // Check persistent client first (rememberMe sessions)
+      const { data: { session: persistedSession } } = await createSupabaseClient(true).auth.getSession();
+      if (persistedSession?.user) {
+        await fetchProfile(
+          persistedSession.user.id,
+          persistedSession,
+          persistedSession.user,
+          createSupabaseClient(true)
+        );
+        return;
+      }
 
-  const { data: { subscription } } = supabasePersistent.auth.onAuthStateChange(async (_event, session) => {
-    if (!session?.user) {
-      setSession(null);
-      setUser(null);
-      setProfile(null);
+      // Check memory client (non-remembered sessions)
+      const { data: { session: memorySession } } = await createSupabaseClient(false).auth.getSession();
+      if (memorySession?.user) {
+        await fetchProfile(
+          memorySession.user.id,
+          memorySession,
+          memorySession.user,
+          createSupabaseClient(false)
+        );
+        return;
+      }
+
+      // No session found
       setLoading(false);
-      return;
-    }
+    };
 
-    await fetchProfile(session.user.id);
-  });
+    init();
 
-  return () => subscription.unsubscribe();
-}, []);
+    // Always listen for auth state changes on the persistent client
+    const { data: { subscription } } = persistentClient.auth.onAuthStateChange(async (_event, session) => {
+      if (!session?.user) {
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+      await fetchProfile(session.user.id, session, session.user, persistentClient);
+    });
 
-  // -------------------- Fetch profile --------------------
-  const fetchProfile = async (userId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
-
-    if (error || !data) {
-      await supabase.auth.signOut();
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      return;
-    }
-
-    // Only allow employees
-    if (data.role !== "EMPLOYEE") {
-      await supabase.auth.signOut();
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      return;
-    }
-
-    if (!data.is_approved) {
-      const { data: currentSession } = await supabase.auth.getSession();
-      setSession(currentSession.session ?? null);
-      setUser(currentSession.session?.user ?? null);
-      setProfile(data as Profile);
-      return;
-    }
-
-    // Valid employee
-    const { data: currentSession } = await supabase.auth.getSession();
-
-    setSession(currentSession.session ?? null);
-    setUser(currentSession.session?.user ?? null);
-    setProfile(data as Profile);
-
-  } catch (err) {
-    console.error("Unexpected error fetching profile:", err);
-    setSession(null);
-    setUser(null);
-    setProfile(null);
-  } finally {
-    setLoading(false);
-  }
-};
+    return () => subscription.unsubscribe();
+  }, []);
 
   // -------------------- Sign up --------------------
   const signUp = async (email: string, password: string, fullName: string) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { full_name: fullName },
-    },
-  });
-
-  // Ensure user exists
-  if (data?.user?.id) {
-    await supabase.from("profiles").insert({
-      id: data.user.id,
-      full_name: fullName,
-      role: "EMPLOYEE",
-      is_approved: false,
+    const { data, error } = await persistentClient.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: fullName } },
     });
-  }
 
-  return { error };
-};
+    if (data?.user?.id) {
+      await persistentClient.from("profiles").insert({
+        id: data.user.id,
+        full_name: fullName,
+        role: "EMPLOYEE",
+        is_approved: false,
+      });
+    }
+
+    return { error };
+  };
 
   // -------------------- Sign out --------------------
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      await persistentClient.auth.signOut();
       setSession(null);
       setUser(null);
       setProfile(null);
@@ -156,71 +169,60 @@ useEffect(() => {
   };
 
   // -------------------- Login --------------------
-  const login = async (email: string, password: string,rememberMe: boolean) => {
-  try {
-    const client = rememberMe ? supabasePersistent : supabaseTemporary;
-    const { data: loginData, error } =
-      await client.auth.signInWithPassword({ email, password });
+  const login = async (email: string, password: string, rememberMe: boolean) => {
+    try {
+      const client = rememberMe ? persistentClient : createSupabaseClient(false);
+      const { data: loginData, error } = await client.auth.signInWithPassword({ email, password });
 
-    if (error || !loginData.session) {
-      return { error: "INVALID_CREDENTIALS" };
-    }
+      if (error || !loginData.session) return { error: "INVALID_CREDENTIALS" };
 
-    const { data: profileData, error: profileError } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", loginData.user.id)
-      .single();
+      const { data: profileData, error: profileError } = await client
+        .from("profiles")
+        .select("*")
+        .eq("id", loginData.user.id)
+        .single();
 
-    if (profileError || !profileData) {
-      await supabase.auth.signOut();
-      return { error: "PROFILE_ERROR" };
-    }
+      if (profileError || !profileData) return { error: "PROFILE_ERROR" };
 
-    if (profileData.role !== "EMPLOYEE") {
-      await supabase.auth.signOut();
-      return { error: "ACCESS_DENIED" };
-    }
+      if (profileData.role !== "EMPLOYEE") {
+        await client.auth.signOut();
+        return { error: "ACCESS_DENIED" };
+      }
 
-    if (!profileData.is_approved) {
       setSession(loginData.session);
       setUser(loginData.user);
       setProfile(profileData as Profile);
-      return { pendingApproval: true }; 
+
+      if (!profileData.is_approved) return { pendingApproval: true };
+
+      return { data: loginData };
+
+    } catch (err) {
+      console.error("LOGIN CATCH ERROR:", err);
+      return { error: "UNKNOWN_ERROR" };
     }
+  };
 
-    setSession(loginData.session);
-    setUser(loginData.user);
-    setProfile(profileData as Profile);
+  // -------------------- Google Sign In --------------------
+  const signInWithGoogle = async (): Promise<{ error?: string }> => {
+    try {
+      const success = await signInWithGoogleUtil();
+      if (!success) return { error: "CANCELLED" };
+      return {};
+    } catch (err: any) {
+      console.error("Google sign in error:", err);
+      return { error: err.message ?? "UNKNOWN_ERROR" };
+    }
+  };
 
-    return { data: loginData };
-
-  } catch (err) {
-    console.error(err);
-    return { error: "UNKNOWN_ERROR" };
-  }
-};
-
-// -------------------- Google Sign In --------------------
-const signInWithGoogle = async (): Promise<{ error?: string }> => {
-  try {
-    const success = await signInWithGoogleUtil();
-    if (!success) return { error: "CANCELLED" };
-    return {};
-  } catch (err: any) {
-    console.error("Google sign in error:", err);
-    return { error: err.message ?? "UNKNOWN_ERROR" };
-  }
-};
-
-// -------------------- Role helpers --------------------
-  const isAdmin = profile?.role === 'OWNER';
-  const isManager = profile?.role === 'MANAGER' || isAdmin;
-  const isEmployee = profile?.role === "EMPLOYEE";
+  // -------------------- Role helpers --------------------
+  const isAdmin    = profile?.role === 'OWNER';
+  const isManager  = profile?.role === 'MANAGER' || isAdmin;
+  const isEmployee = profile?.role === 'EMPLOYEE';
 
   // -------------------- Provider --------------------
   return (
-    <AuthContext.Provider 
+    <AuthContext.Provider
       value={{ session, user, profile, loading, isAdmin, isManager, isEmployee, signOut, signUp, login, signInWithGoogle }}
     >
       {children}

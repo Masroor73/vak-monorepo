@@ -1,10 +1,12 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
-import { supabase } from "../lib/supabase";
+import { createSupabaseClient } from "../lib/supabase";
 
 const __DEV__ = process.env.NODE_ENV !== "production";
 const POLL_INTERVAL_MS = 15000;
+
+const persistentClient = createSupabaseClient(true);
 
 export function useApprovalRealtimeSubscription() {
   const { user } = useAuth();
@@ -15,7 +17,7 @@ export function useApprovalRealtimeSubscription() {
     if (!user) return;
 
     const checkApproval = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await persistentClient
         .from("profiles")
         .select("is_approved")
         .eq("id", user.id)
