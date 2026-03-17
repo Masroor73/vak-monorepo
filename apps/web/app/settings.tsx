@@ -148,32 +148,33 @@ export default function SettingsPage() {
   /* DELETE ACCOUNT */
 
   async function deleteAccount() {
-    if (!user) return;
+  if (!user) return;
 
-    if (!deletePassword) {
-      alert("Please enter your password.");
-      return;
-    }
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email: user.email!,
-      password: deletePassword
-    });
-
-    if (error) {
-      alert("Incorrect password.");
-      return;
-    }
-
-    await supabase
-      .from("profiles")
-      .delete()
-      .eq("id", user.id);
-
-    await signOut();
-
-    window.location.href = "/(public)/login";
+  if (!deletePassword) {
+    setMessage("Please enter your password.");
+    return;
   }
+
+  const { error: authError } = await supabase.auth.signInWithPassword({
+    email: user.email!,
+    password: deletePassword
+  });
+
+  if (authError) {
+    setMessage("Incorrect password. Please try again.");
+    return;
+  }
+
+  const { error: rpcError } = await supabase.rpc("delete_user_account");
+
+  if (rpcError) {
+    setMessage(rpcError.message);
+    return;
+  }
+
+  await signOut();
+  window.location.href = "/(public)/SignUp";
+}
 
   return (
     <ManagerLayout>
