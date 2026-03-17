@@ -11,7 +11,6 @@ type SwapRequest = {
   reason: string;
   status: "PENDING" | "MANAGER_REVIEW" | "APPROVED" | "DENIED";
   shifts?: {
-    date: string;
     start_time: string;
     end_time: string;
   };

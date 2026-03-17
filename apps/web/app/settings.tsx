@@ -75,7 +75,7 @@ export default function SettingsPage() {
     if (!file) return;
 
     const fileExt = file.name.split(".").pop();
-    const filePath = `avatars/${user.id}.${fileExt}`;
+     const filePath = `avatars/${user.id}-${Date.now()}.${fileExt}`;
 
     const { error } = await supabase.storage
       .from("avatars")
