@@ -104,10 +104,52 @@ export default function ViewShiftModal({ shift, employee, onClose, onSuccess }: 
   };
 
   const handleDelete = async () => {
-    setSaving(true); setError(null);
-    const { error: err } = await supabase.from("shifts").delete().eq("id", shift.id);
+    setSaving(true);
+    setError(null);
+
+    const { error: swapError } = await supabase
+      .from("shift_swaps")
+      .update({ status: "DENIED" })
+      .eq("shift_id", shift.id)
+      .in("status", ["PENDING", "MANAGER_REVIEW"]);
+
+    if (swapError) {
+      setError(swapError.message);
+      setSaving(false);
+      return;
+    }
+
+    const shiftDate = new Date(shift.start_time).toLocaleDateString("en-US", {
+      weekday: "long", month: "long", day: "numeric"
+    });
+
+    const { error: notifError } = await supabase
+      .from("notifications")
+      .insert({
+        user_id: shift.employee_id,
+        type: "GENERAL",
+        title: "Shift Removed",
+        message: `Your shift on ${shiftDate} has been removed by a manager.`,
+        related_entity_id: shift.id,
+      });
+
+    if (notifError) {
+      setError(notifError.message);
+      setSaving(false);
+      return;
+    }
+    const { error: deleteError } = await supabase
+      .from("shifts")
+      .delete()
+      .eq("id", shift.id);
+
     setSaving(false);
-    if (err) { setError(err.message); return; }
+
+    if (deleteError) {
+      setError(deleteError.message);
+      return;
+    }
+
     onSuccess?.();
     onClose();
   };

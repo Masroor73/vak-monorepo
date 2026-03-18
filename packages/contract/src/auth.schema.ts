@@ -70,8 +70,20 @@ export const ProfileSchema = z.object({
   is_approved: z.boolean().default(false), 
 });
 
+export const EditProfileSchema = z.object({
+  full_name: z.string()
+    .min(2, { message: 'Name must be at least 2 characters' }),
+  phone_number: z.string()
+    .nullable()
+    .optional(),
+  email: z.string()
+    .min(1, { message: 'Email is required' })
+    .email({ message: 'Invalid email address' }),
+});
+
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type Profile = z.infer<typeof ProfileSchema>;
 export type SignupInput = z.infer<typeof SignupSchema>;
 export type ForgotPasswordInput = z.infer<typeof ForgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;
+export type EditProfileInput = z.infer<typeof EditProfileSchema>
