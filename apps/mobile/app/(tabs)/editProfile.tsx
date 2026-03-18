@@ -280,7 +280,7 @@ export default function EditProfileScreen() {
                     >
                       <View className="w-9 h-9 rounded-[10px] bg-brand-secondary items-center justify-center">
                         <Feather name="image" size={16} color="#fff" />
-                      </View>s
+                      </View>
                       <View className="flex-1">
                         <Text className="text-[15px] font-bold text-gray-900">Choose from library</Text>
                         <Text className="text-[13px] text-gray-600 mt-0.5">Pick an existing photo</Text>
