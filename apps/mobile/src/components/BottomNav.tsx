@@ -6,12 +6,14 @@ import Grid from "../../assets/Grid.svg";
 import Alert from "../../assets/Alert.svg";
 import MessageCircle from "../../assets/MessageCircle.svg";
 import AccountCircle from "../../assets/AccountCircle.svg";
+import Swap from "../../assets/Swap.svg";
 
 // Blue SVGs
 import WhiteGrid from "../../assets/WhiteGrid.svg";
 import WhiteAlert from "../../assets/WhiteAlert.svg";
 import WhiteMessageCircle from "../../assets/WhiteMessageCircle.svg";
 import WhiteAccountCircle from "../../assets/WhiteAccountCircle.svg";
+import WhiteSwap from "../../assets/WhiteSwap.svg";
 
 
 type Tab = {
@@ -43,11 +45,11 @@ export default function BottomNavigation() {
       WhiteSvg: WhiteAlert,
     },
     {
-      key: "messages",
-      basePaths: ["/(tabs)/messages", "/messages"],
-      navigateTo: "/(tabs)/messages",
-      Svg: MessageCircle,
-      WhiteSvg: WhiteMessageCircle,
+      key: "swap",
+      basePaths: ["/(tabs)/swap", "/swap"],
+      navigateTo: "/(tabs)/swap",
+      Svg: Swap,
+      WhiteSvg: WhiteSwap,
     },
     {
       key: "profile",

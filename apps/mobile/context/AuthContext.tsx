@@ -156,7 +156,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { error };
   };
 
-  // -------------------- Sign out --------------------
   const signOut = async () => {
     try {
       await persistentClient.auth.signOut();
@@ -220,7 +219,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isManager  = profile?.role === 'MANAGER' || isAdmin;
   const isEmployee = profile?.role === 'EMPLOYEE';
 
-  // -------------------- Provider --------------------
   return (
     <AuthContext.Provider
       value={{ session, user, profile, loading, isAdmin, isManager, isEmployee, signOut, signUp, login, signInWithGoogle }}
