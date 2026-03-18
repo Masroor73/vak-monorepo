@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import {View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, StatusBar, Image} from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, StatusBar, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Feather } from '@expo/vector-icons'
 import { router } from 'expo-router'
@@ -21,6 +21,8 @@ export default function EditProfileScreen() {
   const [photoError, setPhotoError] = useState<string | null>(null)
   const [showPhotoPicker, setShowPhotoPicker] = useState(false)
   const photoErrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saveSuccess, setSaveSuccess] = useState(false)
 
   const { control, handleSubmit, reset, watch, formState: { errors } } = useForm<EditProfileInput>({
     resolver: zodResolver(EditProfileSchema),
@@ -138,24 +140,43 @@ export default function EditProfileScreen() {
 
   const onSave = async (data: EditProfileInput) => {
     if (!user) return
+    setSaveError(null)
+    setSaveSuccess(false)
+
     if (uploadingPhoto) {
-      Alert.alert('Please wait', 'Photo is still uploading.')
+      setSaveError('Photo is still uploading, please wait.')
       return
     }
+
     setSaving(true)
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: data.full_name.trim(),
-          phone_number: data.phone_number?.trim() || null,
-          email: data.email.trim(),
-        })
-        .eq('id', user.id)
-      if (error) throw new Error(error.message)
-      router.back()
+      const trimmedEmail = data.email.trim()
+
+      const [{ error: profileError }, { error: authError }] = await Promise.all([
+        supabase
+          .from('profiles')
+          .update({
+            full_name: data.full_name.trim(),
+            phone_number: data.phone_number?.trim() || null,
+            email: trimmedEmail,
+          })
+          .eq('id', user.id),
+        trimmedEmail !== user.email
+          ? supabase.auth.updateUser({ email: trimmedEmail })
+          : Promise.resolve({ error: null }),
+      ])
+
+      if (profileError) throw new Error(profileError.message)
+      if (authError) throw new Error(authError.message)
+
+      setSaveSuccess(true)
+      if (trimmedEmail !== user.email) {
+        setSaveError('Check your new email inbox to confirm the change.')
+      } else {
+        router.back()
+      }
     } catch (err: any) {
-      Alert.alert('Error', err.message ?? 'Could not save changes.')
+      setSaveError(err.message ?? 'Could not save changes.')
     } finally {
       setSaving(false)
     }
@@ -328,7 +349,7 @@ export default function EditProfileScreen() {
                   render={({ field: { value, onChange } }) => (
                     <FormField
                       label="Email"
-                      placeholder="your@email.com"
+                      placeholder="Enter your email"
                       keyboardType="email-address"
                       autoCapitalize="none"
                       value={value}
@@ -354,6 +375,20 @@ export default function EditProfileScreen() {
                       </Text>
                   }
                 </TouchableOpacity>
+
+                {/* Save feedback */}
+                {saveSuccess && (
+                  <View className="flex-row items-center gap-1.5 mt-3 ml-1">
+                    <Feather name="check-circle" size={13} color="#16a34a" />
+                    <Text className="text-[13px] text-green-600">Profile saved successfully.</Text>
+                  </View>
+                )}
+                {saveError && (
+                  <View className="flex-row items-center gap-1.5 mt-3 ml-1">
+                    <Feather name="alert-circle" size={13} color="#D32F2F" />
+                    <Text className="text-[13px] text-damascus-primary">{saveError}</Text>
+                  </View>
+                )}
               </View>
 
             </ScrollView>
