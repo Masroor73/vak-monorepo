@@ -1,7 +1,7 @@
 // apps/mobile/context/AuthContext.tsx
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { persistentClient, memoryClient } from '../lib/supabase';
+import { createSupabaseClient, supabase } from '../lib/supabase';
 import { Profile } from '@vak/contract';
 import { signInWithGoogle as signInWithGoogleUtil } from "../lib/googleAuth";
 
@@ -35,19 +35,21 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
+// -------------------- Persistent client reused across app --------------------
+const persistentClient = createSupabaseClient(true);
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [session, setSession]       = useState<Session | null>(null);
-  const [user, setUser]             = useState<User | null>(null);
-  const [profile, setProfile]       = useState<Profile | null>(null);
-  const [loading, setLoading]       = useState(true);
-  const [activeClient, setActiveClient] = useState(persistentClient);
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser]       = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // -------------------- Fetch profile helper --------------------
   const fetchProfile = async (
     userId: string,
     activeSession: Session,
     activeUser: User,
-    client: typeof persistentClient
+    client: ReturnType<typeof createSupabaseClient>
   ) => {
     try {
       const { data, error } = await client
@@ -89,25 +91,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // -------------------- Auth state initialization --------------------
   useEffect(() => {
     const init = async () => {
-      const { data: { session: persisted } } = await persistentClient.auth.getSession();
-      if (persisted?.user) {
-        setActiveClient(persistentClient);
-        await fetchProfile(persisted.user.id, persisted, persisted.user, persistentClient);
+      // Check persistent client first (rememberMe sessions)
+      const { data: { session: persistedSession } } = await createSupabaseClient(true).auth.getSession();
+      if (persistedSession?.user) {
+        await fetchProfile(
+          persistedSession.user.id,
+          persistedSession,
+          persistedSession.user,
+          createSupabaseClient(true)
+        );
         return;
       }
 
-      const { data: { session: memory } } = await memoryClient.auth.getSession();
-      if (memory?.user) {
-        setActiveClient(memoryClient);
-        await fetchProfile(memory.user.id, memory, memory.user, memoryClient);
+      // Check memory client (non-remembered sessions)
+      const { data: { session: memorySession } } = await createSupabaseClient(false).auth.getSession();
+      if (memorySession?.user) {
+        await fetchProfile(
+          memorySession.user.id,
+          memorySession,
+          memorySession.user,
+          createSupabaseClient(false)
+        );
         return;
       }
 
+      // No session found
       setLoading(false);
     };
 
     init();
 
+    // Always listen for auth state changes on the persistent client
     const { data: { subscription } } = persistentClient.auth.onAuthStateChange(async (_event, session) => {
       if (!session?.user) {
         setSession(null);
@@ -145,7 +159,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // -------------------- Sign out --------------------
   const signOut = async () => {
     try {
-      await activeClient.auth.signOut();
+      await persistentClient.auth.signOut();
       setSession(null);
       setUser(null);
       setProfile(null);
@@ -157,8 +171,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // -------------------- Login --------------------
   const login = async (email: string, password: string, rememberMe: boolean) => {
     try {
-      const client = rememberMe ? persistentClient : memoryClient;
-      setActiveClient(client);
+      const client = rememberMe ? persistentClient : createSupabaseClient(false);
       const { data: loginData, error } = await client.auth.signInWithPassword({ email, password });
 
       if (error || !loginData.session) return { error: "INVALID_CREDENTIALS" };

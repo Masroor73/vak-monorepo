@@ -1,11 +1,11 @@
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
-import { persistentClient } from "./supabase";
+import { supabase } from "./supabase";
 
 export const signInWithGoogle = async () => {
   const redirectTo = Linking.createURL("/");
 
-  const { data, error } = await persistentClient.auth.signInWithOAuth({
+  const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: { redirectTo },
   });
@@ -22,7 +22,7 @@ export const signInWithGoogle = async () => {
 
     if (!access_token || !refresh_token) throw new Error("No tokens returned");
 
-    const { error: sessionError } = await persistentClient.auth.setSession({
+    const { error: sessionError } = await supabase.auth.setSession({
       access_token,
       refresh_token,
     });

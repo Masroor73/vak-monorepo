@@ -1,10 +1,12 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
-import { persistentClient } from "../lib/supabase";
+import { createSupabaseClient } from "../lib/supabase";
 
 const __DEV__ = process.env.NODE_ENV !== "production";
 const POLL_INTERVAL_MS = 15000;
+
+const persistentClient = createSupabaseClient(true);
 
 export function useApprovalRealtimeSubscription() {
   const { user } = useAuth();

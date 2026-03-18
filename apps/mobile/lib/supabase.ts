@@ -11,18 +11,22 @@ const memoryStorage = {
   removeItem: async () => {},
 };
 
-export const persistentClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+// default client (used everywhere, non-persistent)
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    persistSession: true,
+    persistSession: false,        // always false for default client
     autoRefreshToken: true,
-    storage: AsyncStorage,
+    storage: memoryStorage,       // session only in memory
   },
 });
 
-export const memoryClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: true,
-    storage: memoryStorage,
-  },
-});
+// login client (only for sign-in)
+export const createSupabaseClient = (rememberMe: boolean) => {
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: rememberMe,              // depends on checkbox
+      autoRefreshToken: true,
+      storage: rememberMe ? AsyncStorage : memoryStorage,
+    },
+  });
+};
