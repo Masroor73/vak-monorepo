@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, Pressable, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { TextField, PrimaryButton } from "@vak/ui";
 import { Feather } from "@expo/vector-icons";
@@ -37,7 +37,7 @@ export default function ForgetPasswordScreen() {
     setIsLoading(true);
 
     const { error: supabaseError } = await supabase.auth.resetPasswordForEmail(data.email, {
-      redirectTo: "vak://reset-password",
+       redirectTo: "http://localhost:8082/(public)/resetPassword",
     });
 
     setIsLoading(false);
