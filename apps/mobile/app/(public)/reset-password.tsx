@@ -3,7 +3,7 @@ import { View, Text, Pressable, ScrollView, KeyboardAvoidingView, Platform } fro
 import { useRouter } from "expo-router";
 import { TextField, PrimaryButton } from "@vak/ui";
 import { Feather } from "@expo/vector-icons";
-import { supabase } from "@/lib/supabase";
+import { persistentClient, memoryClient } from '../../lib/supabase';
 import Logo from "../../assets/Logo.svg";
 import { ResetPasswordSchema, ResetPasswordInput, PASSWORD_RULES } from "@vak/contract";
 import { useForm, Controller } from "react-hook-form";
@@ -78,7 +78,7 @@ export default function ResetPasswordScreen() {
   const watchedConfirmPassword = watch("confirmPassword");
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = persistentClient.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         console.log("Ready to reset password");
       }
@@ -98,7 +98,7 @@ export default function ResetPasswordScreen() {
     setServerError(null);
     setIsLoading(true);
 
-    const { error: updateError } = await supabase.auth.updateUser({
+    const { error: updateError } = await persistentClient.auth.updateUser({
       password: data.password,
     });
 

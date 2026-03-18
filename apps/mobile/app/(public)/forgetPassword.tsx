@@ -3,7 +3,7 @@ import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from "react-na
 import { useRouter } from "expo-router";
 import { TextField, PrimaryButton } from "@vak/ui";
 import { Feather } from "@expo/vector-icons";
-import { supabase } from "@/lib/supabase";
+import { persistentClient, memoryClient } from '../../lib/supabase';
 import Logo from "../../assets/Logo.svg";
 import { ForgotPasswordSchema, ForgotPasswordInput } from "@vak/contract";
 import { useForm, Controller } from "react-hook-form";
@@ -36,7 +36,7 @@ export default function ForgetPasswordScreen() {
     setServerError(null);
     setIsLoading(true);
 
-    const { error: supabaseError } = await supabase.auth.resetPasswordForEmail(data.email, {
+    const { error: supabaseError } = await persistentClient.auth.resetPasswordForEmail(data.email, {
        redirectTo: "http://localhost:8082/(public)/resetPassword",
     });
 

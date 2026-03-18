@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { RealtimeChannel } from "@supabase/supabase-js";
-import { supabase } from "../lib/supabase";
+import { persistentClient } from '../lib/supabase';
 import { SHIFTS_QUERY_KEY_BASE } from "./shiftsKeys";
 
 const __DEV__ = process.env.NODE_ENV !== "production";
@@ -21,7 +21,7 @@ export function useShiftsRealtimeSubscription() {
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
-    const channel = supabase
+    const channel = persistentClient
       .channel("shifts")
       .on(
         "postgres_changes",
@@ -50,7 +50,7 @@ export function useShiftsRealtimeSubscription() {
 
     return () => {
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
+        persistentClient.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
