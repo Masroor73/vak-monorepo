@@ -10,7 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { LoginSchema, LoginInput, SignupSchema, SignupInput, PASSWORD_RULES } from "@vak/contract";
 import EyeOpenIcon from "../../assets/eyeOpen.svg";
 import EyeClosedIcon from "../../assets/eyeClosed.svg";
-import {GoogleButton}  from "../../src/components/GoogleButton";
+import { GoogleButton } from "../../src/components/GoogleButton";
 import { Circle, Ring, Diamond } from "../../src/components/Shapes";
 
 const PasswordRequirementsBox = ({
@@ -68,19 +68,32 @@ export default function LoginScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused]     = useState(false);
 
-  const { session, loading, signUp, login } = useAuth();
+  const { session, loading, signUp, login, signInWithGoogle } = useAuth();
   const [isLoading, setIsLoading]   = useState(false);
   const [activeTab, setActiveTab]   = useState<"signin" | "signup">("signin");
   const [rememberMe, setRememberMe] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
-  
+
   const onForgotPassword = () => router.push("/(public)/forgetPassword");
+
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    try {
+      const { error } = await signInWithGoogle();
+      if (error && error !== "CANCELLED") {
+        Alert.alert("Error", "Google sign in failed. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const signInForm = useForm<LoginInput>({
     resolver: zodResolver(LoginSchema),
     defaultValues: { email: "", password: "" },
     mode: "onSubmit",
   });
+
   const signUpForm = useForm<SignupInput>({
     resolver: zodResolver(SignupSchema),
     defaultValues: { email: "", password: "", full_name: "", confirmPassword: "" },
@@ -101,21 +114,27 @@ export default function LoginScreen() {
     try {
       const { error } = await signUp(data.email, data.password, data.full_name);
       if (error) Alert.alert("Error", error.message);
-      else router.replace("/(public)/pendingApproval" as any);
-    } catch { Alert.alert("Error", "Something went wrong. Please try again."); }
-   finally { setIsLoading(false); }
+      else router.replace("/(public)/pendingApproval");
+    } catch {
+      Alert.alert("Error", "Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const onLogin = async (data: LoginInput) => {
-    setIsLoading(true); setLoginError(null);
+    setIsLoading(true);
+    setLoginError(null);
     try {
-      const { error,  pendingApproval } = await login(data.email, data.password);
+      const { error, pendingApproval } = await login(data.email, data.password, rememberMe);
       if (error === "INVALID_CREDENTIALS") { setLoginError("Invalid email or password"); return; }
       if (error === "ACCESS_DENIED")       { Alert.alert("Access Denied", "Only employees can access this app."); return; }
       if (pendingApproval)                 { router.replace("/(public)/pendingApproval" as any); return; }
       if (error)                           { setLoginError("Something went wrong. Please try again."); return; }
       router.replace("/(tabs)");
-    } finally { setIsLoading(false); }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -134,10 +153,10 @@ export default function LoginScreen() {
         <Ring    className="w-36 h-36 border-brand-primary top-20 -right-8" />
         <Diamond className="w-5  h-5  bg-brand-primary top-16 right-24" />
         <Diamond className="w-6  h-6  bg-auth-accent top-24 left-8" />
-          <View className="z-10 w-36 h-36 items-center justify-center mt-5">
-            <Logo width={110} height={100} />
-          </View>
-          <Text className="text-auth-accent text-[20px] font-extrabold tracking-[2px] uppercase">V.A.K</Text>
+        <View className="z-10 w-36 h-36 items-center justify-center mt-5">
+          <Logo width={110} height={100} />
+        </View>
+        <Text className="text-auth-accent text-[20px] font-extrabold tracking-[2px] uppercase">V.A.K</Text>
       </View>
 
       <View className="flex-1 bg-auth-primary overflow-hidden">
@@ -211,7 +230,7 @@ export default function LoginScreen() {
                     <View className={`w-6 h-6 rounded-md ml-5 m-2 items-center justify-center border-2 ${rememberMe ? "bg-auth-accent border-auth-accent" : "bg-transparent border-auth-accent"}`}>
                       {rememberMe && <Text className="text-brand-secondary font-extrabold text-xl leading-none">✓</Text>}
                     </View>
-                    <Text className="text-white font-semibold ">Remember me</Text>
+                    <Text className="text-white font-semibold">Remember me</Text>
                   </TouchableOpacity>
                   <Pressable onPress={onForgotPassword}>
                     <Text className="text-white font-semibold">Forgot password?</Text>
@@ -219,10 +238,10 @@ export default function LoginScreen() {
                 </View>
                 <View className="bg-auth-accent rounded-[8px] h-[50px] w-[165px] self-center">
                   <PrimaryButton
-                  title={isLoading ? "Loading..." : "Continue"}
-                  onPress={signInForm.handleSubmit(onLogin)}
-                  isLoading={isLoading}
-                  className=" h-full w-full bg-transparent"
+                    title={isLoading ? "Loading..." : "Continue"}
+                    onPress={signInForm.handleSubmit(onLogin)}
+                    isLoading={isLoading}
+                    className=" h-full w-full bg-transparent"
                   />
                 </View>
                 <View className="flex-row items-center m-8">
@@ -230,7 +249,7 @@ export default function LoginScreen() {
                   <Text className="text-white text-md mx-3">or</Text>
                   <View className="flex-1 h-px bg-white" />
                 </View>
-                <GoogleButton onPress={() => console.log("Google login clicked")} />
+                <GoogleButton onPress={handleGoogleSignIn} />
               </>
             ) : (
               <>
@@ -318,19 +337,18 @@ export default function LoginScreen() {
                 />
                 <View className="bg-auth-accent rounded-[8px] h-[50px] w-[165px] self-center">
                   <PrimaryButton
-                  title={isLoading ? "Loading..." : "Continue"}
-                  onPress={signUpForm.handleSubmit(onSignUp)}
-                  isLoading={isLoading}
-                  className=" h-full w-full bg-transparent"
+                    title={isLoading ? "Loading..." : "Continue"}
+                    onPress={signUpForm.handleSubmit(onSignUp)}
+                    isLoading={isLoading}
+                    className=" h-full w-full bg-transparent"
                   />
                 </View>
-                
                 <View className="flex-row items-center my-4">
                   <View className="flex-1 h-px bg-white" />
                   <Text className="text-white text-md mx-3">or</Text>
                   <View className="flex-1 h-px bg-white" />
                 </View>
-                <GoogleButton onPress={() => console.log("Google login clicked")} />
+                <GoogleButton onPress={handleGoogleSignIn} />
               </>
             )}
           </View>
