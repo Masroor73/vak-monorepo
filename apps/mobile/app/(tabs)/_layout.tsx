@@ -39,7 +39,7 @@ export default function TabsLayout() {
       >
         <Stack.Screen name="index" />
         <Stack.Screen name="report" />
-        <Stack.Screen name="messages" />
+        <Stack.Screen name="swap" />
         <Stack.Screen name="profile" />
         <Stack.Screen name="notifications" />
         <Stack.Screen name="editProfile" />
