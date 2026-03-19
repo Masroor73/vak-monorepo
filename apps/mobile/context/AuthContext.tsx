@@ -74,7 +74,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      // ✅ OPTION C — inject session into default supabase client
+      // inject session into default supabase client
       // so all screens/hooks that import { supabase } get an authenticated client
       await supabase.auth.setSession({
         access_token: activeSession.access_token,
@@ -167,7 +167,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       await persistentClient.auth.signOut();
-      // ✅ OPTION C — also clear the injected session from default client
+      //  also clear the injected session from default client
       await supabase.auth.signOut();
       setSession(null);
       setUser(null);
@@ -202,7 +202,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(loginData.user);
       setProfile(profileData as Profile);
 
-      // ✅ OPTION C — inject session into default supabase client
+      // inject session into default supabase client
       await supabase.auth.setSession({
         access_token: loginData.session.access_token,
         refresh_token: loginData.session.refresh_token,
