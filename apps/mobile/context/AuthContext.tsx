@@ -74,6 +74,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
+      // inject session into default supabase client
+      // so all screens/hooks that import { supabase } get an authenticated client
+      await supabase.auth.setSession({
+        access_token: activeSession.access_token,
+        refresh_token: activeSession.refresh_token,
+      });
+
       setSession(activeSession);
       setUser(activeUser);
       setProfile(data as Profile);
@@ -156,9 +163,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { error };
   };
 
+  // -------------------- Sign out --------------------
   const signOut = async () => {
     try {
       await persistentClient.auth.signOut();
+      //  also clear the injected session from default client
+      await supabase.auth.signOut();
       setSession(null);
       setUser(null);
       setProfile(null);
@@ -192,6 +202,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(loginData.user);
       setProfile(profileData as Profile);
 
+      // inject session into default supabase client
+      await supabase.auth.setSession({
+        access_token: loginData.session.access_token,
+        refresh_token: loginData.session.refresh_token,
+      });
+
       if (!profileData.is_approved) return { pendingApproval: true };
 
       return { data: loginData };
@@ -207,6 +223,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const success = await signInWithGoogleUtil();
       if (!success) return { error: "CANCELLED" };
+      // Google sign in fires onAuthStateChange on persistentClient
+      // which calls fetchProfile which injects into default client — covered
       return {};
     } catch (err: any) {
       console.error("Google sign in error:", err);
