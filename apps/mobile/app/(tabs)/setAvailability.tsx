@@ -302,7 +302,7 @@ export default function SetAvailability() {
               <Switch value={daySchedule.fullDay} onValueChange={(v) => { if (!isReadOnly) updateSelectedDay({ fullDay: v, isOvernight: false }); }} disabled={isReadOnly} trackColor={{ false: "#e5e7eb", true: "#05CC66" }} thumbColor="#fff" />
             </View>
 
-            {/* Overnight toggle — only shown when fullDay is off */}
+            {/* Overnight toggle only shown when fullDay is off */}
             {!daySchedule.fullDay && (
               <View className="flex-row items-center justify-between px-4 py-3.5 rounded border border-gray-400">
                 <View>
