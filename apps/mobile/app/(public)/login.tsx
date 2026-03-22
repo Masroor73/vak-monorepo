@@ -63,14 +63,14 @@ const PasswordRequirementsBox = ({
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [showSignInPassword, setShowSignInPassword]   = useState(false);
-  const [showSignUpPassword, setShowSignUpPassword]   = useState(false);
+  const [showSignInPassword, setShowSignInPassword] = useState(false);
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isPasswordFocused, setIsPasswordFocused]     = useState(false);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
 
   const { session, loading, signUp, login, signInWithGoogle } = useAuth();
-  const [isLoading, setIsLoading]   = useState(false);
-  const [activeTab, setActiveTab]   = useState<"signin" | "signup">("signin");
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin");
   const [rememberMe, setRememberMe] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -100,7 +100,7 @@ export default function LoginScreen() {
     mode: "onSubmit",
   });
 
-  const watchedPassword        = signUpForm.watch("password");
+  const watchedPassword = signUpForm.watch("password");
   const watchedConfirmPassword = signUpForm.watch("confirmPassword");
 
   useEffect(() => {
@@ -128,9 +128,9 @@ export default function LoginScreen() {
     try {
       const { error, pendingApproval } = await login(data.email, data.password, rememberMe);
       if (error === "INVALID_CREDENTIALS") { setLoginError("Invalid email or password"); return; }
-      if (error === "ACCESS_DENIED")       { Alert.alert("Access Denied", "Only employees can access this app."); return; }
-      if (pendingApproval)                 { router.replace("/(public)/pendingApproval" as any); return; }
-      if (error)                           { setLoginError("Something went wrong. Please try again."); return; }
+      if (error === "ACCESS_DENIED") { Alert.alert("Access Denied", "Only employees can access this app."); return; }
+      if (pendingApproval) { router.replace("/(public)/pendingApproval" as any); return; }
+      if (error) { setLoginError("Something went wrong. Please try again."); return; }
       router.replace("/(tabs)");
     } finally {
       setIsLoading(false);
@@ -149,8 +149,8 @@ export default function LoginScreen() {
   return (
     <View className="flex-1">
       <View className="bg-auth-primary items-center overflow-hidden pt-20 pb-3">
-        <Circle  className="w-52 h-52 bg-auth-mid -top-20 -right-10" />
-        <Ring    className="w-36 h-36 border-brand-primary top-20 -right-8" />
+        <Circle className="w-52 h-52 bg-auth-mid -top-20 -right-10" />
+        <Ring className="w-36 h-36 border-brand-primary top-20 -right-8" />
         <Diamond className="w-5  h-5  bg-brand-primary top-16 right-24" />
         <Diamond className="w-6  h-6  bg-auth-accent top-24 left-8" />
         <View className="z-10 w-36 h-36 items-center justify-center mt-5">
@@ -189,6 +189,7 @@ export default function LoginScreen() {
                   name="email"
                   render={({ field }) => (
                     <TextField
+                      maxLength={254}
                       variant="dark"
                       label="Email"
                       placeholder="Enter your email"
@@ -206,6 +207,7 @@ export default function LoginScreen() {
                   render={({ field }) => (
                     <>
                       <TextField
+                        maxLength={72}
                         variant="dark"
                         label="Password"
                         placeholder="Enter your password"
@@ -260,6 +262,7 @@ export default function LoginScreen() {
                   render={({ field: { value, onChange } }) => (
                     <TextField
                       variant="dark"
+                      maxLength={50}
                       label="Full Name"
                       placeholder="Enter your full name"
                       value={value}
@@ -273,6 +276,7 @@ export default function LoginScreen() {
                   name="email"
                   render={({ field: { value, onChange } }) => (
                     <TextField
+                      maxLength={254}
                       variant="dark"
                       label="Email"
                       placeholder="Enter your email"
@@ -290,6 +294,7 @@ export default function LoginScreen() {
                   render={({ field }) => (
                     <>
                       <TextField
+                        maxLength={72}
                         variant="dark"
                         label="Password"
                         placeholder="Enter your password"
@@ -320,6 +325,7 @@ export default function LoginScreen() {
                   name="confirmPassword"
                   render={({ field }) => (
                     <TextField
+                      maxLength={72}
                       variant="dark"
                       label="Confirm Password"
                       placeholder="Enter password again"

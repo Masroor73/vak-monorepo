@@ -25,7 +25,7 @@ export default function ReportFoodWastage() {
   const router = useRouter();
   const { user } = useAuth();
   const [itemName, setItemName] = useState('');
-  const [estimatedCost, setEstimatedCost] = useState('');
+  const [estimatedCost, setEstimatedCost] = useState('0.00');
   const [localPhotoUri, setLocalPhotoUri] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -118,8 +118,7 @@ export default function ReportFoodWastage() {
   const validate = (): boolean => {
     if (!user) return false;
 
-    const costValue = estimatedCost.trim() === '' ? NaN : Number(estimatedCost);
-
+    const costValue = estimatedCost.trim() === '' ? NaN : Number(estimatedCost.replace(/,/g, ''));
     const result = WasteLogSchema.safeParse({
       reporter_id: user.id,
       item_name: itemName.trim(),
@@ -158,7 +157,7 @@ export default function ReportFoodWastage() {
       const { error } = await supabase.from('waste_logs').insert({
         reporter_id: user!.id,
         item_name: itemName.trim(),
-        estimated_cost: Number(estimatedCost),
+        estimated_cost: Number(estimatedCost.replace(/,/g, '')),
         photo_url: photoUrl,
       });
 
@@ -235,7 +234,7 @@ export default function ReportFoodWastage() {
                 <Text className="text-red-600 text-[13px] flex-1">{errors.submit}</Text>
               </View>
             )}
-          
+
             <Text className="text-[13px] font-bold text-gray-600 uppercase tracking-widest mb-2">
               Item Name <Text className="text-red-500">*</Text>
             </Text>
@@ -261,9 +260,15 @@ export default function ReportFoodWastage() {
                 className="flex-1 py-3.5 text-gray-900 text-[15px]"
                 placeholder="0.00"
                 placeholderTextColor="#6B7280"
-                keyboardType="decimal-pad"
+                keyboardType="number-pad"
                 value={estimatedCost}
-                onChangeText={setEstimatedCost}
+                onChangeText={(text) => {
+                  const digits = text.replace(/[^0-9]/g, '');
+                  const cents = parseInt(digits || '0', 10);
+                  const [whole, decimal] = (cents / 100).toFixed(2).split('.');
+                  const withCommas = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                  setEstimatedCost(`${withCommas}.${decimal}`);
+                }}
                 maxLength={10}
                 returnKeyType="done"
               />
