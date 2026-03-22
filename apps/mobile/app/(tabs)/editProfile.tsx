@@ -12,6 +12,16 @@ import { EditProfileSchema, EditProfileInput } from '@vak/contract'
 
 const MAX_FILE_SIZE_MB = 5
 
+function formatPhone(raw: string): string {
+  const digits = raw.replace(/[^0-9]/g, '').slice(0, 10)
+  let masked = ''
+  if (digits.length > 0) masked += '(' + digits.slice(0, 3)
+  if (digits.length >= 4) masked += ') ' + digits.slice(3, 6)
+  else if (digits.length === 3) masked += ')'
+  if (digits.length >= 7) masked += '-' + digits.slice(6)
+  return masked
+}
+
 export default function EditProfileScreen() {
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
@@ -60,7 +70,7 @@ export default function EditProfileScreen() {
     if (error) { console.error(error); setLoading(false); return }
     reset({
       full_name: data.full_name ?? '',
-      phone_number: data.phone_number ?? '',
+      phone_number: formatPhone(data.phone_number ?? ''),
       email: data.email ?? '',
     })
     setAvatarUrl(data.avatar_url ?? null)
@@ -81,9 +91,9 @@ export default function EditProfileScreen() {
     const result = source === 'camera'
       ? await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.7 })
       : await ImagePicker.launchImageLibraryAsync({
-          allowsEditing: true, aspect: [1, 1], quality: 0.7,
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        })
+        allowsEditing: true, aspect: [1, 1], quality: 0.7,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      })
 
     if (result.canceled || !result.assets?.[0]) return
 
@@ -157,7 +167,7 @@ export default function EditProfileScreen() {
           .from('profiles')
           .update({
             full_name: data.full_name.trim(),
-            phone_number: data.phone_number?.trim() || null,
+            phone_number: data.phone_number?.replace(/[^0-9]/g, '') || null,
             email: trimmedEmail,
           })
           .eq('id', user.id),
@@ -319,6 +329,7 @@ export default function EditProfileScreen() {
                   name="full_name"
                   render={({ field: { value, onChange } }) => (
                     <FormField
+                      maxLength={50}
                       label="Full name"
                       placeholder="Your full name"
                       autoCapitalize="words"
@@ -333,12 +344,13 @@ export default function EditProfileScreen() {
                   name="phone_number"
                   render={({ field: { value, onChange } }) => (
                     <FormField
+                      maxLength={14}
                       label="Phone number"
                       placeholder="(xxx) xxx-xxxx"
                       keyboardType="phone-pad"
                       autoCapitalize="none"
                       value={value ?? ''}
-                      onChangeText={(v) => onChange(v.replace(/[^0-9]/g, ''))}
+                      onChangeText={(v) => onChange(formatPhone(v))}
                       error={errors.phone_number?.message}
                     />
                   )}
@@ -349,6 +361,7 @@ export default function EditProfileScreen() {
                   render={({ field: { value, onChange } }) => (
                     <FormField
                       label="Email"
+                      maxLength={254}
                       placeholder="Enter your email"
                       keyboardType="email-address"
                       autoCapitalize="none"
@@ -371,8 +384,8 @@ export default function EditProfileScreen() {
                   {saving
                     ? <ActivityIndicator color="#fff" />
                     : <Text className="text-white font-semibold text-[15px]">
-                        {uploadingPhoto ? 'Uploading photo...' : 'Save Changes'}
-                      </Text>
+                      {uploadingPhoto ? 'Uploading photo...' : 'Save Changes'}
+                    </Text>
                   }
                 </TouchableOpacity>
 
@@ -401,10 +414,10 @@ export default function EditProfileScreen() {
 
 function FormField({
   label, value, onChangeText, placeholder,
-  keyboardType = 'default', autoCapitalize = 'sentences', error,
+  keyboardType = 'default', autoCapitalize = 'sentences', error, maxLength
 }: {
   label: string; value: string; onChangeText: (t: string) => void
-  placeholder?: string; keyboardType?: any; autoCapitalize?: any; error?: string
+  placeholder?: string; keyboardType?: any; autoCapitalize?: any; error?: string; maxLength?: number;
 }) {
   return (
     <View>
@@ -419,6 +432,7 @@ function FormField({
         placeholderTextColor="#9ca3af"
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize}
+        maxLength={maxLength}
       />
       {error && (
         <View className="flex-row items-center gap-1 mt-1">
