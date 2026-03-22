@@ -77,7 +77,7 @@ export const ProfileSchema = z.object({
 
 export const EditProfileSchema = z.object({
   full_name: z.string()
-    .min(2, { message: 'Name mube at least 2 characters' })
+    .min(2, { message: 'Name must be at least 2 characters' })
     .max(50, { message: "Max 50 characters." }),
   phone_number: z.string()
     .max(14, { message: "Max 14 characters." })
