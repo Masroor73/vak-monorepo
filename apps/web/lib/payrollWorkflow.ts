@@ -7,9 +7,24 @@ export const PAYROLL_OT_MULTIPLIER = 1.5;
 
 export const PAYROLL_RUNS_STORAGE_KEY = "vak_payroll_runs_v1";
 
+/**
+ * Base URL for the **Vak.Payroll.Api** (.NET) service — NOT Supabase.
+ * Example: `http://localhost:5117` (see `apps/api-engine/Vak.Payroll.Api`).
+ */
 export function getPayrollApiBaseUrl(): string | undefined {
   const url = process.env.EXPO_PUBLIC_PAYROLL_API_URL;
   if (typeof url === "string" && url.trim().length > 0) return url.replace(/\/$/, "");
+  return undefined;
+}
+
+/** If the env var points at Supabase, payroll calls will 404 on `/payroll`. */
+export function getPayrollApiUrlMisconfigurationMessage(): string | undefined {
+  const raw = process.env.EXPO_PUBLIC_PAYROLL_API_URL;
+  if (typeof raw !== "string" || !raw.trim()) return undefined;
+  const lower = raw.trim().toLowerCase();
+  if (lower.includes("supabase.co")) {
+    return "EXPO_PUBLIC_PAYROLL_API_URL is set to a Supabase URL. It must be the Payroll .NET API base URL (e.g. http://localhost:5117), not your database project URL.";
+  }
   return undefined;
 }
 
@@ -192,6 +207,15 @@ export function countShiftsByEmployee(shifts: DbShift[]): Record<string, number>
     m[s.employee_id] = (m[s.employee_id] ?? 0) + 1;
   }
   return m;
+}
+
+/** Distinct `employee_id` values from shifts (sorted) for payroll employee pickers. */
+export function distinctEmployeeIds(shifts: DbShift[]): string[] {
+  const ids = new Set<string>();
+  for (const s of shifts) {
+    if (s.employee_id) ids.add(s.employee_id);
+  }
+  return Array.from(ids).sort();
 }
 
 export function buildPayrollLines(

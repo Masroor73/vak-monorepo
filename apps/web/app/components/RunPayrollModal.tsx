@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useRouter } from "expo-router";
-import { calculatePayrollForAllEmployees } from "@vak/api";
+import { calculatePayrollForEmployee } from "@vak/api";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import type { Shift as DbShift } from "./ViewShiftModal";
@@ -10,12 +10,14 @@ import {
   addDaysDate,
   buildPayrollLines,
   countShiftsByEmployee,
+  distinctEmployeeIds,
   downloadCsv,
   filterShiftsToSelectedWeeks,
   formatPayrollPeriodRange,
   formatSelectedWeeksLabel,
   getMondaysOverlappingMonth,
   getPayrollApiBaseUrl,
+  getPayrollApiUrlMisconfigurationMessage,
   getWeekStart,
   parseWeekKeyToLocalDate,
   partitionPayrollShifts,
@@ -28,7 +30,9 @@ import {
 } from "../../lib/payrollWorkflow";
 
 type Step =
-  | "preview-loading"
+  | "loading-shifts"
+  | "select-employees"
+  | "calculating"
   | "preview"
   | "confirm"
   | "processing"
@@ -75,8 +79,14 @@ export default function RunPayrollModal({
   const [selectedWeekKeys, setSelectedWeekKeys] = useState<Set<string>>(
     () => new Set()
   );
-  const [step, setStep] = useState<Step>("preview-loading");
+  const [step, setStep] = useState<Step>("loading-shifts");
   const [error, setError] = useState<string | null>(null);
+  /** Shifts eligible for payroll in the selected period (before employee filter). */
+  const [fetchedIncluded, setFetchedIncluded] = useState<DbShift[]>([]);
+  const [fetchedExcluded, setFetchedExcluded] = useState<ExcludedShift[]>([]);
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<Set<string>>(
+    () => new Set()
+  );
   const [preview, setPreview] = useState<PreviewState | null>(null);
   const [completedRunId, setCompletedRunId] = useState<string | null>(null);
   const [filterMonth, setFilterMonth] = useState(() => new Date().getMonth() + 1);
@@ -125,6 +135,7 @@ export default function RunPayrollModal({
       return next;
     });
     setStep((s) => (s === "confirm" ? "preview" : s));
+    setPreview(null);
   };
 
   useEffect(() => {
@@ -132,13 +143,16 @@ export default function RunPayrollModal({
       setPreview(null);
       setError(null);
       setCompletedRunId(null);
+      setFetchedIncluded([]);
+      setFetchedExcluded([]);
+      setSelectedEmployeeIds(new Set());
       return;
     }
 
     let cancelled = false;
 
-    async function loadPreview() {
-      setStep("preview-loading");
+    async function loadShiftsForPeriod() {
+      setStep("loading-shifts");
       setError(null);
       setPreview(null);
 
@@ -173,7 +187,6 @@ export default function RunPayrollModal({
       const shifts = filterShiftsToSelectedWeeks(shiftsRaw, weeks);
 
       const { included, excluded } = partitionPayrollShifts(shifts);
-      const base = getPayrollApiBaseUrl();
 
       if (!included.length) {
         const inRange = shifts.length;
@@ -189,51 +202,120 @@ export default function RunPayrollModal({
           msg = `${inRange} shift(s) in selected weeks; none are COMPLETED with full clock-in/out (${excluded.length} excluded: published, draft, or missing actuals).`;
         }
         setError(msg);
+        setFetchedIncluded([]);
+        setFetchedExcluded([]);
+        setStep("error");
+        return;
+      }
+
+      const payrollUrlMisconfig = getPayrollApiUrlMisconfigurationMessage();
+      const base = getPayrollApiBaseUrl();
+
+      if (payrollUrlMisconfig) {
+        setError(payrollUrlMisconfig);
         setStep("error");
         return;
       }
 
       if (!base) {
         setError(
-          "Payroll service URL is not configured. Set EXPO_PUBLIC_PAYROLL_API_URL (e.g. http://localhost:5117)."
+          "Payroll service URL is not configured. Set EXPO_PUBLIC_PAYROLL_API_URL to the Vak Payroll .NET API (e.g. http://localhost:5117). This is not the same as EXPO_PUBLIC_SUPABASE_URL."
         );
         setStep("error");
         return;
       }
 
-      try {
-        const payload = toPayrollApiShifts(included);
-        const res = await calculatePayrollForAllEmployees(payload, { baseURL: base });
-        if (cancelled) return;
-        const reports = res.data;
-        const counts = countShiftsByEmployee(included);
-        const lines = buildPayrollLines(reports, employees, counts);
-        setPreview({ lines, excluded, includedShifts: included });
-        setStep("preview");
-      } catch (e: unknown) {
-        if (cancelled) return;
-        const msg =
-          e && typeof e === "object" && "message" in e
-            ? String((e as { message: string }).message)
-            : "Payroll calculation failed.";
-        setError(msg);
-        setStep("error");
-      }
+      if (cancelled) return;
+      setFetchedIncluded(included);
+      setFetchedExcluded(excluded);
+      setSelectedEmployeeIds(new Set(distinctEmployeeIds(included)));
+      setStep("select-employees");
     }
 
-    loadPreview();
+    loadShiftsForPeriod();
     return () => {
       cancelled = true;
     };
-  }, [open, selectionDep, employees]);
+  }, [open, selectionDep]);
 
   const periodLabel = formatSelectedWeeksLabel(sortedWeekStarts);
+
+  const employeeLabel = (id: string) => {
+    const e = employees.find((x) => x.id === id);
+    return e?.full_name?.trim() || e?.email || id;
+  };
+
+  const employeeRows = useMemo(() => {
+    const ids = distinctEmployeeIds(fetchedIncluded);
+    const label = (id: string) => {
+      const e = employees.find((x) => x.id === id);
+      return e?.full_name?.trim() || e?.email || id;
+    };
+    return [...ids].sort((a, b) => label(a).localeCompare(label(b)));
+  }, [fetchedIncluded, employees]);
+
+  const shiftCountsByEmployee = useMemo(
+    () => countShiftsByEmployee(fetchedIncluded),
+    [fetchedIncluded]
+  );
+
+  const handleCalculatePayroll = async () => {
+    if (selectedEmployeeIds.size === 0) {
+      setError("Select at least one employee.");
+      return;
+    }
+    const payrollUrlMisconfig = getPayrollApiUrlMisconfigurationMessage();
+    const base = getPayrollApiBaseUrl();
+    if (payrollUrlMisconfig) {
+      setError(payrollUrlMisconfig);
+      return;
+    }
+    if (!base) {
+      setError(
+        "Payroll service URL is not configured. Set EXPO_PUBLIC_PAYROLL_API_URL to the Vak Payroll .NET API (e.g. http://localhost:5117). This is not the same as EXPO_PUBLIC_SUPABASE_URL."
+      );
+      return;
+    }
+    const includedForCalc = fetchedIncluded.filter((s) => selectedEmployeeIds.has(s.employee_id));
+    if (!includedForCalc.length) {
+      setError("No shifts match the selected employees.");
+      return;
+    }
+    setError(null);
+    setStep("calculating");
+    try {
+      const ids = [...selectedEmployeeIds].sort((a, b) =>
+        employeeLabel(a).localeCompare(employeeLabel(b))
+      );
+      const reports = await Promise.all(
+        ids.map(async (id) => {
+          const shifts = includedForCalc.filter((s) => s.employee_id === id);
+          const res = await calculatePayrollForEmployee(id, toPayrollApiShifts(shifts), {
+            baseURL: base,
+          });
+          return res.data;
+        })
+      );
+      const counts = countShiftsByEmployee(includedForCalc);
+      const lines = buildPayrollLines(reports, employees, counts);
+      setPreview({ lines, excluded: fetchedExcluded, includedShifts: includedForCalc });
+      setStep("preview");
+    } catch (e: unknown) {
+      const msg =
+        e && typeof e === "object" && "message" in e
+          ? String((e as { message: string }).message)
+          : "Payroll calculation failed.";
+      setError(msg);
+      setStep("select-employees");
+    }
+  };
   const totalPayout = preview ? sumGross(preview.lines) : 0;
   const runnerName =
     profile?.full_name?.trim() || profile?.email || "Current user";
 
   const canChangePeriod =
-    step === "preview-loading" ||
+    step === "loading-shifts" ||
+    step === "select-employees" ||
     step === "preview" ||
     step === "confirm" ||
     step === "error";
@@ -247,6 +329,17 @@ export default function RunPayrollModal({
       } else {
         next.add(key);
       }
+      return next;
+    });
+    if (step === "confirm") setStep("preview");
+  };
+
+  const toggleEmployee = (id: string) => {
+    setError(null);
+    setSelectedEmployeeIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
     if (step === "confirm") setStep("preview");
@@ -434,13 +527,15 @@ export default function RunPayrollModal({
         </div>
 
         <div className="overflow-y-auto flex-1 px-5 py-4">
-          {(step === "preview-loading" || step === "processing") && (
+          {(step === "loading-shifts" || step === "calculating" || step === "processing") && (
             <div className="py-16 text-center text-gray-600 text-sm">
               <div className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-auth-blue mb-3" />
               <p>
                 {step === "processing"
                   ? "Recording payroll run…"
-                  : "Loading shifts and calculating payroll…"}
+                  : step === "calculating"
+                    ? "Calculating payroll…"
+                    : "Loading shifts…"}
               </p>
             </div>
           )}
@@ -448,6 +543,99 @@ export default function RunPayrollModal({
           {step === "error" && error && (
             <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
               {error}
+            </div>
+          )}
+
+          {step === "select-employees" && (
+            <div className="space-y-4 mb-4">
+              {error && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                  {error}
+                </div>
+              )}
+              <p className="text-[11px] text-gray-500">
+                Shifts are loaded for the selected week(s). Choose who to include, then run the
+                payroll engine (one API call per employee:{" "}
+                <code className="text-[10px] bg-gray-100 px-1 rounded">
+                  POST /payroll/{"{employeeId}"}
+                </code>
+                ).
+              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Employees to include
+                </p>
+                <div className="flex gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError(null);
+                      setSelectedEmployeeIds(new Set(distinctEmployeeIds(fetchedIncluded)));
+                    }}
+                    className="text-auth-blue font-medium hover:underline"
+                  >
+                    Select all
+                  </button>
+                  <span className="text-gray-300">|</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError(null);
+                      setSelectedEmployeeIds(new Set());
+                    }}
+                    className="text-auth-blue font-medium hover:underline"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+              <div className="max-h-56 overflow-y-auto rounded-lg border border-gray-200 bg-white divide-y divide-gray-100">
+                {employeeRows.map((id) => {
+                  const checked = selectedEmployeeIds.has(id);
+                  const n = shiftCountsByEmployee[id] ?? 0;
+                  return (
+                    <label
+                      key={id}
+                      className="flex items-start gap-3 px-3 py-2.5 cursor-pointer hover:bg-gray-50"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleEmployee(id)}
+                        className="mt-0.5 h-4 w-4 rounded border-gray-300 text-auth-blue focus:ring-auth-blue"
+                      />
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm font-medium text-gray-900">
+                          {employeeLabel(id)}
+                        </span>
+                        <span className="block text-[11px] text-gray-500 mt-0.5">
+                          {n} payroll-eligible shift{n === 1 ? "" : "s"} in this period
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              {fetchedExcluded.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    Excluded shifts (not in payroll)
+                  </p>
+                  <ul className="text-sm space-y-1 max-h-28 overflow-y-auto border border-gray-100 rounded-lg p-3 bg-gray-50/80">
+                    {fetchedExcluded.map(({ shift, reason }) => {
+                      const emp = employees.find((e) => e.id === shift.employee_id);
+                      const label = emp?.full_name ?? emp?.email ?? shift.employee_id;
+                      return (
+                        <li key={shift.id} className="text-gray-700">
+                          <span className="font-medium">{label}</span>
+                          <span className="text-gray-400"> — </span>
+                          {reason}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
 
@@ -629,7 +817,7 @@ export default function RunPayrollModal({
         </div>
 
         <div className="border-t border-gray-100 px-5 py-3 flex flex-wrap justify-end gap-2 bg-gray-50/80">
-          {step === "preview-loading" && (
+          {(step === "loading-shifts" || step === "calculating") && (
             <button
               type="button"
               onClick={onClose}
@@ -637,6 +825,39 @@ export default function RunPayrollModal({
             >
               Cancel
             </button>
+          )}
+
+          {step === "select-employees" && (
+            <>
+              {preview ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError(null);
+                    setStep("preview");
+                  }}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-white"
+                >
+                  Back to results
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-white"
+                >
+                  Cancel
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleCalculatePayroll}
+                disabled={selectedEmployeeIds.size === 0}
+                className="rounded-lg bg-gray-900 text-white px-4 py-2 text-sm font-medium hover:bg-gray-700 disabled:opacity-50 disabled:pointer-events-none"
+              >
+                Calculate payroll
+              </button>
+            </>
           )}
 
           {step === "preview" && preview && (
@@ -647,6 +868,16 @@ export default function RunPayrollModal({
                 className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-white"
               >
                 Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setStep("select-employees");
+                }}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-white"
+              >
+                Change employees
               </button>
               <button
                 type="button"
