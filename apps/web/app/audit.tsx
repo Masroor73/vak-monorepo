@@ -258,7 +258,8 @@ export default function AuditPage() {
   const [activeFilter, setActiveFilter] = useState<AuditFilter>("ALL");
 
   const weekStart = useMemo(() => getWeekStart(new Date()), []);
-  const weekEnd = useMemo(() => addDays(weekStart, 7), [weekStart]);
+  const rangeStart = useMemo(() => addDays(weekStart, -7), [weekStart]);
+  const rangeEnd = useMemo(() => addDays(weekStart, 7), [weekStart]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -300,8 +301,8 @@ export default function AuditPage() {
     const { data, error } = await supabase
       .from("shifts")
       .select("*")
-      .gte("start_time", weekStart.toISOString())
-      .lt("start_time", weekEnd.toISOString())
+      .gte("start_time", rangeStart.toISOString())
+      .lt("start_time", rangeEnd.toISOString())
       .not("actual_start_time", "is", null)
       .order("start_time", { ascending: true });
 
