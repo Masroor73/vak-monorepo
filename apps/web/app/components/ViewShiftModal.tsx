@@ -46,6 +46,15 @@ function formatRole(role: string): string {
   return role.charAt(0) + role.slice(1).toLowerCase().replace(/_/g, " ");
 }
 
+function getShiftTiming(shift: Shift): "past" | "in_progress" | "future" {
+  const now = new Date();
+  const start = new Date(shift.start_time);
+  const end = new Date(shift.end_time);
+  if (now >= end) return "past";
+  if (now >= start && now < end) return "in_progress";
+  return "future";
+}
+
 interface Props {
   shift: Shift;
   employee: Profile | undefined;
@@ -67,6 +76,14 @@ export default function ViewShiftModal({ shift, employee, onClose, onSuccess }: 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState<string | null>(null);
+
+  const timing = getShiftTiming(shift);
+  const editDisabledReason =
+    timing === "past"        ? "Cannot edit a shift that has already ended." :
+    timing === "in_progress" ? "Cannot edit a shift that is currently in progress." :
+    null;
+  const deleteDisabledReason =
+    timing === "past" ? "Cannot delete a shift that has already ended." : null;
 
   const statusStyle = STATUS_STYLES[status];
   const statusLabel = status.charAt(0) + status.slice(1).toLowerCase();
@@ -104,52 +121,10 @@ export default function ViewShiftModal({ shift, employee, onClose, onSuccess }: 
   };
 
   const handleDelete = async () => {
-    setSaving(true);
-    setError(null);
-
-    const { error: swapError } = await supabase
-      .from("shift_swaps")
-      .update({ status: "DENIED" })
-      .eq("shift_id", shift.id)
-      .in("status", ["PENDING", "MANAGER_REVIEW"]);
-
-    if (swapError) {
-      setError(swapError.message);
-      setSaving(false);
-      return;
-    }
-
-    const shiftDate = new Date(shift.start_time).toLocaleDateString("en-US", {
-      weekday: "long", month: "long", day: "numeric"
-    });
-
-    const { error: notifError } = await supabase
-      .from("notifications")
-      .insert({
-        user_id: shift.employee_id,
-        type: "GENERAL",
-        title: "Shift Removed",
-        message: `Your shift on ${shiftDate} has been removed by a manager.`,
-        related_entity_id: shift.id,
-      });
-
-    if (notifError) {
-      setError(notifError.message);
-      setSaving(false);
-      return;
-    }
-    const { error: deleteError } = await supabase
-      .from("shifts")
-      .delete()
-      .eq("id", shift.id);
-
+    setSaving(true); setError(null);
+    const { error: err } = await supabase.from("shifts").delete().eq("id", shift.id);
     setSaving(false);
-
-    if (deleteError) {
-      setError(deleteError.message);
-      return;
-    }
-
+    if (err) { setError(err.message); return; }
     onSuccess?.();
     onClose();
   };
@@ -320,10 +295,30 @@ export default function ViewShiftModal({ shift, employee, onClose, onSuccess }: 
                 <button onClick={onClose} className="flex-1 border rounded-xl px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition">
                   Close
                 </button>
-                <button onClick={() => { setIsEditing(true); setError(null); }} className="flex-1 bg-gray-900 text-white rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-gray-700 transition">
+                <button
+                  onClick={() => {
+                    if (editDisabledReason) { setError(editDisabledReason); return; }
+                    setIsEditing(true); setError(null);
+                  }}
+                  className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition ${
+                    editDisabledReason
+                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      : "bg-gray-900 text-white hover:bg-gray-700"
+                  }`}
+                >
                   Edit Shift
                 </button>
-                <button onClick={() => setConfirmDelete(true)} className="px-4 py-2.5 rounded-xl border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition">
+                <button
+                  onClick={() => {
+                    if (deleteDisabledReason) { setError(deleteDisabledReason); return; }
+                    setConfirmDelete(true);
+                  }}
+                  className={`px-4 py-2.5 rounded-xl border text-sm font-medium transition ${
+                    deleteDisabledReason
+                      ? "border-gray-200 text-gray-400 cursor-not-allowed"
+                      : "border-red-200 text-red-500 hover:bg-red-50"
+                  }`}
+                >
                   Delete
                 </button>
               </div>

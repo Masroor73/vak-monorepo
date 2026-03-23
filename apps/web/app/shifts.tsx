@@ -56,6 +56,12 @@ function getInitials(name: string): string {
   return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 }
 
+function resolveStatusKey(status: Shift["status"]): "PUBLISHED" | "COMPLETED" | "VOID" {
+  if (status === "COMPLETED") return "COMPLETED";
+  if (status === "VOID") return "VOID";
+  return "PUBLISHED"; // covers PUBLISHED, DRAFT, and null
+}
+
 const AVATAR_COLORS = [
   "bg-blue-200 text-blue-800",
   "bg-green-200 text-green-800",
@@ -104,33 +110,7 @@ export default function ShiftsPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!isManager) { router.replace("/"); return; }
-    
-    // Initial fetch
     fetchData();
-
-    // Subscribe to realtime changes on the shifts table
-    const channel = supabase
-      .channel('schema-db-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen for INSERT, UPDATE, and DELETE
-          schema: 'public',
-          table: 'shifts',
-        },
-        () => {
-          // Whenever a shift is changed (even from the mobile app), 
-          // instantly refetch the grid data without reloading the page.
-          console.log("Realtime event received! Refreshing shifts...");
-          fetchShifts(); 
-        }
-      )
-      .subscribe();
-
-    // Cleanup subscription on unmount
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [authLoading, isManager, weekStart]);
 
   const fetchData = async () => {
@@ -301,7 +281,7 @@ export default function ShiftsPage() {
                             {shift ? (
                               <button
                                 onClick={() => setViewingShift(shift)}
-                                className={`w-full rounded-lg px-2 py-2 text-xs font-medium transition hover:opacity-75 ${STATUS_STYLES[shift.status === "DRAFT" || !shift.status ? "PUBLISHED" : shift.status]}`}
+                                className={`w-full rounded-lg px-2 py-2 text-xs font-medium transition hover:opacity-75 ${STATUS_STYLES[resolveStatusKey(shift.status)]}`}
                               >
                                 <div>{formatTime(shift.start_time)}</div>
                                 <div>{formatTime(shift.end_time)}</div>
