@@ -37,7 +37,7 @@ export default function ForgetPasswordScreen() {
     setIsLoading(true);
 
     const { error: supabaseError } = await supabase.auth.resetPasswordForEmail(data.email, {
-       redirectTo: "http://localhost:8082/(public)/resetPassword",
+      redirectTo: "http://localhost:8082/(public)/resetPassword",
     });
 
     setIsLoading(false);
@@ -56,11 +56,11 @@ export default function ForgetPasswordScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View className="flex-1 bg-auth-primary overflow-hidden">
-        <Circle  className="w-52 h-52 bg-auth-mid -top-20 -left-10" />
-        <Ring    className="w-36 h-36 border-brand-primary top-20 -left-8" />
+        <Circle className="w-52 h-52 bg-auth-mid -top-20 -left-10" />
+        <Ring className="w-36 h-36 border-brand-primary top-20 -left-8" />
         <Diamond className="w-5  h-5  bg-brand-primary top-16 left-24" />
         <Diamond className="w-6  h-6  bg-auth-accent   top-24 right-8" />
-        <Circle  className="w-32 h-32 bg-auth-mid/40   -bottom-10 -right-10" />
+        <Circle className="w-32 h-32 bg-auth-mid/40   -bottom-10 -right-10" />
         <Diamond className="w-4  h-4  bg-brand-primary/60 bottom-24 left-12" />
 
         {/* header */}
@@ -97,6 +97,7 @@ export default function ForgetPasswordScreen() {
                   name="email"
                   render={({ field: { value, onChange } }) => (
                     <TextField
+                      maxLength={254}
                       variant="dark"
                       label="Email address"
                       placeholder="Enter your email"
@@ -117,13 +118,13 @@ export default function ForgetPasswordScreen() {
                 <View className="flex-row items-center justify-between mt-8 gap-6 pr-4 pl-4">
 
                   <View className="rounded-xl h-[50px] w-full flex-1 self-center border border-auth-accent/30 bg-brand-secondary/70">
-                   <PrimaryButton
-                    title="Back"
-                    onPress={onBack}
-                    isLoading={false}
-                    className="h-full w-full bg-transparent"
+                    <PrimaryButton
+                      title="Back"
+                      onPress={onBack}
+                      isLoading={false}
+                      className="h-full w-full bg-transparent"
                     />
-                   </View>
+                  </View>
 
                   <View className="flex-1 bg-auth-accent rounded-[8px] h-[50px] items-center justify-center">
                     <PrimaryButton
@@ -147,12 +148,12 @@ export default function ForgetPasswordScreen() {
                   <Text className="text-auth-accent">{getValues("email")}</Text>
                   {" "}is associated with an account, you'll receive a reset link shortly.
                 </Text>
-                
+
                 <View className="bg-auth-accent rounded-[2px] h-[50px] w-[180px] items-center justify-center self-center">
                   <PrimaryButton
-                   title="Back to Sign In"
-                   onPress={onBack}
-                   className="h-full w-full bg-transparent flex-row items-center justify-center"
+                    title="Back to Sign In"
+                    onPress={onBack}
+                    className="h-full w-full bg-transparent flex-row items-center justify-center"
                   />
                 </View>
 
