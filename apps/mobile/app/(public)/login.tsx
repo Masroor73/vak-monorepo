@@ -207,6 +207,7 @@ export default function LoginScreen() {
                   name="email"
                   render={({ field }) => (
                     <TextField
+                      maxLength={254}
                       variant="dark"
                       label="Email"
                       placeholder="Enter your email"
@@ -224,6 +225,7 @@ export default function LoginScreen() {
                   render={({ field }) => (
                     <>
                       <TextField
+                        maxLength={72}
                         variant="dark"
                         label="Password"
                         placeholder="Enter your password"
@@ -278,6 +280,7 @@ export default function LoginScreen() {
                   render={({ field: { value, onChange } }) => (
                     <TextField
                       variant="dark"
+                      maxLength={50}
                       label="Full Name"
                       placeholder="Enter your full name"
                       value={value}
@@ -291,6 +294,7 @@ export default function LoginScreen() {
                   name="email"
                   render={({ field: { value, onChange } }) => (
                     <TextField
+                      maxLength={254}
                       variant="dark"
                       label="Email"
                       placeholder="Enter your email"
@@ -308,6 +312,7 @@ export default function LoginScreen() {
                   render={({ field }) => (
                     <>
                       <TextField
+                        maxLength={72}
                         variant="dark"
                         label="Password"
                         placeholder="Enter your password"
@@ -338,6 +343,7 @@ export default function LoginScreen() {
                   name="confirmPassword"
                   render={({ field }) => (
                     <TextField
+                      maxLength={72}
                       variant="dark"
                       label="Confirm Password"
                       placeholder="Enter password again"
