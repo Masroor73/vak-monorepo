@@ -54,6 +54,12 @@ const ADMIN_NAV: NavItem[] = [
     activeIcon: "people",
   },
   {
+    label: "Payroll",
+    href: "/payroll",
+    icon: "wallet-outline",
+    activeIcon: "wallet",
+  },
+  {
     label: "Settings",
     href: "/settings",
     icon: "settings-outline",
