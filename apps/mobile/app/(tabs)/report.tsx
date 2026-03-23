@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { WasteLogSchema } from '@vak/contract';
+import { checkProfanity } from '@/src/utils/profanityFilter';
 
 interface FormErrors {
   item_name?: string;
@@ -126,7 +127,15 @@ export default function ReportFoodWastage() {
       photo_url: localPhotoUri ? 'https://placeholder.com' : '',
     });
 
-    if (result.success) { setErrors({}); return true; }
+    if (result.success) {
+      const { hasProfanity } = checkProfanity(itemName.trim());
+      if (hasProfanity) {
+        setErrorsWithTimer({ item_name: 'Item name contains inappropriate language.' });
+        return false;
+      }
+      setErrors({});
+      return true;
+    }
 
     const newErrors: FormErrors = {};
     for (const { path, message } of result.error.issues) {

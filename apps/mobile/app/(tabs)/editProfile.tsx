@@ -9,6 +9,7 @@ import * as ImagePicker from 'expo-image-picker'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { EditProfileSchema, EditProfileInput } from '@vak/contract'
+import { checkProfanity } from '@/src/utils/profanityFilter'
 
 const MAX_FILE_SIZE_MB = 5
 
@@ -34,7 +35,7 @@ export default function EditProfileScreen() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
 
-  const { control, handleSubmit, reset, watch, formState: { errors } } = useForm<EditProfileInput>({
+  const { control, handleSubmit, reset, watch, formState: { errors }, setError } = useForm<EditProfileInput>({
     resolver: zodResolver(EditProfileSchema),
     defaultValues: { full_name: '', phone_number: '', email: '' },
     mode: 'onSubmit',
@@ -157,6 +158,21 @@ export default function EditProfileScreen() {
       setSaveError('Photo is still uploading, please wait.')
       return
     }
+    
+    // Invalid name – inappropriate language detected
+    const nameCheck = checkProfanity(data.full_name)
+    const emailLocalPart = data.email.split("@")[0]
+    const emailCheck = checkProfanity(emailLocalPart)
+
+    if (nameCheck.hasProfanity) {
+      setError("full_name", { message: "Name contains inappropriate language." })
+    }
+
+    if (emailCheck.hasProfanity) {
+      setError("email", { message: "Email contains inappropriate language." })
+    }
+
+    if (nameCheck.hasProfanity || emailCheck.hasProfanity) return
 
     setSaving(true)
     try {
