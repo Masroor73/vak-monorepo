@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../context/AuthContext";
 import WhiteArrow from "../../assets/WhiteArrow.svg";
+import { Ionicons } from "@expo/vector-icons";
 
 const DAYS = ["MON","TUE","WED","THU","FRI","SAT","SUN"];
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
@@ -26,15 +27,39 @@ const timeToMinutes = (t: string) => {
 
 const isPastDay = (d: Date) => { const t = new Date(); t.setHours(0,0,0,0); const c = new Date(d); c.setHours(0,0,0,0); return c < t; };
 
+const isPastTime = (hour: string, minute: string, date: Date): boolean => {
+  if (!isSameDay(date, new Date())) return false;
+  const now = new Date();
+  const selected = new Date();
+  selected.setHours(Number(hour), Number(minute), 0, 0);
+  return selected <= now;
+};
+
 const validateSchedule = (schedule: DaySchedule): string | null => {
-  if (!schedule.fullDay && timeToMinutes(schedule.end) <= timeToMinutes(schedule.start)) {
-    return "End time must be after start time.";
+  if (!schedule.fullDay) {
+    if (!schedule.isOvernight && timeToMinutes(schedule.end) <= timeToMinutes(schedule.start))
+      return "End time must be after start time. Enable overnight shift if this extends past midnight.";
+    if (schedule.isOvernight && timeToMinutes(schedule.end) >= timeToMinutes(schedule.start))
+      return "For overnight shifts, end time must be earlier than start time (next day).";
   }
   return null;
 };
 
-type DaySchedule = { fullDay: boolean; start: string; end: string; saved: boolean; dbId?: string };
-const DEFAULT_SCHEDULE: DaySchedule = { fullDay: false, start: "09:00", end: "17:00", saved: false };
+type DaySchedule = { fullDay: boolean; isOvernight: boolean; start: string; end: string; saved: boolean; dbId?: string };
+const getDefaultSchedule = (date: Date): DaySchedule => {
+  if (!isSameDay(date, new Date()))
+    return { fullDay: false, isOvernight: false, start: "09:00", end: "17:00", saved: false };
+
+  const now = new Date();
+  const minutes = now.getMinutes();
+  const roundedMinutes = Math.ceil(minutes / 15) * 15;
+  const extraHours = Math.floor(roundedMinutes / 60);
+  const finalMinutes = roundedMinutes % 60;
+  const finalHour = now.getHours() + extraHours;
+  const start = `${String(finalHour).padStart(2, "0")}:${String(finalMinutes).padStart(2, "0")}`;
+
+  return { fullDay: false, isOvernight: false, start, end: "17:00", saved: false };
+};
 
 export default function SetAvailability() {
   const router = useRouter();
@@ -57,15 +82,32 @@ export default function SetAvailability() {
   const week = useMemo(() => weekOf(anchor), [anchor]);
 
   useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 15000);
+    return () => clearTimeout(timer);
+  }, [error]);
+
+  useEffect(() => {
     if (!user?.id) return;
-    supabase.from("availabilities").select("id,specific_date,start_time,end_time").eq("user_id", user.id).eq("is_available", true)
+    supabase
+      .from("availabilities")
+      .select("id,specific_date,start_time,end_time,is_overnight")
+      .eq("user_id", user.id)
+      .eq("is_available", true)
       .not("specific_date", "is", null)
       .then(({ data }) => {
         if (data) {
           const scheduleMap: Record<string, DaySchedule> = {};
           data.forEach((record) => {
             const key = record.specific_date;
-            scheduleMap[key] = { fullDay: record.start_time === "09:00:00" && record.end_time === "17:00:00", start: record.start_time?.slice(0,5) ?? "09:00", end: record.end_time?.slice(0,5) ?? "17:00", saved: true, dbId: record.id };
+            scheduleMap[key] = {
+              fullDay: record.start_time === "09:00:00" && record.end_time === "17:00:00" && !record.is_overnight,
+              isOvernight: record.is_overnight ?? false,
+              start: record.start_time?.slice(0,5) ?? "09:00",
+              end: record.end_time?.slice(0,5) ?? "17:00",
+              saved: true,
+              dbId: record.id,
+            };
           });
           setAvailabilityMap(scheduleMap);
         }
@@ -84,7 +126,7 @@ export default function SetAvailability() {
   };
 
   const selectedDateKey = formatDateKey(selectedDate);
-  const daySchedule = availabilityMap[selectedDateKey] ?? DEFAULT_SCHEDULE;
+  const daySchedule = availabilityMap[selectedDateKey] ?? getDefaultSchedule(selectedDate);
   const isReadOnly = isPastDay(selectedDate) || daySchedule.saved;
   const updateSelectedDay = (partial: Partial<DaySchedule>) => setAvailabilityMap(prev => ({ ...prev, [selectedDateKey]: { ...daySchedule, ...partial } }));
   const toggleCopy = (dateKey: string) => setCopyTo(prev => prev.includes(dateKey) ? prev.filter(x => x !== dateKey) : [...prev, dateKey]);
@@ -108,6 +150,20 @@ export default function SetAvailability() {
     if (!user?.id || saving) return;
 
     if (isPastDay(selectedDate)) { setError("Cannot set availability for a past day."); return; }
+
+    if (daySchedule.fullDay) {
+      if (isSameDay(selectedDate, new Date()) && isPastTime("09", "00", selectedDate)) {
+        setError("Full day availability has already passed for today.");
+        return;
+      }
+    } else if (!daySchedule.isOvernight) {
+      const [endH, endM] = daySchedule.end.split(":");
+      if (isPastTime(endH, endM, selectedDate)) {
+        setError("The selected availability window has already passed for today.");
+        return;
+      }
+    }
+
     const validationError = validateSchedule(daySchedule);
     if (validationError) { setError(validationError); return; }
     setError(null);
@@ -125,23 +181,28 @@ export default function SetAvailability() {
       start_time: daySchedule.fullDay ? "09:00" : daySchedule.start,
       end_time:   daySchedule.fullDay ? "17:00" : daySchedule.end,
       is_available: true,
+      is_overnight: daySchedule.fullDay ? false : daySchedule.isOvernight,
     });
 
-    for (const { key: targetKey, date } of targets) {
-      const existing = availabilityMap[targetKey];
-      if (existing?.dbId) {
-        await supabase.from("availabilities").update(makeRow(date)).eq("id", existing.dbId).eq("user_id", user.id);
-        setAvailabilityMap(prev => ({ ...prev, [targetKey]: { ...daySchedule, saved: true, dbId: prev[targetKey]?.dbId } }));
-      } else {
-        const { data } = await supabase.from("availabilities").insert(makeRow(date)).select("id").single();
-        if (data) setAvailabilityMap(prev => ({ ...prev, [targetKey]: { ...daySchedule, saved: true, dbId: data.id } }));
-      }
+    try {
+      await Promise.all(targets.map(async ({ key: targetKey, date }) => {
+        const existing = availabilityMap[targetKey];
+        if (existing?.dbId) {
+          await supabase.from("availabilities").update(makeRow(date)).eq("id", existing.dbId).eq("user_id", user.id);
+          setAvailabilityMap(prev => ({ ...prev, [targetKey]: { ...daySchedule, saved: true, dbId: prev[targetKey]?.dbId } }));
+        } else {
+          const { data } = await supabase.from("availabilities").insert(makeRow(date)).select("id").single();
+          if (data) setAvailabilityMap(prev => ({ ...prev, [targetKey]: { ...daySchedule, saved: true, dbId: data.id } }));
+        }
+      }));
+    } catch {
+      setError("Failed to save availability. Please try again.");
+    } finally {
+      setSaving(false);
+      setPicker(null);
+      setCopyTo([]);
+      setPreEditSchedule(null);
     }
-
-    setSaving(false);
-    setPicker(null);
-    setCopyTo([]);
-    setPreEditSchedule(null);
   };
 
   const clear = async () => {
@@ -232,14 +293,33 @@ export default function SetAvailability() {
 
           <View className="p-5" style={{ gap: 12 }}>
 
-            {/* Full day toggle */}
+            {/* Full Day toggle */}
             <View className="flex-row items-center justify-between px-4 py-3.5 rounded border border-gray-400">
               <View>
                 <Text className="text-gray-900 font-extrabold">Full Day Available</Text>
                 <Text className="text-gray-700 font-semibold">Available for any time slot</Text>
               </View>
-              <Switch value={daySchedule.fullDay} onValueChange={(v) => { if (!isReadOnly) updateSelectedDay({ fullDay: v }); }} disabled={isReadOnly} trackColor={{ false: "#e5e7eb", true: "#05CC66" }} thumbColor="#fff" />
+              <Switch value={daySchedule.fullDay} onValueChange={(v) => { if (!isReadOnly) updateSelectedDay({ fullDay: v, isOvernight: false }); }} disabled={isReadOnly} trackColor={{ false: "#e5e7eb", true: "#05CC66" }} thumbColor="#fff" />
             </View>
+
+            {/* Overnight toggle only shown when fullDay is off */}
+            {!daySchedule.fullDay && (
+              <View className="flex-row items-center justify-between px-4 py-3.5 rounded border border-gray-400">
+                <View>
+                  <Text className="text-gray-900 font-extrabold">Overnight Shift</Text>
+                  <Text className="text-gray-700 font-semibold">Shift extends past midnight</Text>
+                </View>
+                <Switch value={daySchedule.isOvernight} onValueChange={(v) => { if (!isReadOnly) updateSelectedDay({ isOvernight: v }); }} disabled={isReadOnly} trackColor={{ false: "#e5e7eb", true: "#6366f1" }} thumbColor="#fff" />
+              </View>
+            )}
+
+            {/* Overnight info banner */}
+            {daySchedule.isOvernight && !daySchedule.fullDay && (
+              <View className="px-4 py-3 rounded bg-indigo-50 border border-indigo-200 flex-row items-center" style={{ gap: 8 }}>
+                <Ionicons name="moon-outline" size={20} color="#4338ca" />
+                <Text className="text-indigo-700 font-semibold text-md">Overnight shift, ends the following day</Text>
+              </View>
+            )}
 
             {/* Time pickers */}
             {!daySchedule.fullDay && (
@@ -258,6 +338,9 @@ export default function SetAvailability() {
                           <Text className={`font-black text-xl ${isOpen ? "text-white" : "text-brand-secondary"}`}>{time}</Text>
                           <Text className={`font-bold text-xs ${isOpen ? "text-white/90" : "text-gray-600"}`}>{ampm}</Text>
                         </View>
+                        {field === "end" && daySchedule.isOvernight && (
+                          <Text className={`text-[15px] font-extrabold ${isOpen ? "text-white/70" : "text-indigo-500"}`}>next day</Text>
+                        )}
                       </Pressable>
                     );
                   })}
@@ -267,11 +350,16 @@ export default function SetAvailability() {
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 5 }}>
                       {HOURS.map((value) => {
                         const active = daySchedule[picker].split(":")[0] === value;
-                        const next = `${value}:${daySchedule[picker].split(":")[1]}`;
+                        const currentMinute = daySchedule[picker].split(":")[1];
+                        const next = `${value}:${currentMinute}`;
                         const { time, ampm } = parseTimeLabel(`${value}:00`);
+                        const past = (picker === "end" && daySchedule.isOvernight)
+                          ? false
+                          : isPastTime(value, currentMinute, selectedDate);
                         return (
-                          <Pressable key={value} onPress={() => updateSelectedDay({ [picker]: next })} className={`px-3 h-9 items-center justify-center rounded-lg ${active ? "bg-brand-secondary" : "bg-white border border-gray-200"}`}>
-                            <Text className={`text-m font-bold ${active ? "text-white" : "text-gray-800"}`}>{time}{ampm}</Text>
+                          <Pressable key={value} onPress={() => { if (!past) updateSelectedDay({ [picker]: next }); }} disabled={past}
+                            className={`px-3 h-9 items-center justify-center rounded-lg ${active ? "bg-brand-secondary" : past ? "bg-gray-100 border border-gray-100" : "bg-white border border-gray-200"}`}>
+                            <Text className={`text-m font-bold ${active ? "text-white" : past ? "text-gray-300" : "text-gray-800"}`}>{time}{ampm}</Text>
                           </Pressable>
                         );
                       })}
@@ -279,10 +367,15 @@ export default function SetAvailability() {
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 5 }}>
                       {MINUTE_INCREMENTS.map((val) => {
                         const active = daySchedule[picker].split(":")[1] === val;
-                        const next = `${daySchedule[picker].split(":")[0]}:${val}`;
+                        const currentHour = daySchedule[picker].split(":")[0];
+                        const next = `${currentHour}:${val}`;
+                        const past = (picker === "end" && daySchedule.isOvernight)
+                          ? false
+                          : isPastTime(currentHour, val, selectedDate);
                         return (
-                          <Pressable key={val} onPress={() => updateSelectedDay({ [picker]: next })} className={`w-11 h-9 items-center justify-center rounded-lg ${active ? "bg-brand-secondary" : "bg-white border border-gray-200"}`}>
-                            <Text className={`text-m font-bold ${active ? "text-white" : "text-gray-800"}`}>:{val}</Text>
+                          <Pressable key={val} onPress={() => { if (!past) updateSelectedDay({ [picker]: next }); }} disabled={past}
+                            className={`w-11 h-9 items-center justify-center rounded-lg ${active ? "bg-brand-secondary" : past ? "bg-gray-100 border border-gray-100" : "bg-white border border-gray-200"}`}>
+                            <Text className={`text-m font-bold ${active ? "text-white" : past ? "text-gray-300" : "text-gray-800"}`}>:{val}</Text>
                           </Pressable>
                         );
                       })}
