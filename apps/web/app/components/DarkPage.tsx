@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 
-export default function DaekPage({
+export default function DarkPage({
   title,
   subtitle,
   children,
