@@ -12,6 +12,7 @@ import EyeOpenIcon from "../../assets/eyeOpen.svg";
 import EyeClosedIcon from "../../assets/eyeClosed.svg";
 import { GoogleButton } from "../../src/components/GoogleButton";
 import { Circle, Ring, Diamond } from "../../src/components/Shapes";
+import { checkProfanity } from "@/src/utils/profanityFilter";
 
 const PasswordRequirementsBox = ({
   password,
@@ -63,14 +64,14 @@ const PasswordRequirementsBox = ({
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [showSignInPassword, setShowSignInPassword]   = useState(false);
-  const [showSignUpPassword, setShowSignUpPassword]   = useState(false);
+  const [showSignInPassword, setShowSignInPassword] = useState(false);
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isPasswordFocused, setIsPasswordFocused]     = useState(false);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
 
   const { session, loading, signUp, login, signInWithGoogle } = useAuth();
-  const [isLoading, setIsLoading]   = useState(false);
-  const [activeTab, setActiveTab]   = useState<"signin" | "signup">("signin");
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin");
   const [rememberMe, setRememberMe] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -100,7 +101,7 @@ export default function LoginScreen() {
     mode: "onSubmit",
   });
 
-  const watchedPassword        = signUpForm.watch("password");
+  const watchedPassword = signUpForm.watch("password");
   const watchedConfirmPassword = signUpForm.watch("confirmPassword");
 
   useEffect(() => {
@@ -110,6 +111,23 @@ export default function LoginScreen() {
   }, [activeTab]);
 
   const onSignUp = async (data: SignupInput) => {
+
+    // Invalid name – inappropriate language detected
+    const nameCheck = checkProfanity(data.full_name)
+    const emailLocalPart = data.email.split("@")[0]
+    const emailCheck = checkProfanity(emailLocalPart)
+
+    if (nameCheck.hasProfanity) {
+      signUpForm.setError("full_name", { message: "Name contains inappropriate language." })
+    }
+
+    if (emailCheck.hasProfanity) {
+      signUpForm.setError("email", { message: "Email contains inappropriate language." })
+    }
+
+    if (nameCheck.hasProfanity || emailCheck.hasProfanity) return
+    
+    
     setIsLoading(true);
     try {
       const { error } = await signUp(data.email, data.password, data.full_name);
@@ -128,9 +146,9 @@ export default function LoginScreen() {
     try {
       const { error, pendingApproval } = await login(data.email, data.password, rememberMe);
       if (error === "INVALID_CREDENTIALS") { setLoginError("Invalid email or password"); return; }
-      if (error === "ACCESS_DENIED")       { Alert.alert("Access Denied", "Only employees can access this app."); return; }
-      if (pendingApproval)                 { router.replace("/(public)/pendingApproval" as any); return; }
-      if (error)                           { setLoginError("Something went wrong. Please try again."); return; }
+      if (error === "ACCESS_DENIED") { Alert.alert("Access Denied", "Only employees can access this app."); return; }
+      if (pendingApproval) { router.replace("/(public)/pendingApproval" as any); return; }
+      if (error) { setLoginError("Something went wrong. Please try again."); return; }
       router.replace("/(tabs)");
     } finally {
       setIsLoading(false);
@@ -149,8 +167,8 @@ export default function LoginScreen() {
   return (
     <View className="flex-1">
       <View className="bg-auth-primary items-center overflow-hidden pt-20 pb-3">
-        <Circle  className="w-52 h-52 bg-auth-mid -top-20 -right-10" />
-        <Ring    className="w-36 h-36 border-brand-primary top-20 -right-8" />
+        <Circle className="w-52 h-52 bg-auth-mid -top-20 -right-10" />
+        <Ring className="w-36 h-36 border-brand-primary top-20 -right-8" />
         <Diamond className="w-5  h-5  bg-brand-primary top-16 right-24" />
         <Diamond className="w-6  h-6  bg-auth-accent top-24 left-8" />
         <View className="z-10 w-36 h-36 items-center justify-center mt-5">

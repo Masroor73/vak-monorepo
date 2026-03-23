@@ -9,6 +9,7 @@ import * as ImagePicker from 'expo-image-picker'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { EditProfileSchema, EditProfileInput } from '@vak/contract'
+import { checkProfanity } from '@/src/utils/profanityFilter'
 
 const MAX_FILE_SIZE_MB = 5
 
@@ -24,7 +25,7 @@ export default function EditProfileScreen() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
 
-  const { control, handleSubmit, reset, watch, formState: { errors } } = useForm<EditProfileInput>({
+  const { control, handleSubmit, reset, watch, formState: { errors }, setError } = useForm<EditProfileInput>({
     resolver: zodResolver(EditProfileSchema),
     defaultValues: { full_name: '', phone_number: '', email: '' },
     mode: 'onSubmit',
@@ -81,9 +82,9 @@ export default function EditProfileScreen() {
     const result = source === 'camera'
       ? await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.7 })
       : await ImagePicker.launchImageLibraryAsync({
-          allowsEditing: true, aspect: [1, 1], quality: 0.7,
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        })
+        allowsEditing: true, aspect: [1, 1], quality: 0.7,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      })
 
     if (result.canceled || !result.assets?.[0]) return
 
@@ -147,6 +148,21 @@ export default function EditProfileScreen() {
       setSaveError('Photo is still uploading, please wait.')
       return
     }
+    
+    // Invalid name – inappropriate language detected
+    const nameCheck = checkProfanity(data.full_name)
+    const emailLocalPart = data.email.split("@")[0]
+    const emailCheck = checkProfanity(emailLocalPart)
+
+    if (nameCheck.hasProfanity) {
+      setError("full_name", { message: "Name contains inappropriate language." })
+    }
+
+    if (emailCheck.hasProfanity) {
+      setError("email", { message: "Email contains inappropriate language." })
+    }
+
+    if (nameCheck.hasProfanity || emailCheck.hasProfanity) return
 
     setSaving(true)
     try {
@@ -371,8 +387,8 @@ export default function EditProfileScreen() {
                   {saving
                     ? <ActivityIndicator color="#fff" />
                     : <Text className="text-white font-semibold text-[15px]">
-                        {uploadingPhoto ? 'Uploading photo...' : 'Save Changes'}
-                      </Text>
+                      {uploadingPhoto ? 'Uploading photo...' : 'Save Changes'}
+                    </Text>
                   }
                 </TouchableOpacity>
 
