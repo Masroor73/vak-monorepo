@@ -37,6 +37,8 @@ export default function UserManagement() {
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
+      .not("full_name", "eq", "Deleted Employee") // Exclude deleted users
+      .not("full_name", "eq", "Deleted User")
       .order("full_name", { ascending: true });
 
     if (!error && data) {
