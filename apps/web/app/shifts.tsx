@@ -9,6 +9,7 @@ import ManagerLayout from "./layouts/ManagerLayout";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AssignShiftModal, { Availability } from "./components/AssignShiftModal";
 import ViewShiftModal, { Shift, STATUS_STYLES } from "./components/ViewShiftModal";
+import RunPayrollModal from "./components/RunPayrollModal";
 
 function getWeekStart(date: Date): Date {
   const d = new Date(date);
@@ -95,6 +96,7 @@ export default function ShiftsPage() {
   const [prefillEmployee, setPrefillEmployee] = useState<Profile | null>(null);
   const [prefillDate, setPrefillDate] = useState<string | undefined>();
   const [viewingShift, setViewingShift] = useState<Shift | null>(null);
+  const [showPayrollModal, setShowPayrollModal] = useState(false);
 
   const weekDays = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
@@ -205,6 +207,14 @@ export default function ShiftsPage() {
               <option value="EMPLOYEE">Employees</option>
               <option value="MANAGER">Managers</option>
             </select>
+            <button
+              type="button"
+              onClick={() => setShowPayrollModal(true)}
+              className="flex items-center gap-2 border border-gray-300 bg-white text-gray-800 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 transition"
+            >
+              <Ionicons name="cash-outline" size={18} color="#1f2937" />
+              Run Payroll
+            </button>
             <button
               onClick={() => openAssignModal()}
               className="flex items-center gap-2 bg-gray-900 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-700 transition"
@@ -360,6 +370,14 @@ export default function ShiftsPage() {
           employee={employees.find((e) => e.id === viewingShift.employee_id)}
           onClose={() => setViewingShift(null)}
           onSuccess={fetchShifts}
+        />
+      )}
+      {currentUser && (
+        <RunPayrollModal
+          open={showPayrollModal}
+          onClose={() => setShowPayrollModal(false)}
+          initialWeekStart={weekStart}
+          employees={employees}
         />
       )}
     </ManagerLayout>
