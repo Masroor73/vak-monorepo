@@ -42,10 +42,22 @@ const MAIN_NAV: NavItem[] = [
 
 const ADMIN_NAV: NavItem[] = [
   {
+    label: "Clock-In Audit",
+    href: "/audit",
+    icon: "clipboard-outline",
+    activeIcon: "clipboard",
+  },
+  {
     label: "User Management",
     href: "/user-management",
     icon: "people-outline",
     activeIcon: "people",
+  },
+  {
+    label: "Payroll",
+    href: "/payroll",
+    icon: "wallet-outline",
+    activeIcon: "wallet",
   },
   {
     label: "Settings",
