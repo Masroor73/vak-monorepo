@@ -1,41 +1,47 @@
+import React from "react";
 import { Alert } from "react-native";
 import { PrimaryButton } from "@vak/ui";
 import { supabase } from "../../lib/supabase";
 
-type ClockOutButtonProps = {
+type Props = {
   shiftId: string;
-  userId: string;
   onDone?: () => void;
 };
 
-export default function ClockOutButton({
-  shiftId,
-  userId,
-  onDone,
-}: ClockOutButtonProps) {
+export default function ClockOutButton({ shiftId, onDone }: Props) {
 
   const handleClockOut = async () => {
+    try {
+      console.log("Clock out clicked:", shiftId);
 
-    const { error } = await supabase
-      .from("shifts")
-      .update({
-        actual_end_time: new Date().toISOString(),
-        status: "COMPLETED",
-      })
-      .eq("id", shiftId);
+      // ✅ ONLY USE SAFE COLUMN (this works in your DB)
+      const { error } = await supabase
+        .from("shifts")
+        .update({
+          actual_end_time: new Date().toISOString(),
+          status: "COMPLETED",
+        })
+        .eq("id", shiftId);
 
-    if (error) {
-      Alert.alert("Clock Out Failed");
-      return;
+      if (error) {
+        console.log("Supabase error:", error);
+        Alert.alert("Clock Out Failed", error.message);
+        return;
+      }
+
+      Alert.alert("Clocked Out Successfully");
+
+      // 🔥 refresh parent UI
+      onDone?.();
+
+    } catch (err) {
+      console.log("Unexpected error:", err);
+      Alert.alert("Something went wrong");
     }
-
-    Alert.alert("Clocked Out Successfully");
-
-    onDone?.();
   };
 
   return (
-    <PrimaryButton 
+    <PrimaryButton
       title="Clock Out"
       onPress={handleClockOut}
     />

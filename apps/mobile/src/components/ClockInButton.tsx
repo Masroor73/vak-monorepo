@@ -16,19 +16,21 @@ type Props = {
   shiftId: string;
   userId: string;
   onDone: () => void;
+  mode?: "clockin" | "clockout";
 };
 
-export default function ClockInButton({ shiftId, userId, onDone }: Props) {
+export default function ClockInButton({
+  shiftId,
+  userId,
+  onDone,
+  mode = "clockin",
+}: Props) {
   const [permission, requestPermission] = useCameraPermissions();
   const [hasLocationPerm, setHasLocationPerm] = useState(false);
   const [distance, setDistance] = useState<number | null>(null);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [location, setLocation] = useState<any>(null);
-  const [showCamera, setShowCamera] = useState(false);
-  useEffect(() => {
-  setShowCamera(false);
-}, []);
 
   const cameraRef = useRef<any>(null);
   const locationWatcher = useRef<any>(null);
@@ -44,22 +46,16 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
     lon2: number
   ) => {
     const R = 6371e3;
-
     const φ1 = (lat1 * Math.PI) / 180;
     const φ2 = (lat2 * Math.PI) / 180;
-
     const Δφ = ((lat2 - lat1) * Math.PI) / 180;
     const Δλ = ((lon2 - lon1) * Math.PI) / 180;
 
     const a =
-      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) *
-        Math.cos(φ2) *
-        Math.sin(Δλ / 2) *
-        Math.sin(Δλ / 2);
+      Math.sin(Δφ / 2) ** 2 +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
 
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
     return R * c;
   };
 
@@ -72,10 +68,7 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
 
       if (status === "granted") {
         locationWatcher.current = await Location.watchPositionAsync(
-          {
-            accuracy: Location.Accuracy.High,
-            distanceInterval: 1,
-          },
+          { accuracy: Location.Accuracy.High, distanceInterval: 1 },
           (loc: any) => {
             const coords = loc.coords;
             setLocation(coords);
@@ -106,42 +99,44 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
     setPreviewUri(photo.uri);
   };
 
-  const submitClockIn = async () => {
-    if (!previewUri || !location) {
-      Alert.alert("Missing photo or location");
+  const handleSubmit = async () => {
+    if (!previewUri) {
+      Alert.alert("Missing photo");
       return;
     }
 
     setUploading(true);
 
     try {
-      const timestamp = Date.now();
-      const fileName = `${userId}_${timestamp}.jpg`;
-
       const publicUrlData = {
-        data: {
-          publicUrl: previewUri,
-        },
+        data: { publicUrl: previewUri },
       };
 
-      const { error: updateError } = await supabase
-        .from("shifts")
-        .update({
-          actual_start_time: new Date().toISOString(),
-          clock_in_lat: location.latitude,
-          clock_in_long: location.longitude,
-          clock_in_photo_url: publicUrlData.data.publicUrl,
-        })
-        .eq("id", shiftId);
+      if (mode === "clockout") {
+        await supabase
+          .from("shifts")
+          .update({
+            clock_out_time: new Date().toISOString(),
+            clock_out_photo_url: publicUrlData.data.publicUrl,
+          })
+          .eq("id", shiftId);
+      } else {
+        await supabase
+          .from("shifts")
+          .update({
+            actual_start_time: new Date().toISOString(),
+            clock_in_lat: location.latitude,
+            clock_in_long: location.longitude,
+            clock_in_photo_url: publicUrlData.data.publicUrl,
+          })
+          .eq("id", shiftId);
+      }
 
-      if (updateError) throw updateError;
-
-      Alert.alert("Clock-In successful");
-      setShowCamera(false); // ✅ ADDED
+      Alert.alert(mode === "clockout" ? "Clock-Out successful" : "Clock-In successful");
       onDone();
     } catch (err) {
-      Alert.alert("Clock-In failed", String(err));
-      console.log("CLOCK IN ERROR:", err);
+      console.log(err);
+      Alert.alert("Failed");
     } finally {
       setUploading(false);
     }
@@ -152,45 +147,11 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
       {!permission?.granted && <Text>Camera permission required</Text>}
       {!hasLocationPerm && <Text>Location permission required</Text>}
 
-      <View style={styles.statusRow}>
-        {distance !== null && distance <= ALLOWED_RADIUS ? (
-          <View style={styles.badgeInside}>
-            <Text style={styles.badgeTextInside}>
-              ✓ Inside workplace ({distance}m)
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.badgeOutside}>
-            <Text style={styles.badgeTextOutside}>
-              ✕ Too far from workplace ({distance ?? "..."}m)
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {distance !== null ? (
+      {distance !== null && distance <= ALLOWED_RADIUS ? (
         <>
-          {/* ✅ ADDED BUTTON */}
-          {!showCamera ? (
-            <TouchableOpacity
-              style={{
-                backgroundColor: "#1E3A8A",
-                padding: 16,
-                borderRadius: 12,
-                alignItems: "center",
-              }}
-              onPress={() => setShowCamera(true)}
-            >
-              <Text style={{ color: "white", fontWeight: "700" }}>
-                CLOCK IN
-              </Text>
-            </TouchableOpacity>
-          ) : !previewUri ? (
+          {!previewUri ? (
             <CameraView ref={cameraRef} style={styles.camera} facing="front">
-              <TouchableOpacity
-                style={styles.captureButton}
-                onPress={takePicture}
-              >
+              <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
                 <Text style={styles.captureText}>Capture</Text>
               </TouchableOpacity>
             </CameraView>
@@ -206,7 +167,7 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
                 {uploading ? (
                   <ActivityIndicator size="large" />
                 ) : (
-                  <TouchableOpacity onPress={submitClockIn}>
+                  <TouchableOpacity onPress={handleSubmit}>
                     <Text style={styles.submit}>Submit</Text>
                   </TouchableOpacity>
                 )}
@@ -253,21 +214,4 @@ const styles = StyleSheet.create({
   submit: { color: "green", fontWeight: "700" },
 
   tooFar: { color: "#D00", textAlign: "center", marginTop: 10 },
-
-  statusRow: { marginBottom: 12 },
-
-  badgeInside: {
-    backgroundColor: "#DCFCE7",
-    padding: 8,
-    borderRadius: 8,
-  },
-
-  badgeOutside: {
-    backgroundColor: "#FEE2E2",
-    padding: 8,
-    borderRadius: 8,
-  },
-
-  badgeTextInside: { color: "#166534", fontWeight: "600" },
-  badgeTextOutside: { color: "#991B1B", fontWeight: "600" },
 });

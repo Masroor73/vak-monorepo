@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { View, Text, ScrollView, ActivityIndicator, Image, RefreshControl, Pressable } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  ActivityIndicator,
+  Image,
+  RefreshControl,
+  Pressable,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
@@ -12,7 +20,7 @@ type ClockHistory = {
   clock_in_lat: number | null;
   clock_in_long: number | null;
   status: string | null;
-  clock_out_time: string | null;
+  actual_end_time: string | null;
   clock_out_photo_url: string | null;
   clock_out_lat: number | null;
   clock_out_long: number | null;
@@ -61,8 +69,7 @@ export default function ClockHistoryScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#0B1E3B" }}>
-
-      {/* 🔵 HEADER */}
+      {/* HEADER */}
       <View style={{ paddingTop: 50, paddingBottom: 20, paddingHorizontal: 16 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <Ionicons
@@ -79,12 +86,12 @@ export default function ClockHistoryScreen() {
               marginLeft: 10,
             }}
           >
-            Clock-In History
+            Clock History
           </Text>
         </View>
       </View>
 
-      {/* ⚪ CONTENT */}
+      {/* CONTENT */}
       <ScrollView
         style={{ flex: 1, backgroundColor: "#F5F5F5" }}
         contentContainerStyle={{ padding: 16 }}
@@ -92,8 +99,7 @@ export default function ClockHistoryScreen() {
           <RefreshControl refreshing={loading} onRefresh={loadHistory} />
         }
       >
-
-        {/* Summary Card */}
+        {/* Summary */}
         <Pressable
           onPress={loadHistory}
           style={{
@@ -110,14 +116,12 @@ export default function ClockHistoryScreen() {
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <Ionicons name="time-outline" size={22} color="#4F46E5" />
             <Text style={{ marginLeft: 8, fontSize: 16, fontWeight: "600" }}>
-              {history.length} Clock-Ins
+              {history.length} Records
             </Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Text style={{ color: "#6B7280", marginRight: 6 }}>
-              Refresh
-            </Text>
+            <Text style={{ color: "#6B7280", marginRight: 6 }}>Refresh</Text>
             <Ionicons name="refresh" size={18} color="#6B7280" />
           </View>
         </Pressable>
@@ -130,40 +134,9 @@ export default function ClockHistoryScreen() {
               paddingVertical: 80,
             }}
           >
-            <View
-              style={{
-                width: 110,
-                height: 110,
-                borderRadius: 60,
-                backgroundColor: "#EEF2FF",
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 20,
-              }}
-            >
-              <Ionicons name="time-outline" size={48} color="#4F46E5" />
-            </View>
-
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: "700",
-                marginBottom: 6,
-              }}
-            >
-              No Clock-Ins Yet
-            </Text>
-
-            <Text
-              style={{
-                fontSize: 14,
-                color: "#6B7280",
-                textAlign: "center",
-                maxWidth: 260,
-                lineHeight: 20,
-              }}
-            >
-              Once you clock in for a shift, your clock-in history will appear here.
+            <Ionicons name="time-outline" size={48} color="#4F46E5" />
+            <Text style={{ fontSize: 18, fontWeight: "700", marginTop: 10 }}>
+              No History Yet
             </Text>
           </View>
         ) : (
@@ -173,39 +146,50 @@ export default function ClockHistoryScreen() {
               style={{
                 backgroundColor: "white",
                 padding: 18,
-                borderRadius: 16, // upgraded slightly
+                borderRadius: 16,
                 marginBottom: 14,
                 elevation: 3,
               }}
             >
-              {/* Clock-in label */}
-              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
+              {/* CLOCK IN */}
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <Ionicons name="time-outline" size={18} color="#374151" />
                 <Text style={{ fontWeight: "600", marginLeft: 6 }}>
                   Clocked In
                 </Text>
-                {/*CLOCK OUT SECTION */}
-              {shift.clock_out_time && (
-            <>
-              <View style={{ flexDirection: "row", alignItems: "center", marginTop: 10 }}>
-                <Ionicons name="log-out-outline" size={18} color="#374151" />
-                <Text style={{ fontWeight: "600", marginLeft: 6 }}>
-                    Clocked Out
-                  </Text>
-                </View>
-
-                <Text style={{ color: "#666" }}>
-                  {new Date(shift.clock_out_time).toLocaleString()}
-                </Text>
-              </>
-              )}
               </View>
 
               <Text style={{ color: "#666" }}>
                 {new Date(shift.actual_start_time).toLocaleString()}
               </Text>
 
-              {/* Photo */}
+              {/* CLOCK OUT */}
+              {shift.actual_end_time  && (
+                <>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      marginTop: 10,
+                    }}
+                  >
+                    <Ionicons
+                      name="log-out-outline"
+                      size={18}
+                      color="#374151"
+                    />
+                    <Text style={{ fontWeight: "600", marginLeft: 6 }}>
+                      Clocked Out
+                    </Text>
+                  </View>
+
+                  <Text style={{ color: "#666" }}>
+                    {new Date(shift.actual_end_time).toLocaleString()}
+                  </Text>
+                </>
+              )}
+
+              {/* Photos */}
               {shift.clock_in_photo_url && (
                 <Image
                   source={{ uri: shift.clock_in_photo_url }}
@@ -214,7 +198,6 @@ export default function ClockHistoryScreen() {
                     height: 150,
                     borderRadius: 10,
                     marginTop: 10,
-                    marginBottom: 10,
                   }}
                 />
               )}
@@ -227,13 +210,12 @@ export default function ClockHistoryScreen() {
                     height: 150,
                     borderRadius: 10,
                     marginTop: 10,
-                    marginBottom: 10,
                   }}
                 />
               )}
 
               {/* Location */}
-              <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}>
+              <View style={{ flexDirection: "row", marginTop: 8 }}>
                 <Ionicons name="location-outline" size={18} color="#374151" />
                 <Text style={{ marginLeft: 6 }}>
                   {shift.clock_in_lat ?? "-"}, {shift.clock_in_long ?? "-"}

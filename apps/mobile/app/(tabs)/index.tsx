@@ -9,12 +9,14 @@ import {
   GestureResponderEvent,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { supabase } from "../../lib/supabase";
 import { ShiftStatusCard } from "@vak/ui";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import ClockInButton from "../../src/components/ClockInButton";
-import ClockOutButton from "../../src/components/ClockOutButton";
 import { useAuth } from "../../context/AuthContext";
 import { useShifts } from "../../hooks/useShifts";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import { useRef } from "react";
 
 export default function Index() {
   const router = useRouter();
@@ -25,6 +27,14 @@ export default function Index() {
   const [temperature, setTemperature] = useState<string>("--°C");
   const [isWeatherLoading, setIsWeatherLoading] = useState(true);
   const [isClockedIn, setIsClockedIn] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [startTime, setStartTime] = useState<number | null>(null);
+const [time, setTime] = useState(0);
+const cameraRef = useRef<any>(null);
+const [permission, requestPermission] = useCameraPermissions();
+useEffect(() => {
+  requestPermission();
+}, [])
 
   const firstName = useMemo(() => {
     const full = user?.user_metadata?.full_name || user?.email || "";
@@ -35,6 +45,7 @@ export default function Index() {
     const fetchWeather = async () => {
       try {
         setIsWeatherLoading(true);
+       
 
         const latitude = 51.0447;
         const longitude = -114.0719;
@@ -102,17 +113,39 @@ export default function Index() {
       hour: "numeric",
       minute: "2-digit",
     });
+    const formatTimer = (ms: number) => {
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${hours.toString().padStart(2, "0")}:${minutes
+    .toString()
+    .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+};
 
   const handleClockInDone = () => {
     setIsClockedIn(true);
-    Alert.alert("Clock in successful");
+    setStartTime(Date.now());
+    
   };
 
   const handleClockOut = () => {
     setIsClockedIn(false);
+    setShowCamera(false);
+setStartTime(null);
+setTime(0); 
     Alert.alert("Clock out successful");
   };
+useEffect(() => {
+  if (!isClockedIn || !startTime) return;
 
+  const interval = setInterval(() => {
+    setTime(Date.now() - startTime);
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, [isClockedIn, startTime]);
   if (isLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-brand-background">
@@ -239,7 +272,7 @@ export default function Index() {
                 subtitle={`${formatTime(todayShift._start)} — ${formatTime(todayShift._end)}`}
               />
 
-              {/* ✅ ONLY CHANGE HERE */}
+              
               <View
                 style={{
                   marginTop: 10,
@@ -262,13 +295,98 @@ export default function Index() {
                         You are currently clocked in
                       </Text>
                     </View>
+                    <Text style={{ fontSize: 28, fontWeight: "bold", textAlign: "center", marginVertical: 10 }}>
+                      {formatTimer(time)}
+                      </Text>
+                      <Text style={{ textAlign: "center", color: "#555", marginBottom: 10 }}>
+                        Shift in progress
+                        </Text>
 
-                    <ClockOutButton
-                      shiftId={todayShift.id || "demo-shift"}
-                      onDone={() => {
-                      handleClockOut(); // keeps your existing logic
-  }}
-/>
+                    <Pressable onPress={() => setShowCamera(true)} className="bg-red-500 rounded-xl py-4 items-center justify-center">
+                      <Text className="text-white font-bold text-base">
+                        Clock Out
+                      </Text>
+                    </Pressable>
+
+                    {showCamera && (
+                      <View style={{ marginTop: 15 }}>
+    <CameraView
+      ref={cameraRef}
+      style={{ height: 250, borderRadius: 12 }}
+      facing="front"
+    />
+
+    <Pressable
+      style={{
+        backgroundColor: "#2563eb",
+        padding: 12,
+        borderRadius: 8,
+        marginTop: 10,
+        alignItems: "center",
+      }}
+      onPress={async () => {
+  try {
+    if (!cameraRef.current) {
+      Alert.alert("Camera not ready");
+      return;
+    }
+
+    const photo = await cameraRef.current.takePictureAsync();
+
+    console.log("PHOTO URI:", photo.uri);
+
+    const response = await fetch(photo.uri);
+    const arrayBuffer = await response.arrayBuffer();
+
+    console.log("FILE SIZE:", arrayBuffer.byteLength);
+
+    const filePath = `${user?.id}/${Date.now()}.jpg`;
+
+    const { error } = await supabase.storage
+      .from("shift-proofs")
+      .upload(filePath, arrayBuffer, {
+        contentType: "image/jpeg",
+      });
+
+    if (error) {
+      console.log("UPLOAD ERROR:", error);
+      Alert.alert("Upload failed");
+      return;
+    }
+
+    const { data } = supabase.storage
+      .from("shift-proofs")
+      .getPublicUrl(filePath);
+      await supabase
+  .from("shifts")
+  .update({
+    actual_end_time: new Date().toISOString(),
+    clock_out_photo_url: data.publicUrl,
+  })
+  .eq("id", todayShift.id);
+
+    console.log("PUBLIC URL:", data.publicUrl);
+
+    Alert.alert("Photo Updated");
+    Alert.alert("Clock-out successful");
+    setIsClockedIn(false);
+    setShowCamera(false);
+    setStartTime(null);
+    setTime(0);
+    router.replace("/(tabs)"); // 🔥 refresh page
+
+  } catch (err) {
+    console.log("ERROR:", err);
+    Alert.alert("Something went wrong");
+  }
+}}
+    >
+      <Text style={{ color: "white", fontWeight: "bold" }}>
+        Capture
+      </Text>
+    </Pressable>
+  </View>
+)}
                   </View>
                 )}
               </View>
