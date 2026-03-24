@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { ShiftStatusCard } from "@vak/ui";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import ClockInButton from "../../src/components/ClockInButton";
+import ClockOutButton from "../../src/components/ClockOutButton";
 import { useAuth } from "../../context/AuthContext";
 import { useShifts } from "../../hooks/useShifts";
 
@@ -262,11 +263,12 @@ export default function Index() {
                       </Text>
                     </View>
 
-                    <Pressable onPress={handleClockOut} className="bg-red-500 rounded-xl py-4 items-center justify-center">
-                      <Text className="text-white font-bold text-base">
-                        Clock Out
-                      </Text>
-                    </Pressable>
+                    <ClockOutButton
+                      shiftId={todayShift.id || "demo-shift"}
+                      onDone={() => {
+                      handleClockOut(); // keeps your existing logic
+  }}
+/>
                   </View>
                 )}
               </View>

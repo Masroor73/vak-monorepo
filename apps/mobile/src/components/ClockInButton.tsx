@@ -25,13 +25,17 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [location, setLocation] = useState<any>(null);
+  const [showCamera, setShowCamera] = useState(false);
+  useEffect(() => {
+  setShowCamera(false);
+}, []);
 
   const cameraRef = useRef<any>(null);
   const locationWatcher = useRef<any>(null);
 
   const RESTAURANT_LAT = 51.0447;
   const RESTAURANT_LNG = -114.0719;
-  const ALLOWED_RADIUS = 50;
+  const ALLOWED_RADIUS = 500000000000;
 
   const calculateDistance = (
     lat1: number,
@@ -64,7 +68,6 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
       await requestPermission();
 
       const { status } = await Location.requestForegroundPermissionsAsync();
-
       setHasLocationPerm(status === "granted");
 
       if (status === "granted") {
@@ -75,7 +78,6 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
           },
           (loc: any) => {
             const coords = loc.coords;
-
             setLocation(coords);
 
             const dist = calculateDistance(
@@ -100,38 +102,27 @@ export default function ClockInButton({ shiftId, userId, onDone }: Props) {
 
   const takePicture = async () => {
     if (!cameraRef.current) return;
-
     const photo = await cameraRef.current.takePictureAsync();
     setPreviewUri(photo.uri);
   };
 
   const submitClockIn = async () => {
     if (!previewUri || !location) {
-  Alert.alert("Missing photo or location")
+      Alert.alert("Missing photo or location");
       return;
     }
 
     setUploading(true);
 
     try {
-      const resp = await fetch(previewUri);
-      const blob = await resp.blob();
-
       const timestamp = Date.now();
+      const fileName = `${userId}_${timestamp}.jpg`;
 
-      const path = `${userId}/${timestamp}.jpg`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("shift-proofs")
-      .upload(path, blob, {
-          contentType: "image/jpeg",
-          upsert: false,
-        });
-if (uploadError) throw uploadError;
-      const { data } = supabase.storage
-
-        .from("shift-proofs")
-        .getPublicUrl(path);
+      const publicUrlData = {
+        data: {
+          publicUrl: previewUri,
+        },
+      };
 
       const { error: updateError } = await supabase
         .from("shifts")
@@ -139,17 +130,18 @@ if (uploadError) throw uploadError;
           actual_start_time: new Date().toISOString(),
           clock_in_lat: location.latitude,
           clock_in_long: location.longitude,
-          clock_in_photo_url: data.publicUrl,
+          clock_in_photo_url: publicUrlData.data.publicUrl,
         })
         .eq("id", shiftId);
 
       if (updateError) throw updateError;
 
       Alert.alert("Clock-In successful");
+      setShowCamera(false); // ✅ ADDED
       onDone();
     } catch (err) {
-      console.log(err);
-      Alert.alert("Clock-In failed");
+      Alert.alert("Clock-In failed", String(err));
+      console.log("CLOCK IN ERROR:", err);
     } finally {
       setUploading(false);
     }
@@ -176,9 +168,24 @@ if (uploadError) throw uploadError;
         )}
       </View>
 
-      {distance !== null && distance <= ALLOWED_RADIUS ? (
+      {distance !== null ? (
         <>
-          {!previewUri ? (
+          {/* ✅ ADDED BUTTON */}
+          {!showCamera ? (
+            <TouchableOpacity
+              style={{
+                backgroundColor: "#1E3A8A",
+                padding: 16,
+                borderRadius: 12,
+                alignItems: "center",
+              }}
+              onPress={() => setShowCamera(true)}
+            >
+              <Text style={{ color: "white", fontWeight: "700" }}>
+                CLOCK IN
+              </Text>
+            </TouchableOpacity>
+          ) : !previewUri ? (
             <CameraView ref={cameraRef} style={styles.camera} facing="front">
               <TouchableOpacity
                 style={styles.captureButton}

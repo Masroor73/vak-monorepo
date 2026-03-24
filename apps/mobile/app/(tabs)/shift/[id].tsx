@@ -15,6 +15,7 @@ import WhiteArrow from "../../../assets/WhiteArrow.svg";
 import { Shift } from "@vak/contract";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import ClockInButton from "../../../src/components/ClockInButton";
+import ClockOutButton from "../../../src/components/ClockOutButton";
 import { supabase } from "../../../lib/supabase";
 
 function formatTime(dateStr: string) {
@@ -132,6 +133,7 @@ export default function ShiftDetails() {
   console.log("UNPAID BREAK:", shift?.unpaid_break_minutes);
 
   const canClockIn = shift.status === "PUBLISHED";
+  const isClockedIn = shift.actual_start_time && !(shift as any).clock_out_time;
 
   return (
     <View className="flex-1 bg-brand-background">
@@ -250,52 +252,38 @@ export default function ShiftDetails() {
           </View>
         </ScrollView>
 
-        <View className="absolute bottom-0 left-0 right-0 px-4 pb-6 pt-3 bg-brand-background border-t border-gray-100">
-          {showClockIn ? (
-            <ClockInButton
-              shiftId={String(shift.id)}
-              userId={user?.id || ""}
-              onDone={() => {
-                Alert.alert("Clock-in completed");
-                router.back();
-              }}
-            />
-          ) : canClockIn ? (
-            <>
-              <Pressable
-                onPress={() => setShowClockIn(true)}
-                className="bg-brand-secondary rounded-2xl py-5 items-center justify-center flex-row gap-2"
-              >
-                <Ionicons name="time-outline" size={18} color="#fff" />
+       <View className="px-4 pb-6 pt-3">
+  {shift && !shift.actual_start_time ? (
+    <ClockInButton
+      shiftId={String(shift.id)}
+      userId={user?.id || ""}
+      onDone={() => {
+        Alert.alert("Clock-in completed");
 
-                <Text className="text-white font-bold text-sm tracking-widest uppercase">
-                  Clock In
-                </Text>
-              </Pressable>
+        setShift((prev: any) => ({
+          ...prev,
+          actual_start_time: new Date().toISOString(),
+        }));
+      }}
+    />
+  ) : shift && !shift.actual_end_time ? (
+    <ClockOutButton
+      shiftId={String(shift.id)}
+      onDone={() => {
+        Alert.alert("Clock-out completed");
 
-              <Pressable
-                onPress={() => router.push("/clock-history" as any)}
-                className="bg-green-500 rounded-2xl py-4 items-center mt-3"
-              >
-                <Text className="text-white font-bold">
-                  View Clock History
-                </Text>
-              </Pressable>
-            </>
-          ) : (
-            <View className="bg-gray-100 rounded-2xl py-5 items-center justify-center flex-row gap-2">
-              <Ionicons name="lock-closed" size={18} color="#9ca3af" />
-
-              <Text className="text-gray-400 font-bold text-sm tracking-widest uppercase">
-                {shift.status === "COMPLETED"
-                  ? "Shift Completed"
-                  : shift.status === "VOID"
-                  ? "Shift Cancelled"
-                  : "Not Yet Published"}
-              </Text>
-            </View>
-          )}
-        </View>
+        setShift((prev: any) => ({
+          ...prev,
+          actual_end_time: new Date().toISOString(),
+        }));
+      }}
+    />
+  ) : (
+    <Text className="text-green-600 font-bold text-center">
+      Shift completed
+    </Text>
+  )}
+</View>
       </View>
     </View>
   );
