@@ -20,6 +20,7 @@ interface Task {
   priority:    Priority;
   status:      Status;
   assigned_by: string;
+  updated_at:  string | null;
 }
 
 const STATUS_PROGRESS: Record<Status, number> = {
@@ -65,6 +66,12 @@ function formatDueDate(dateStr: string | null): { text: string; overdue: boolean
   return { text: `Due in ${diff}d`, overdue: false };
 }
 
+function formatCompletedDate(dateStr: string | null): string {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 function EmptyState({ priorityFilter }: { priorityFilter: PriorityFilter }) {
   return (
     <View className="flex-1 items-center justify-center px-10 py-8">
@@ -99,10 +106,12 @@ function EmptyState({ priorityFilter }: { priorityFilter: PriorityFilter }) {
 function TaskCard({ task, updatingId, onCycle }: { task: Task; updatingId: string | null; onCycle: (task: Task) => void }) {
   const pm         = PRIORITY_META[task.priority];
   const sm         = STATUS_META[task.status];
-  const due        = formatDueDate(task.due_date);
   const isDone     = task.status === 'Done';
   const isUpdating = updatingId === task.id;
   const progress   = STATUS_PROGRESS[task.status];
+  const due        = isDone
+    ? { text: `Completed ${formatCompletedDate(task.updated_at)}`, overdue: false }
+    : formatDueDate(task.due_date);
 
   const progressBarClass = isDone ? 'bg-brand-success' : pm.barClass;
 
@@ -197,7 +206,7 @@ export default function MyTasksScreen() {
     if (!isRefresh) setLoading(true);
     const { data, error } = await supabase
       .from('tasks')
-      .select('id, title, description, due_date, priority, status, assigned_by')
+      .select('id, title, description, due_date, priority, status, assigned_by, updated_at')
       .eq('assigned_to', user.id)
       .order('due_date', { ascending: true, nullsFirst: false });
     if (!error && data) setTasks(data as Task[]);
@@ -236,9 +245,9 @@ export default function MyTasksScreen() {
   };
 
   const handleChip = (chip: Chip) => {
-    if (chip.type === 'all')      setPriorityFilter('ALL');
-    else if (chip.type === 'done')     setPriorityFilter(p => p === 'DONE' ? 'ALL' : 'DONE');
-    else if (chip.type === 'priority') setPriorityFilter(p => p === chip.key ? 'ALL' : chip.key as PriorityFilter);
+    if (chip.type === 'all')           setPriorityFilter('ALL');
+    else if (chip.type === 'done')     setPriorityFilter('DONE');
+    else if (chip.type === 'priority') setPriorityFilter(chip.key as PriorityFilter);
   };
 
   const isChipActive = (chip: Chip) => {
