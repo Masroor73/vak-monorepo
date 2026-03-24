@@ -273,14 +273,6 @@ export default function ShiftDetails() {
                 </Text>
               </Pressable>
 
-              <Pressable
-                onPress={() => router.push("/clock-history" as any)}
-                className="bg-green-500 rounded-2xl py-4 items-center mt-3"
-              >
-                <Text className="text-white font-bold">
-                  View Clock History
-                </Text>
-              </Pressable>
             </>
           ) : (
             <View className="bg-gray-100 rounded-2xl py-5 items-center justify-center flex-row gap-2">

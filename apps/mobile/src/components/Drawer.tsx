@@ -21,12 +21,19 @@ const SECTIONS = (pendingTasksCount: number, newRecognitionCount: number) => [
     items: [
       { label: "Daily Tasks List", subtitle: "View today's tasks", route: "/(tabs)/dailyTasks", icon: <Ionicons name="clipboard-outline" size={18} color="brown" />, badge: pendingTasksCount > 0 ? String(pendingTasksCount) : null, badgeRed: true,} ,
       { label: "Recognition", subtitle: "View & give kudos", route: "/(tabs)/recognition", icon: <Ionicons name="star" size={18} color="yellow" />, badge: newRecognitionCount > 0 ? "New" : null, badgeRed: false, },
+      
     ],
   },
   {
     label: "SCHEDULING",
     items: [
       { label: "Set Availability", subtitle: "Update your schedule", route: "/(tabs)/setAvailability", icon: <Ionicons name="calendar-outline" size={18} color="red" />, badge: null, badgeRed: false },
+      {label: "Clock History",
+        subtitle: "View your shifts",
+        route: "/clock-history",
+        icon: <Ionicons name="time-outline"
+        size={18} color="white" />,
+      }
     ],
   },
 ];
