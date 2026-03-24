@@ -9,7 +9,6 @@ import ManagerLayout from "./layouts/ManagerLayout";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AssignShiftModal, { Availability } from "./components/AssignShiftModal";
 import ViewShiftModal, { Shift, STATUS_STYLES } from "./components/ViewShiftModal";
-import RunPayrollModal from "./components/RunPayrollModal";
 
 function getWeekStart(date: Date): Date {
   const d = new Date(date);
@@ -57,10 +56,12 @@ function getInitials(name: string): string {
   return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 }
 
-function resolveStatusKey(status: Shift["status"]): "PUBLISHED" | "COMPLETED" | "VOID" {
+// Fix #5 — PARTIAL now maps to its own orange style
+function resolveStatusKey(status: Shift["status"]): "PUBLISHED" | "COMPLETED" | "VOID" | "PARTIAL" {
   if (status === "COMPLETED") return "COMPLETED";
-  if (status === "VOID") return "VOID";
-  return "PUBLISHED"; // covers PUBLISHED, DRAFT, and null
+  if (status === "VOID")      return "VOID";
+  if (status === "PARTIAL")   return "PARTIAL";
+  return "PUBLISHED"; // covers PUBLISHED, DRAFT, null
 }
 
 const AVATAR_COLORS = [
@@ -81,7 +82,8 @@ function avatarColor(name: string): string {
 const LEGEND_ITEMS = [
   { label: "Published", className: "text-blue-500" },
   { label: "Completed", className: "text-green-600" },
-  { label: "Void", className: "text-red-500" },
+  { label: "Partial",   className: "text-orange-500" },
+  { label: "Void",      className: "text-red-500" },
 ];
 
 export default function ShiftsPage() {
@@ -102,7 +104,6 @@ export default function ShiftsPage() {
   const [prefillEmployee, setPrefillEmployee] = useState<Profile | null>(null);
   const [prefillDate, setPrefillDate] = useState<string | undefined>();
   const [viewingShift, setViewingShift] = useState<Shift | null>(null);
-  const [showPayrollModal, setShowPayrollModal] = useState(false);
 
   const weekDays = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
@@ -188,14 +189,6 @@ export default function ShiftsPage() {
               <option value="MANAGER">Managers</option>
             </select>
             <button
-              type="button"
-              onClick={() => setShowPayrollModal(true)}
-              className="flex items-center gap-2 border border-gray-300 bg-white text-gray-800 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 transition"
-            >
-              <Ionicons name="cash-outline" size={18} color="#1f2937" />
-              Run Payroll
-            </button>
-            <button
               onClick={() => openAssignModal()}
               className="flex items-center gap-2 bg-gray-900 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-700 transition"
             >
@@ -262,8 +255,8 @@ export default function ShiftsPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredEmployees.map((emp, rowIndex) => (
-                    <tr key={emp.id} className={`hover:bg-gray-50/50 transition border-b border-gray-200 last:border-b-0`}>
+                  filteredEmployees.map((emp) => (
+                    <tr key={emp.id} className="hover:bg-gray-50/50 transition border-b border-gray-200 last:border-b-0">
 
                       {/* Employee */}
                       <td className="px-5 py-3 border-r border-gray-200">
@@ -319,7 +312,7 @@ export default function ShiftsPage() {
           )}
         </div>
 
-        {/* Legend */}
+        {/* Legend — Fix #5: Partial added */}
         <div className="flex items-center gap-1 flex-wrap text-xs">
           <span className="font-semibold text-gray-500 mr-1">LEGEND:</span>
           {LEGEND_ITEMS.map(({ label, className }) => (
@@ -350,14 +343,6 @@ export default function ShiftsPage() {
           employee={employees.find((e) => e.id === viewingShift.employee_id)}
           onClose={() => setViewingShift(null)}
           onSuccess={fetchShifts}
-        />
-      )}
-      {currentUser && (
-        <RunPayrollModal
-          open={showPayrollModal}
-          onClose={() => setShowPayrollModal(false)}
-          initialWeekStart={weekStart}
-          employees={employees}
         />
       )}
     </ManagerLayout>

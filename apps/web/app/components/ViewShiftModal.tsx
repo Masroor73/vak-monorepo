@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Profile, JobRoleEnum } from "@vak/contract";
 import { supabase } from "../../lib/supabase";
 
-export type ShiftStatus = "DRAFT" | "PUBLISHED" | "COMPLETED" | "VOID";
+export type ShiftStatus = "DRAFT" | "PUBLISHED" | "COMPLETED" | "VOID" | "PARTIAL";
 
 export interface Shift {
   id: string;
@@ -27,12 +27,15 @@ export const STATUS_STYLES: Record<string, string> = {
   PUBLISHED: "bg-blue-50 text-blue-600 border border-blue-200",
   COMPLETED: "bg-green-50 text-green-700 border border-green-200",
   VOID:      "bg-red-50 text-red-500 border border-red-200",
+  PARTIAL:   "bg-orange-50 text-orange-600 border border-orange-200",
 };
 
-function normalizeStatus(status: ShiftStatus | null): "PUBLISHED" | "COMPLETED" | "VOID" {
+// Fix #5 — PARTIAL added to normalizeStatus
+function normalizeStatus(status: ShiftStatus | null): "PUBLISHED" | "COMPLETED" | "VOID" | "PARTIAL" {
   if (status === "COMPLETED") return "COMPLETED";
-  if (status === "VOID") return "VOID";
-  return "PUBLISHED";
+  if (status === "VOID")      return "VOID";
+  if (status === "PARTIAL")   return "PARTIAL";
+  return "PUBLISHED"; // covers PUBLISHED, DRAFT, null
 }
 
 function toTimeInput(isoString: string): string {
@@ -46,11 +49,13 @@ function formatRole(role: string): string {
   return role.charAt(0) + role.slice(1).toLowerCase().replace(/_/g, " ");
 }
 
+// Fix #5 — PARTIAL and COMPLETED treated as past (fully locked)
 function getShiftTiming(shift: Shift): "past" | "in_progress" | "future" {
+  if (shift.status === "COMPLETED" || shift.status === "PARTIAL") return "past";
   const now = new Date();
   const start = new Date(shift.start_time);
   const end = new Date(shift.end_time);
-  if (now >= end) return "past";
+  if (now >= end)                return "past";
   if (now >= start && now < end) return "in_progress";
   return "future";
 }
@@ -64,7 +69,7 @@ interface Props {
 
 export default function ViewShiftModal({ shift, employee, onClose, onSuccess }: Props) {
 
-  const [status, setStatus] = useState<"PUBLISHED" | "COMPLETED" | "VOID">(normalizeStatus(shift.status));
+  const [status, setStatus] = useState<"PUBLISHED" | "COMPLETED" | "VOID" | "PARTIAL">(normalizeStatus(shift.status));
   const [isEditing, setIsEditing]       = useState(false);
   const [editDate, setEditDate]         = useState(shift.start_time.split("T")[0]);
   const [editStart, setEditStart]       = useState(toTimeInput(shift.start_time));
@@ -78,17 +83,30 @@ export default function ViewShiftModal({ shift, employee, onClose, onSuccess }: 
   const [error, setError]   = useState<string | null>(null);
 
   const timing = getShiftTiming(shift);
+
   const editDisabledReason =
     timing === "past"        ? "Cannot edit a shift that has already ended." :
     timing === "in_progress" ? "Cannot edit a shift that is currently in progress." :
     null;
-  const deleteDisabledReason =
-    timing === "past" ? "Cannot delete a shift that has already ended." : null;
 
-  const statusStyle = STATUS_STYLES[status];
+  // Fix #1 — in_progress now also blocks delete
+  const deleteDisabledReason =
+    timing === "past"        ? "Cannot delete a shift that has already ended." :
+    timing === "in_progress" ? "Cannot delete a shift that is currently in progress." :
+    null;
+
+  // Fix #3 — status change guarded by timing
+  const statusChangeDisabledReason =
+    timing === "past"        ? "Cannot change the status of a shift that has already ended." :
+    timing === "in_progress" ? "Cannot change the status of a shift that is currently in progress." :
+    null;
+
+  const statusStyle = STATUS_STYLES[status] ?? STATUS_STYLES["PUBLISHED"];
   const statusLabel = status.charAt(0) + status.slice(1).toLowerCase();
 
+  // Fix #3 — guard added before persisting status change
   const handleStatusChange = async (newStatus: "PUBLISHED" | "VOID") => {
+    if (statusChangeDisabledReason) { setError(statusChangeDisabledReason); return; }
     setSaving(true); setError(null);
     const { error: err } = await supabase.from("shifts").update({ status: newStatus }).eq("id", shift.id);
     setSaving(false);
@@ -97,17 +115,18 @@ export default function ViewShiftModal({ shift, employee, onClose, onSuccess }: 
     onSuccess?.();
   };
 
+  // Fix #4 — validate against actual current datetime, not midnight
   const handleSaveEdit = async () => {
-    if (!editStart || !editEnd)   { setError("Please set start and end times."); return; }
-    if (editStart >= editEnd)     { setError("End time must be after start time."); return; }
+    if (!editStart || !editEnd) { setError("Please set start and end times."); return; }
+    if (editStart >= editEnd)   { setError("End time must be after start time."); return; }
 
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const shiftDate = new Date(editDate + "T00:00:00");
-    if (shiftDate < today)        { setError("Cannot set a shift date in the past."); return; }
+    const now = new Date();
+    const proposedStart = new Date(`${editDate}T${editStart}:00`);
+    if (proposedStart <= now) { setError("Start time must be in the future."); return; }
 
     setSaving(true); setError(null);
     const { error: err } = await supabase.from("shifts").update({
-      start_time:            new Date(`${editDate}T${editStart}:00`).toISOString(),
+      start_time:            proposedStart.toISOString(),
       end_time:              new Date(`${editDate}T${editEnd}:00`).toISOString(),
       role_at_time_of_shift: editRole,
       location_id:           editLocation || "damascus-hq",
@@ -120,11 +139,39 @@ export default function ViewShiftModal({ shift, employee, onClose, onSuccess }: 
     onSuccess?.();
   };
 
+  // Fix #2 — restore swap request denial + employee notification before deleting
   const handleDelete = async () => {
     setSaving(true); setError(null);
-    const { error: err } = await supabase.from("shifts").delete().eq("id", shift.id);
+
+    // Step 1: Deny any open swap requests tied to this shift
+    const { error: swapErr } = await supabase
+      .from("shift_swap_requests")
+      .update({ status: "DENIED" })
+      .eq("shift_id", shift.id)
+      .in("status", ["PENDING", "UNDER_REVIEW"]);
+
+    if (swapErr) {
+      setSaving(false);
+      setError(`Failed to resolve swap requests: ${swapErr.message}`);
+      return;
+    }
+
+    // Step 2: Notify the employee their shift was removed
+    if (shift.employee_id) {
+      await supabase.from("notifications").insert({
+        user_id: shift.employee_id,
+        type:    "SHIFT_DELETED",
+        message: `Your shift on ${new Date(shift.start_time).toLocaleDateString("en-US", {
+          weekday: "long", month: "long", day: "numeric",
+        })} (${toTimeInput(shift.start_time)} – ${toTimeInput(shift.end_time)}) has been removed by a manager.`,
+        is_read: false,
+      });
+    }
+
+    // Step 3: Delete the shift
+    const { error: deleteErr } = await supabase.from("shifts").delete().eq("id", shift.id);
     setSaving(false);
-    if (err) { setError(err.message); return; }
+    if (deleteErr) { setError(deleteErr.message); return; }
     onSuccess?.();
     onClose();
   };
@@ -166,21 +213,27 @@ export default function ViewShiftModal({ shift, employee, onClose, onSuccess }: 
           </button>
         </div>
 
-        {/* Status change */}
-        {!isEditing && status !== "COMPLETED" && (
+        {/* Fix #3 — status dropdown replaced with locked message when timing blocks it */}
+        {!isEditing && status !== "COMPLETED" && status !== "PARTIAL" && (
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">
               Change Status
             </label>
-            <select
-              className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-              value={status}
-              disabled={saving}
-              onChange={(e) => handleStatusChange(e.target.value as "PUBLISHED" | "VOID")}
-            >
-              <option value="PUBLISHED">Published</option>
-              <option value="VOID">Void</option>
-            </select>
+            {statusChangeDisabledReason ? (
+              <div className="w-full border rounded-lg px-3 py-2.5 text-sm bg-gray-50 text-gray-400 cursor-not-allowed">
+                Status locked — {statusChangeDisabledReason.toLowerCase()}
+              </div>
+            ) : (
+              <select
+                className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                value={status}
+                disabled={saving}
+                onChange={(e) => handleStatusChange(e.target.value as "PUBLISHED" | "VOID")}
+              >
+                <option value="PUBLISHED">Published</option>
+                <option value="VOID">Void</option>
+              </select>
+            )}
           </div>
         )}
 
@@ -265,7 +318,7 @@ export default function ViewShiftModal({ shift, employee, onClose, onSuccess }: 
         {confirmDelete && (
           <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 space-y-3">
             <p className="text-sm font-medium text-red-700">
-              Are you sure you want to delete this shift? This cannot be undone.
+              Are you sure you want to delete this shift? The employee will be notified and any open swap requests will be denied. This cannot be undone.
             </p>
             <div className="flex gap-2">
               <button onClick={() => setConfirmDelete(false)} className="flex-1 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-100 transition">
