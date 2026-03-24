@@ -20,6 +20,8 @@ export default function UserManagement() {
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [saving, setSaving] = useState(false);
   const [togglingApproval, setTogglingApproval] = useState<string | null>(null);
+  const [deletingUser, setDeletingUser] = useState<string | null>(null);
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState<Profile | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -84,6 +86,21 @@ export default function UserManagement() {
     setTogglingApproval(null);
   };
 
+  const handleDeleteUser = async () => {
+    if (!confirmDeleteUser) return;
+    setDeletingUser(confirmDeleteUser.id);
+    setConfirmDeleteUser(null);
+
+    const { error } = await supabase.rpc("admin_delete_user", {
+      target_user_id: confirmDeleteUser.id,
+    });
+
+    if (!error) {
+      setUsers((prev) => prev.filter((u) => u.id !== confirmDeleteUser.id));
+    }
+    setDeletingUser(null);
+  };
+
   const filtered = users.filter((u) => {
     const matchSearch =
       (u.full_name ?? "").toLowerCase().includes(search.toLowerCase()) ||
@@ -144,10 +161,8 @@ export default function UserManagement() {
               </thead>
               <tbody className="divide-y">
                 {filtered.map((user) => {
-                  // Prevent manager from editing themselves or anyone with a higher role
                   const isSelf = user.id === currentUser?.id;
-                  const isHigherRole =
-                    user.role === "OWNER" && !isAdmin;
+                  const isHigherRole = user.role === "OWNER" && !isAdmin;
                   const canEdit = !isSelf && !isHigherRole;
 
                   return (
@@ -183,12 +198,24 @@ export default function UserManagement() {
                       </td>
                       <td className="px-6 py-4 text-left">
                         {canEdit ? (
-                          <button
-                            onClick={() => setEditingUser(user)}
-                            className="text-blue-600 hover:underline text-xs"
-                          >
-                            Edit
-                          </button>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => setEditingUser(user)}
+                              className="text-blue-600 hover:underline text-xs"
+                            >
+                              Edit
+                            </button>
+                            {deletingUser === user.id ? (
+                              <span className="text-xs text-gray-400">Deleting...</span>
+                            ) : (
+                              <button
+                                onClick={() => setConfirmDeleteUser(user)}
+                                className="text-red-500 hover:underline text-xs"
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </div>
                         ) : (
                           <span className="text-xs text-gray-300">
                             {isSelf ? "You" : "—"}
@@ -268,6 +295,37 @@ export default function UserManagement() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {confirmDeleteUser && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">Delete User</h2>
+            <p className="text-sm text-gray-500">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-gray-800">
+                {confirmDeleteUser.full_name ?? confirmDeleteUser.email}
+              </span>
+              ? Their shift history will be kept but their login access will be removed.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setConfirmDeleteUser(null)}
+                className="flex-1 border rounded px-4 py-2 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteUser}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded px-4 py-2 text-sm font-semibold transition"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </ManagerLayout>
   );
 }
