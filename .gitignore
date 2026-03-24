@@ -142,3 +142,6 @@ dist
 
 # Turborepo
 .turbo
+
+# Docs
+jira-board-export.csv

@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
+    "seed:payroll-demo": "node ./scripts/seed-payroll-demo.mjs",
     "type-check": "tsc --noEmit",
     "dev": "expo start --web --port 8082",
     "start": "expo start",
