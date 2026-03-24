@@ -12,6 +12,7 @@ import EyeOpenIcon from "../../assets/eyeOpen.svg";
 import EyeClosedIcon from "../../assets/eyeClosed.svg";
 import { GoogleButton } from "../../src/components/GoogleButton";
 import { Circle, Ring, Diamond } from "../../src/components/Shapes";
+import { checkProfanity } from "@/src/utils/profanityFilter";
 
 const PasswordRequirementsBox = ({
   password,
@@ -110,6 +111,23 @@ export default function LoginScreen() {
   }, [activeTab]);
 
   const onSignUp = async (data: SignupInput) => {
+
+    // Invalid name – inappropriate language detected
+    const nameCheck = checkProfanity(data.full_name)
+    const emailLocalPart = data.email.split("@")[0]
+    const emailCheck = checkProfanity(emailLocalPart)
+
+    if (nameCheck.hasProfanity) {
+      signUpForm.setError("full_name", { message: "Name contains inappropriate language." })
+    }
+
+    if (emailCheck.hasProfanity) {
+      signUpForm.setError("email", { message: "Email contains inappropriate language." })
+    }
+
+    if (nameCheck.hasProfanity || emailCheck.hasProfanity) return
+    
+    
     setIsLoading(true);
     try {
       const { error } = await signUp(data.email, data.password, data.full_name);
