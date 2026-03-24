@@ -31,13 +31,14 @@ export default function ClockInButton({
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [location, setLocation] = useState<any>(null);
+  const [showCamera, setShowCamera] = useState(true);
 
   const cameraRef = useRef<any>(null);
   const locationWatcher = useRef<any>(null);
 
   const RESTAURANT_LAT = 51.0447;
   const RESTAURANT_LNG = -114.0719;
-  const ALLOWED_RADIUS = 500000000000;
+  const ALLOWED_RADIUS = 5000000000;
 
   const calculateDistance = (
     lat1: number,
@@ -108,16 +109,81 @@ export default function ClockInButton({
     setUploading(true);
 
     try {
-      const publicUrlData = {
-        data: { publicUrl: previewUri },
-      };
+
+      // ✅ ONLY for clock-in (not clock-out)
+if (mode !== "clockout") {
+  const { data: shift, error: shiftError } = await supabase
+    .from("shifts")
+    .select("end_time, actual_start_time")
+    .eq("id", shiftId)
+    .single();
+
+  if (shiftError || !shift) {
+    Alert.alert("Failed to load shift");
+    setUploading(false);
+    return;
+  }
+
+  // ❌ Prevent double clock-in
+  if (shift.actual_start_time) {
+    Alert.alert("You have already clocked in for this shift");
+    setUploading(false);
+    return;
+  }
+
+  // ❌ Prevent late clock-in
+  if (new Date() > new Date(shift.end_time)) {
+    Alert.alert("Cannot clock in after shift has ended");
+    setUploading(false);
+    return;
+  }
+}
+
+      console.log("Image URI:", previewUri);
+
+// Convert to arrayBuffer (THIS IS THE FIX)
+// Convert image to arrayBuffer
+const response = await fetch(previewUri);
+const arrayBuffer = await response.arrayBuffer();
+
+// Correct path (must use userId)
+const filePath = `${userId}/${Date.now()}.jpg`;
+
+const { error: uploadError } = await supabase.storage
+  .from("shift-proofs")
+  .upload(filePath, arrayBuffer, {
+    contentType: "image/jpeg",
+  });
+
+if (uploadError) {
+  console.log("UPLOAD ERROR:", uploadError);
+  Alert.alert("Upload failed");
+  setUploading(false);
+  return;
+}
+
+// Get public URL
+const { data: publicUrlData } = supabase.storage
+  .from("shift-proofs")
+  .getPublicUrl(filePath);
+
+const photoUrl = publicUrlData.publicUrl;
+
+if (!photoUrl) {
+  Alert.alert("Failed to get image URL");
+  setUploading(false);
+  setPreviewUri(null);
+  return;
+}
+
+console.log("Upload success:", photoUrl);
 
       if (mode === "clockout") {
         await supabase
           .from("shifts")
           .update({
             clock_out_time: new Date().toISOString(),
-            clock_out_photo_url: publicUrlData.data.publicUrl,
+            clock_out_photo_url: photoUrl
           })
           .eq("id", shiftId);
       } else {
@@ -125,19 +191,23 @@ export default function ClockInButton({
           .from("shifts")
           .update({
             actual_start_time: new Date().toISOString(),
-            clock_in_lat: location.latitude,
-            clock_in_long: location.longitude,
-            clock_in_photo_url: publicUrlData.data.publicUrl,
+            clock_in_lat: location?.latitude ?? null,
+            clock_in_long: location?.longitude ?? null,
+            clock_in_photo_url: photoUrl
           })
           .eq("id", shiftId);
       }
 
       Alert.alert(mode === "clockout" ? "Clock-Out successful" : "Clock-In successful");
+      setPreviewUri(null);
+      setShowCamera(false);
       onDone();
     } catch (err) {
       console.log(err);
       Alert.alert("Failed");
-    } finally {
+      setPreviewUri(null);
+    } 
+      finally {
       setUploading(false);
     }
   };
@@ -149,7 +219,7 @@ export default function ClockInButton({
 
       {distance !== null && distance <= ALLOWED_RADIUS ? (
         <>
-          {!previewUri ? (
+        {showCamera && !previewUri ? (
             <CameraView ref={cameraRef} style={styles.camera} facing="front">
               <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
                 <Text style={styles.captureText}>Capture</Text>
@@ -157,7 +227,9 @@ export default function ClockInButton({
             </CameraView>
           ) : (
             <>
+              {previewUri && (
               <Image source={{ uri: previewUri }} style={styles.preview} />
+              )}
 
               <View style={styles.actionRow}>
                 <TouchableOpacity onPress={() => setPreviewUri(null)}>

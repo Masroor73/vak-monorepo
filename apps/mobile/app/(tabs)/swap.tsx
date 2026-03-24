@@ -69,7 +69,7 @@ export default function Messages() {
 
   async function handleDelete(swap: Swap) {
     if (swap.status !== "PENDING") {
-      Alert.alert("Cannot delete", "This request has already been approved.");
+      Alert.alert("Cannot delete", "This request has already been processed");
       return;
     }
 

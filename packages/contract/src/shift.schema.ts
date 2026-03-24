@@ -3,6 +3,13 @@ import { JobRoleEnum, ShiftStatusEnum, SwapStatusEnum } from './enums';
 
 /* --- SHIFT SCHEMA --- */
 export const ShiftSchema = z.object({
+  clock_in_photo_url: z.string().url().nullable().optional(),
+
+clock_out_photo_url: z.string().url().nullable().optional(),
+
+clock_out_lat: z.number().min(-90).max(90).nullable().optional(),
+
+clock_out_long: z.number().min(-180).max(180).nullable().optional(),
   id: z.string().uuid().optional(),
   employee_id: z.string().uuid(),
   manager_id: z.string().uuid(),
@@ -14,6 +21,7 @@ export const ShiftSchema = z.object({
   // ACTUALS (The Reality - Required for Geo-Fencing & Payroll)
   actual_start_time: z.string().datetime({ offset: true }).nullable().optional(),
   actual_end_time: z.string().datetime({ offset: true }).nullable().optional(),
+  clock_out_time: z.string().datetime({ offset: true }).nullable().optional(),
   
   // GEO-FENCING (The Compliance Proof)
   clock_in_lat: z.number().min(-90).max(90).nullable().optional(),

@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   GestureResponderEvent,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
@@ -294,6 +295,17 @@ useEffect(() => {
                       <Text className="text-green-600 font-semibold text-base">
                         You are currently clocked in
                       </Text>
+                      {todayShift.clock_in_photo_url && (
+                        <View style={{ marginTop: 10 }}>
+                          <Text style={{ fontWeight: "bold", marginBottom: 5 }}>
+                            Clock In Photo
+                            </Text>
+                            <Image
+                            source={{ uri: todayShift.clock_in_photo_url }}
+                            style={{ width: "100%", height: 200, borderRadius: 10 }}
+                            />
+                            </View>
+                          )}
                     </View>
                     <Text style={{ fontSize: 28, fontWeight: "bold", textAlign: "center", marginVertical: 10 }}>
                       {formatTimer(time)}
@@ -301,6 +313,17 @@ useEffect(() => {
                       <Text style={{ textAlign: "center", color: "#555", marginBottom: 10 }}>
                         Shift in progress
                         </Text>
+                        {todayShift.clock_out_photo_url && (
+                          <View style={{ marginTop: 10 }}>
+                            <Text style={{ fontWeight: "bold", marginBottom: 5 }}>
+                              Clock Out Photo
+                              </Text>
+                              <Image
+                              source={{ uri: todayShift.clock_out_photo_url }}
+                              style={{ width: "100%", height: 200, borderRadius: 10 }}
+                              />
+                              </View>
+                            )}
 
                     <Pressable onPress={() => setShowCamera(true)} className="bg-red-500 rounded-xl py-4 items-center justify-center">
                       <Text className="text-white font-bold text-base">
@@ -373,7 +396,7 @@ useEffect(() => {
     setShowCamera(false);
     setStartTime(null);
     setTime(0);
-    router.replace("/(tabs)"); // 🔥 refresh page
+    router.replace("/");
 
   } catch (err) {
     console.log("ERROR:", err);
