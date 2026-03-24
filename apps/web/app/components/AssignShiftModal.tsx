@@ -34,6 +34,16 @@ interface Props {
   onSuccess: () => void;
 }
 
+function clampDateToBounds(
+  value: string,
+  min: string,
+  max: string
+): string {
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
+}
+
 export default function AssignShiftModal({
   weekDays,
   availableEmployees,
@@ -44,8 +54,23 @@ export default function AssignShiftModal({
   onClose,
   onSuccess,
 }: Props) {
+  const dateBounds = useMemo(() => {
+    const t = new Date();
+    const min = new Date(t);
+    min.setFullYear(min.getFullYear() - 1);
+    const max = new Date(t);
+    max.setFullYear(max.getFullYear() + 1);
+    return { min: formatDate(min), max: formatDate(max) };
+  }, []);
+
   const [employeeId, setEmployeeId] = useState(prefillEmployee?.id ?? "");
-  const [date, setDate]             = useState(prefillDate ?? formatDate(weekDays[0]));
+  const [date, setDate] = useState(() =>
+    clampDateToBounds(
+      prefillDate ?? formatDate(weekDays[0]),
+      dateBounds.min,
+      dateBounds.max
+    )
+  );
   const [startTime, setStartTime]   = useState("09:00");
   const [endTime, setEndTime]       = useState("17:00");
   const [role, setRole]             = useState<typeof JobRoleEnum._type>(JobRoleEnum.options[0]);
@@ -76,7 +101,10 @@ export default function AssignShiftModal({
     if (!date)                { setError("Please select a date."); return; }
     if (!startTime || !endTime) { setError("Please set start and end times."); return; }
     if (startTime >= endTime) { setError("End time must be after start time."); return; }
-    if (breakMins < 0)        { setError("Break minutes cannot be negative."); return; }
+    if (breakMins < 0 || breakMins > 99) {
+      setError("Unpaid break must be between 0 and 99 minutes.");
+      return;
+    }
 
     const shiftDurationMins = (new Date(`${date}T${endTime}:00`).getTime() - new Date(`${date}T${startTime}:00`).getTime()) / 60000;
     if (breakMins >= shiftDurationMins) { setError("Break time cannot be longer than or equal to the shift duration."); return; }
@@ -134,8 +162,16 @@ export default function AssignShiftModal({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Date</label>
-            <input type="date" className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={date} onChange={(e) => setDate(e.target.value)} />
+            <input
+              type="date"
+              min={dateBounds.min}
+              max={dateBounds.max}
+              className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={date}
+              onChange={(e) =>
+                setDate(clampDateToBounds(e.target.value, dateBounds.min, dateBounds.max))
+              }
+            />
           </div>
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Role at Shift</label>
@@ -182,8 +218,24 @@ export default function AssignShiftModal({
           </div>
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Unpaid Break (mins)</label>
-            <input type="number" min={0} className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={breakMins} onChange={(e) => setBreakMins(Math.max(0, Number(e.target.value)))} />
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={2}
+              placeholder="0–99"
+              autoComplete="off"
+              className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={String(breakMins)}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
+                if (digits === "") {
+                  setBreakMins(0);
+                  return;
+                }
+                const n = parseInt(digits, 10);
+                setBreakMins(Number.isNaN(n) ? 0 : Math.min(99, n));
+              }}
+            />
           </div>
         </div>
 
