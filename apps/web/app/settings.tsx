@@ -16,11 +16,19 @@ export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true);
 
   const [deletePassword, setDeletePassword] = useState("");
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const [editMode, setEditMode] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error">("success");
+
+  function showMessage(text: string, type: "success" | "error" = "success") {
+    setMessage(text);
+    setMessageType(type);
+    setTimeout(() => setMessage(""), 20000);
+  }
 
   /* LOAD PROFILE */
 
@@ -75,12 +83,12 @@ export default function SettingsPage() {
     if (!file) return;
 
     const fileExt = file.name.split(".").pop();
-     const filePath = `avatars/${user.id}-${Date.now()}.${fileExt}`;
+    const filePath = `avatars/${user.id}-${Date.now()}.${fileExt}`;
 
     const { error } = await supabase.storage
       .from("avatars")
       .upload(filePath, file, {
-        upsert: true
+        upsert: true,
       });
 
     if (error) {
@@ -88,9 +96,7 @@ export default function SettingsPage() {
       return;
     }
 
-    const { data } = supabase.storage
-      .from("avatars")
-      .getPublicUrl(filePath);
+    const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
 
     const newAvatarUrl = data.publicUrl;
 
@@ -132,14 +138,14 @@ export default function SettingsPage() {
           full_name: displayName,
           email: email,
           phone_number: phone,
-          avatar_url: avatarUrl
+          avatar_url: avatarUrl,
         })
         .eq("id", user.id);
 
-      setMessage("Profile updated successfully.");
+      showMessage("Profile updated successfully.", "success");
       setEditMode(false);
     } catch (err: any) {
-      setMessage(err.message);
+      showMessage(err.message, "error");
     }
 
     setSaving(false);
@@ -148,33 +154,33 @@ export default function SettingsPage() {
   /* DELETE ACCOUNT */
 
   async function deleteAccount() {
-  if (!user) return;
+    if (!user) return;
 
-  if (!deletePassword) {
-    setMessage("Please enter your password.");
-    return;
+    if (!deletePassword) {
+      showMessage("Please enter your password.", "error");
+      return;
+    }
+
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: user.email!,
+      password: deletePassword,
+    });
+
+    if (authError) {
+      showMessage("Incorrect password. Please try again.", "error");
+      return;
+    }
+
+    const { error: rpcError } = await supabase.rpc("delete_user_account");
+
+    if (rpcError) {
+      showMessage(rpcError.message, "error");
+      return;
+    }
+
+    await signOut();
+    window.location.href = "/(public)/SignUp";
   }
-
-  const { error: authError } = await supabase.auth.signInWithPassword({
-    email: user.email!,
-    password: deletePassword
-  });
-
-  if (authError) {
-    setMessage("Incorrect password. Please try again.");
-    return;
-  }
-
-  const { error: rpcError } = await supabase.rpc("delete_user_account");
-
-  if (rpcError) {
-    setMessage(rpcError.message);
-    return;
-  }
-
-  await signOut();
-  window.location.href = "/(public)/SignUp";
-}
 
   return (
     <ManagerLayout>
@@ -182,47 +188,31 @@ export default function SettingsPage() {
 
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-sm text-gray-500">
-            Manage your account information
-          </p>
+          <p className="text-sm text-gray-500">Manage your account information</p>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border p-8 flex gap-10">
-
           <div className="flex flex-col items-center gap-4">
-
             <div className="relative w-32 h-32">
-
               <img
-                src={
-                  avatarUrl ||
-                  "https://ui-avatars.com/api/?name=" + displayName
-                }
+                src={avatarUrl || "https://ui-avatars.com/api/?name=" + displayName}
                 className="w-32 h-32 rounded-full object-cover border shadow"
               />
-
               <label className="absolute bottom-2 right-2 bg-blue-600 text-white p-2 rounded-full cursor-pointer shadow">
-
                 <Ionicons name="camera" size={16} />
-
                 <input
                   type="file"
                   accept="image/*"
                   onChange={uploadAvatar}
                   className="hidden"
                 />
-
               </label>
-
             </div>
-
           </div>
 
           <div className="flex-1 grid grid-cols-2 gap-6">
-
             <div>
               <label className="text-sm text-gray-500">Name</label>
-
               <input
                 disabled={!editMode}
                 className="mt-1 w-full border rounded-lg px-3 py-2 disabled:bg-gray-100"
@@ -236,7 +226,6 @@ export default function SettingsPage() {
 
             <div>
               <label className="text-sm text-gray-500">Email</label>
-
               <input
                 type="email"
                 disabled={!editMode}
@@ -248,7 +237,6 @@ export default function SettingsPage() {
 
             <div>
               <label className="text-sm text-gray-500">Contact Number</label>
-
               <input
                 type="tel"
                 inputMode="numeric"
@@ -264,30 +252,19 @@ export default function SettingsPage() {
             </div>
 
             <div className="flex items-center justify-between mt-6">
-
               <div>
-                <p className="text-sm font-medium text-gray-900">
-                  Email Notifications
-                </p>
-
-                <p className="text-xs text-gray-500">
-                  Receive alerts for important updates
-                </p>
+                <p className="text-sm font-medium text-gray-900">Email Notifications</p>
+                <p className="text-xs text-gray-500">Receive alerts for important updates</p>
               </div>
-
               <Toggle
                 value={emailNotifications}
                 onChange={(v) => setEmailNotifications(v)}
               />
-
             </div>
-
           </div>
-
         </div>
 
         <div className="flex items-center justify-end gap-3">
-
           {!editMode && (
             <button
               onClick={() => setEditMode(true)}
@@ -296,7 +273,6 @@ export default function SettingsPage() {
               Edit Profile
             </button>
           )}
-
           {editMode && (
             <button
               onClick={saveProfile}
@@ -306,31 +282,23 @@ export default function SettingsPage() {
               {saving ? "Saving..." : "Save Changes"}
             </button>
           )}
-
         </div>
 
         {message && (
-          <div className="text-sm text-green-600">
+          <div className={`text-sm ${messageType === "error" ? "text-red-600" : "text-green-600"}`}>
             {message}
           </div>
         )}
 
+        {/* Danger Zone */}
         <div className="bg-red-50 border border-red-200 rounded-xl p-6 space-y-4">
-
-          <h3 className="text-red-700 font-semibold">
-            Danger Zone
-          </h3>
-
+          <h3 className="text-red-700 font-semibold">Danger Zone</h3>
           <p className="text-sm text-red-600">
             Permanently delete your account and all associated data.
           </p>
 
           <div className="max-w-sm">
-
-            <label className="text-sm text-gray-600">
-              Enter password to confirm
-            </label>
-
+            <label className="text-sm text-gray-600">Enter password to confirm</label>
             <input
               type="password"
               value={deletePassword}
@@ -338,19 +306,58 @@ export default function SettingsPage() {
               placeholder="Your password"
               className="mt-1 w-full border rounded-lg px-3 py-2"
             />
-
           </div>
 
           <button
-            onClick={deleteAccount}
+            onClick={() => {
+              if (!deletePassword) {
+                showMessage("Please enter your password before deleting your account.", "error");
+                return;
+              }
+              setMessage("");
+              setConfirmDeleteOpen(true);
+            }}
             className="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition"
           >
             Permanently Delete Account
           </button>
-
         </div>
 
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {confirmDeleteOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">Delete Account</h2>
+            <p className="text-sm text-gray-500">
+              Are you sure you want to permanently delete your account?{" "}
+              <span className="font-semibold text-gray-800">
+                Your shift history will be preserved
+              </span>{" "}
+              for payroll records, but your login access will be removed and this cannot be undone.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setConfirmDeleteOpen(false)}
+                className="flex-1 border rounded px-4 py-2 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmDeleteOpen(false);
+                  deleteAccount();
+                }}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded px-4 py-2 text-sm font-semibold transition"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </ManagerLayout>
   );
 }
