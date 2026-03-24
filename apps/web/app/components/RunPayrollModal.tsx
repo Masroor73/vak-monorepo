@@ -6,7 +6,6 @@ import { supabase } from "../../lib/supabase";
 import type { Shift as DbShift } from "./ViewShiftModal";
 import type { Profile } from "@vak/contract";
 import {
-  appendPayrollRun,
   addDaysDate,
   buildPayrollLines,
   countShiftsByEmployee,
@@ -355,7 +354,7 @@ export default function RunPayrollModal({
     downloadCsv(`payroll-preview-${tag}-${sortedWeekStarts.length}w.csv`, csv);
   };
 
-  const handleProcess = () => {
+  const handleProcess = async () => {
     if (!preview || step !== "confirm" || sortedWeekStarts.length === 0) return;
     setStep("processing");
 
@@ -365,30 +364,30 @@ export default function RunPayrollModal({
     const periodEndLastDay = addDaysDate(lastWeekStart, 6);
     periodEndLastDay.setHours(23, 59, 59, 999);
     const snapshot = preview;
+    const runBy = profile?.id;
+    if (!runBy) {
+      setError("Unable to identify current manager. Please sign in again.");
+      setStep("error");
+      return;
+    }
 
-    window.setTimeout(() => {
-      appendPayrollRun({
-        id: runId,
-        periodLabel,
-        periodStartIso: firstWeek.toISOString(),
-        periodEndIso: periodEndLastDay.toISOString(),
-        processedAtIso: new Date().toISOString(),
-        processedById: profile?.id ?? "",
-        processedByName: runnerName,
-        totalPayout,
-        includedShiftCount: snapshot.includedShifts.length,
-        includedEmployeeCount: snapshot.lines.length,
-        excludedCount: snapshot.excluded.length,
-        lines: snapshot.lines,
-        excluded: snapshot.excluded.map((e) => ({
-          shiftId: e.shift.id,
-          employeeId: e.shift.employee_id,
-          reason: e.reason,
-        })),
-      });
-      setCompletedRunId(runId);
-      setStep("success");
-    }, 80);
+    const { error: insertErr } = await supabase.from("payroll_runs").insert({
+      id: runId,
+      period_start: firstWeek.toISOString(),
+      period_end: periodEndLastDay.toISOString(),
+      total_payout: totalPayout,
+      shifts_included: snapshot.includedShifts.length,
+      shifts_excluded: snapshot.excluded.length,
+      run_by: runBy,
+      report_json: snapshot.lines,
+    });
+    if (insertErr) {
+      setError(insertErr.message);
+      setStep("error");
+      return;
+    }
+    setCompletedRunId(runId);
+    setStep("success");
   };
 
   const handleGoHistory = () => {
@@ -748,9 +747,9 @@ export default function RunPayrollModal({
             <div className="mt-4 rounded-lg border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-900">
               <p className="font-semibold">Confirm processing</p>
               <p className="mt-1">
-                This will record a payroll run in this browser (local history). It does not
-                call a separate &quot;process&quot; API — the payroll engine was already used
-                for the preview above.
+                This will save a payroll run record to the database. It does not call a
+                separate &quot;process&quot; API — the payroll engine was already used for the
+                preview above.
               </p>
               <ul className="mt-2 list-disc list-inside space-y-0.5 text-red-800/90">
                 <li>Period: {periodLabel}</li>
@@ -763,7 +762,7 @@ export default function RunPayrollModal({
                   <li>Excluded entries: {preview.excluded.length}</li>
                 )}
                 <li>Total payout: ${totalPayout.toFixed(2)}</li>
-                <li>Persistence: browser local storage (this device)</li>
+                <li>Persistence: Supabase table (public.payroll_runs)</li>
               </ul>
             </div>
           )}

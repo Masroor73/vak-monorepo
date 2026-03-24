@@ -3,9 +3,9 @@ import { useRouter } from "expo-router";
 import ManagerLayout from "./layouts/ManagerLayout";
 import { useAuthGuard } from "../hooks/useAuthGuard";
 import { useAuth } from "../context/AuthContext";
+import { supabase } from "../lib/supabase";
 import {
   downloadCsv,
-  loadPayrollRuns,
   payrollRunToCsv,
   type PayrollRunRecord,
 } from "../lib/payrollWorkflow";
@@ -18,8 +18,61 @@ export default function PayrollPage() {
   const [runs, setRuns] = useState<PayrollRunRecord[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const refresh = useCallback(() => {
-    setRuns(loadPayrollRuns());
+  type PayrollRunRow = {
+    id: string;
+    period_start: string;
+    period_end: string;
+    total_payout: number | null;
+    shifts_included: number | null;
+    shifts_excluded: number | null;
+    run_by: string | null;
+    report_json: unknown;
+    created_at: string | null;
+  };
+
+  const refresh = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("payroll_runs")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      setRuns([]);
+      return;
+    }
+
+    const parsed = ((data ?? []) as PayrollRunRow[]).map((row) => {
+      const lines = Array.isArray(row.report_json) ? row.report_json : [];
+      const periodStart = row.period_start;
+      const periodEnd = row.period_end;
+      const periodLabel = `${new Date(periodStart).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })} – ${new Date(periodEnd).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })}`;
+
+      return {
+        id: row.id,
+        periodLabel,
+        periodStartIso: periodStart,
+        periodEndIso: periodEnd,
+        processedAtIso: row.created_at ?? new Date().toISOString(),
+        processedById: row.run_by ?? "",
+        processedByName: row.run_by ?? "Manager",
+        totalPayout: row.total_payout ?? 0,
+        includedShiftCount: row.shifts_included ?? 0,
+        includedEmployeeCount: lines.length,
+        excludedCount: row.shifts_excluded ?? 0,
+        lines: lines as PayrollRunRecord["lines"],
+        excluded: [],
+      } satisfies PayrollRunRecord;
+    });
+
+    setRuns(parsed);
   }, []);
 
   useEffect(() => {
@@ -52,7 +105,7 @@ export default function PayrollPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Payroll</h1>
             <p className="text-sm text-gray-400 mt-0.5">
-              Past payroll runs (stored in this browser)
+              Past payroll runs
             </p>
           </div>
           <button
