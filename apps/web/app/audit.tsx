@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "expo-router";
 import ManagerLayout from "./layouts/ManagerLayout";
 import { supabase } from "../lib/supabase";
@@ -45,8 +45,17 @@ function addDays(date: Date, amount: number): Date {
   return d;
 }
 
+function parseValidDate(value?: string | null): Date | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function formatDate(value: string) {
-  return new Date(value).toLocaleDateString("en-US", {
+  const parsed = parseValidDate(value);
+  if (!parsed) return "Invalid date";
+
+  return parsed.toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -55,11 +64,28 @@ function formatDate(value: string) {
 }
 
 function formatTime(value?: string | null) {
-  if (!value) return "—";
-  return new Date(value).toLocaleTimeString("en-US", {
+  const parsed = parseValidDate(value);
+  if (!parsed) return "—";
+
+  return parsed.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function formatRange(start: Date, end: Date) {
+  const startLabel = start.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+
+  const endLabel = end.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  return `${startLabel} – ${endLabel}`;
 }
 
 function formatRole(role?: string | null) {
@@ -109,9 +135,12 @@ function getAccentClasses(status: AuditStatus) {
 }
 
 function getVarianceMinutes(start: string, actualStart: string | null) {
-  if (!actualStart) return null;
-  const diffMs =
-    new Date(actualStart).getTime() - new Date(start).getTime();
+  const scheduled = parseValidDate(start);
+  const actual = parseValidDate(actualStart);
+
+  if (!scheduled || !actual) return null;
+
+  const diffMs = actual.getTime() - scheduled.getTime();
   return Math.round(diffMs / 60000);
 }
 
@@ -131,17 +160,21 @@ function formatVariance(minutes: number | null) {
   return `${sign}${abs} min`;
 }
 
+function endedEarly(endTime: string, actualEndTime: string | null) {
+  const scheduledEnd = parseValidDate(endTime);
+  const actualEnd = parseValidDate(actualEndTime);
+
+  if (!scheduledEnd || !actualEnd) return false;
+
+  return scheduledEnd.getTime() - actualEnd.getTime() > 0;
+}
+
 function getVarianceTone(
   shift: ShiftRow,
   varianceMinutes: number | null
 ): "warning" | "danger" | "neutral" {
-  if (shift.actual_end_time) {
-    const remainingMs =
-      new Date(shift.end_time).getTime() - new Date(shift.actual_end_time).getTime();
-
-    if (remainingMs > 0) {
-      return "danger";
-    }
+  if (endedEarly(shift.end_time, shift.actual_end_time)) {
+    return "danger";
   }
 
   if (varianceMinutes === null || varianceMinutes === 0) return "neutral";
@@ -150,11 +183,8 @@ function getVarianceTone(
 }
 
 function getVarianceLabel(shift: ShiftRow) {
-  if (shift.actual_end_time) {
-    const remainingMs =
-      new Date(shift.end_time).getTime() - new Date(shift.actual_end_time).getTime();
-
-    if (remainingMs > 0) return "Left early";
+  if (endedEarly(shift.end_time, shift.actual_end_time)) {
+    return "Left early";
   }
 
   return "Variance";
@@ -230,7 +260,11 @@ function PhotoBox({
 
       <div className="relative h-36 rounded-lg border bg-gray-50 overflow-hidden flex items-center justify-center">
         {url ? (
-          <img src={url} alt={label} className="w-full h-full object-cover" />
+          <img
+            src={url}
+            alt={label}
+            className="w-full h-full object-cover"
+          />
         ) : (
           <span className="text-sm text-gray-300">{emptyText}</span>
         )}
@@ -260,6 +294,44 @@ export default function AuditPage() {
   const weekStart = useMemo(() => getWeekStart(new Date()), []);
   const rangeStart = useMemo(() => addDays(weekStart, -7), [weekStart]);
   const rangeEnd = useMemo(() => addDays(weekStart, 7), [weekStart]);
+  const rangeLabel = useMemo(
+    () => formatRange(rangeStart, addDays(rangeEnd, -1)),
+    [rangeStart, rangeEnd]
+  );
+
+  const fetchShifts = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("shifts")
+      .select("*")
+      .gte("start_time", rangeStart.toISOString())
+      .lt("start_time", rangeEnd.toISOString())
+      .not("actual_start_time", "is", null)
+      .order("start_time", { ascending: true });
+
+    if (!error && data) {
+      setShifts(data as ShiftRow[]);
+    }
+  }, [rangeStart, rangeEnd]);
+
+  const fetchProfiles = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .order("full_name", { ascending: true });
+
+    if (!error && data) {
+      setProfiles(data as Profile[]);
+    }
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      await Promise.all([fetchShifts(), fetchProfiles()]);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchShifts, fetchProfiles]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -289,56 +361,31 @@ export default function AuditPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [authLoading, isManager]);
-
-  async function fetchData() {
-    setLoading(true);
-    await Promise.all([fetchShifts(), fetchProfiles()]);
-    setLoading(false);
-  }
-
-  async function fetchShifts() {
-    const { data, error } = await supabase
-      .from("shifts")
-      .select("*")
-      .gte("start_time", rangeStart.toISOString())
-      .lt("start_time", rangeEnd.toISOString())
-      .not("actual_start_time", "is", null)
-      .order("start_time", { ascending: true });
-
-    if (!error && data) {
-      setShifts(data as ShiftRow[]);
-    }
-  }
-
-  async function fetchProfiles() {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("full_name", { ascending: true });
-
-    if (!error && data) {
-      setProfiles(data as Profile[]);
-    }
-  }
+  }, [authLoading, isManager, router, fetchData, fetchShifts]);
 
   async function updateAuditStatus(id: string, status: AuditStatus) {
     setSavingId(id);
 
-    const { error } = await supabase
-      .from("shifts")
-      .update({ audit_status: status })
-      .eq("id", id);
+    try {
+      const { error } = await supabase
+        .from("shifts")
+        .update({ audit_status: status })
+        .eq("id", id);
 
-    if (!error) {
+      if (error) {
+        throw error;
+      }
+
       setShifts((prev) =>
         prev.map((shift) =>
           shift.id === id ? { ...shift, audit_status: status } : shift
         )
       );
+    } catch (error) {
+      console.error("Failed to update audit status:", error);
+    } finally {
+      setSavingId(null);
     }
-
-    setSavingId(null);
   }
 
   const profileMap = useMemo(() => {
@@ -393,7 +440,10 @@ export default function AuditPage() {
         <div>
           <h1 className="text-2xl font-bold">Clock-In Audit</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Approve or flag each shift before running payroll
+            Approve or flag clock-in records before running payroll
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            Showing audit records from {rangeLabel}
           </p>
         </div>
 
