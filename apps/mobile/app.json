@@ -6,27 +6,42 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "platforms": ["ios", "android"],
-    "plugins": ["expo-router"],
+
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow this app to use camera"
+        }
+      ]
+    ],
+
     "experiments": {
       "typedRoutes": true
     },
+
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+
     "ios": {
       "supportsTablet": true
     },
+
     "android": {
+      "permissions": ["CAMERA"],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      },
-      "predictiveBackGestureEnabled": false
+      }
     },
+
     "web": {
       "bundler": "metro",
       "favicon": "./assets/favicon.png"
