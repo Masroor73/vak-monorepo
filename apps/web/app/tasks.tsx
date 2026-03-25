@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import ManagerLayout from "./layouts/ManagerLayout";
 import { supabase } from "../lib/supabase";
 import { useAuthGuard } from "../hooks/useAuthGuard";
@@ -6,7 +6,6 @@ import { useAuth } from "../context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 
 // --- Types ---
-type Profile = { id: string; full_name: string };
 type Task = {
   id: string; title: string; description: string;
   assigned_to: string; due_date: string; priority: "HIGH" | "MEDIUM" | "LOW"; status: string;
@@ -17,6 +16,15 @@ type WasteLog = {
   ai_score?: number; is_analyzed: boolean;
 };
 
+// Helper for "This Week" filter
+function getWeekStart(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  d.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 export default function TasksAndWaste() {
   useAuthGuard();
   const { user } = useAuth();
@@ -26,6 +34,7 @@ export default function TasksAndWaste() {
   const [wasteLogs, setWasteLogs] = useState<WasteLog[]>([]);
   const [profiles, setProfiles] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null); // ZAINAB FEEDBACK: Error state
 
   // Filters
   const [filterEmp, setFilterEmp] = useState("ALL");
@@ -37,14 +46,14 @@ export default function TasksAndWaste() {
   const [selectedWaste, setSelectedWaste] = useState<WasteLog | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Assign Task Form State
+  // Task Form State
   const [newTask, setNewTask] = useState({ title: "", description: "", assigned_to: "", due_date: "", priority: "MEDIUM" });
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   // --- Data Fetching & Realtime ---
   useEffect(() => {
     fetchData();
 
-    // Realtime Subscriptions for both tables
     const tasksChannel = supabase.channel("tasks-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, fetchData)
       .subscribe();
@@ -61,25 +70,39 @@ export default function TasksAndWaste() {
 
   async function fetchData() {
     setLoading(true);
-    const [tasksRes, wasteRes, profilesRes] = await Promise.all([
-      supabase.from("tasks").select("*").order("due_date", { ascending: true }),
-      supabase.from("waste_logs").select("*").order("created_at", { ascending: false }),
-      supabase.from("profiles").select("id, full_name")
-    ]);
+    setErrorMsg(null);
+    try {
+      const weekStart = getWeekStart(new Date()).toISOString();
 
-    if (profilesRes.data) {
-      const pMap: Record<string, string> = {};
-      profilesRes.data.forEach((p) => { pMap[p.id] = p.full_name || "Unknown User"; });
-      setProfiles(pMap);
+      const [tasksRes, wasteRes, profilesRes] = await Promise.all([
+        supabase.from("tasks").select("*").order("due_date", { ascending: true }),
+        // ZAINAB FEEDBACK: Filter waste logs to only show "This Week"
+        supabase.from("waste_logs").select("*").gte("created_at", weekStart).order("created_at", { ascending: false }),
+        supabase.from("profiles").select("id, full_name")
+      ]);
+
+      if (tasksRes.error) throw tasksRes.error;
+      if (wasteRes.error) throw wasteRes.error;
+
+      if (profilesRes.data) {
+        const pMap: Record<string, string> = {};
+        profilesRes.data.forEach((p) => { pMap[p.id] = p.full_name || "Unknown User"; });
+        setProfiles(pMap);
+      }
+      if (tasksRes.data) setTasks(tasksRes.data);
+      if (wasteRes.data) setWasteLogs(wasteRes.data);
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg("Failed to load dashboard data. Please refresh the page.");
+    } finally {
+      setLoading(false);
     }
-    if (tasksRes.data) setTasks(tasksRes.data);
-    if (wasteRes.data) setWasteLogs(wasteRes.data);
-    setLoading(false);
   }
 
   // --- Edge Function Trigger ---
   const handleRunAnalysis = async (waste: WasteLog) => {
     setIsAnalyzing(true);
+    setErrorMsg(null);
     try {
       const { data, error } = await supabase.functions.invoke("analyze-waste", {
         body: { waste_id: waste.id, photo_url: waste.photo_url, item_name: waste.item_name }
@@ -87,31 +110,77 @@ export default function TasksAndWaste() {
       
       if (error) throw error;
       
-      // Update local state immediately for snappy UX
       setSelectedWaste({ ...waste, ...data.data, is_analyzed: true });
-      fetchData(); // Refresh list behind modal
-    } catch (err) {
+      fetchData(); 
+    } catch (err: any) {
       console.error(err);
-      alert("AI Analysis failed. Check Edge Function logs.");
+      // UX FIX: Replace the native browser alert with the dashboard error banner
+      setErrorMsg(`AI Analysis failed: ${err.message || "Check Edge Function logs."}`);
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const handleAssignTask = async () => {
-    if (!newTask.title || !newTask.assigned_to || !newTask.due_date) return alert("Fill required fields");
+  // --- Task CRUD ---
+  const handleSaveTask = async () => {
+    if (!newTask.title || !newTask.assigned_to || !newTask.due_date) {
+      return alert("Please fill all required fields.");
+    }
     
-    await supabase.from("tasks").insert({
-      ...newTask,
-      assigned_by: user?.id,
-      status: "Pending"
+    setErrorMsg(null);
+    try {
+      if (editingTaskId) {
+        // ZAINAB FEEDBACK: Edit Task
+        const { error } = await supabase.from("tasks").update(newTask).eq("id", editingTaskId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("tasks").insert({
+          ...newTask,
+          assigned_by: user?.id,
+          status: "Pending"
+        });
+        if (error) throw error;
+      }
+      
+      closeTaskModal();
+    } catch (err: any) {
+      console.error(err);
+      alert(`Failed to save task: ${err.message}`);
+    }
+  };
+
+  // ZAINAB FEEDBACK: Delete Task Feature
+  const handleDeleteTask = async (taskId: string) => {
+    if (!window.confirm("Are you sure you want to delete this task?")) return;
+    
+    try {
+      const { error } = await supabase.from("tasks").delete().eq("id", taskId);
+      if (error) throw error;
+      setTasks(prev => prev.filter(t => t.id !== taskId));
+    } catch (err: any) {
+      alert(`Failed to delete task: ${err.message}`);
+    }
+  };
+
+  const openEditModal = (task: Task) => {
+    setEditingTaskId(task.id);
+    setNewTask({
+      title: task.title,
+      description: task.description || "",
+      assigned_to: task.assigned_to,
+      due_date: task.due_date,
+      priority: task.priority
     });
-    
+    setIsAssignModalOpen(true);
+  };
+
+  const closeTaskModal = () => {
     setIsAssignModalOpen(false);
+    setEditingTaskId(null);
     setNewTask({ title: "", description: "", assigned_to: "", due_date: "", priority: "MEDIUM" });
   };
 
-  // --- Filtering & Stats ---
+  // --- Filtering ---
   const filteredTasks = tasks.filter(t => {
     if (filterEmp !== "ALL" && t.assigned_to !== filterEmp) return false;
     if (filterPriority !== "ALL" && t.priority !== filterPriority) return false;
@@ -121,7 +190,6 @@ export default function TasksAndWaste() {
 
   const totalWasteCost = wasteLogs.reduce((sum, log) => sum + Number(log.estimated_cost || 0), 0);
 
-  // --- Helpers ---
   const getPriorityColor = (priority: string) => {
     if (priority === "HIGH") return "bg-red-50 border-red-500 text-red-700";
     if (priority === "MEDIUM") return "bg-yellow-50 border-yellow-500 text-yellow-700";
@@ -132,6 +200,13 @@ export default function TasksAndWaste() {
     <ManagerLayout>
       <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
         
+        {/* ZAINAB FEEDBACK: Error Banner */}
+        {errorMsg && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg font-medium">
+            {errorMsg}
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
           <div>
@@ -180,7 +255,16 @@ export default function TasksAndWaste() {
                 <div key={task.id} className={`bg-white rounded-xl shadow-sm border-l-4 p-4 ${pStyle}`}>
                   <div className="flex justify-between items-start mb-1">
                     <h3 className="font-bold text-gray-900 text-lg">{task.title}</h3>
-                    <span className="text-[10px] font-extrabold px-2 py-1 rounded bg-white/50 uppercase">{task.priority}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-extrabold px-2 py-1 rounded bg-white/50 uppercase">{task.priority}</span>
+                      {/* ZAINAB FEEDBACK: Edit & Delete Buttons */}
+                      <button onClick={() => openEditModal(task)} className="text-gray-400 hover:text-blue-600 transition">
+                        <Ionicons name="pencil" size={16} />
+                      </button>
+                      <button onClick={() => handleDeleteTask(task.id)} className="text-gray-400 hover:text-red-600 transition">
+                        <Ionicons name="trash" size={16} />
+                      </button>
+                    </div>
                   </div>
                   <p className="text-sm text-gray-600 mb-3">{task.description}</p>
                   <div className="flex justify-between items-center text-xs font-semibold text-gray-500">
@@ -241,8 +325,8 @@ export default function TasksAndWaste() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-xl font-bold">Assign Task</h2>
-              <button onClick={() => setIsAssignModalOpen(false)} className="text-gray-400 hover:text-black">✕</button>
+              <h2 className="text-xl font-bold">{editingTaskId ? "Edit Task" : "Assign Task"}</h2>
+              <button onClick={closeTaskModal} className="text-gray-400 hover:text-black">✕</button>
             </div>
             <div className="space-y-4">
               <input type="text" placeholder="Task Title" className="w-full border rounded-lg p-3 text-sm font-medium" value={newTask.title} onChange={e => setNewTask({...newTask, title: e.target.value})} />
@@ -262,19 +346,22 @@ export default function TasksAndWaste() {
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => setIsAssignModalOpen(false)} className="px-4 py-2 text-sm font-bold text-gray-500">Cancel</button>
-              <button onClick={handleAssignTask} className="px-6 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700">Assign Task →</button>
+              <button onClick={closeTaskModal} className="px-4 py-2 text-sm font-bold text-gray-500">Cancel</button>
+              <button onClick={handleSaveTask} className="px-6 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700">
+                {editingTaskId ? "Save Changes" : "Assign Task →"}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 2. Waste Report Detail Modal (3 States) */}
+      {/* 2. Waste Report Detail Modal */}
       {selectedWaste && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
-            {/* Header */}
-            <div className="p-5 border-b flex justify-between items-center">
+          {/* Added max-h-[90vh] and flex-col to the main container */}
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+            
+            <div className="p-5 border-b flex justify-between items-center shrink-0">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">Waste Report Detail</h2>
                 <p className="text-xs text-gray-500 font-medium">Reported by {profiles[selectedWaste.reporter_id]} · {new Date(selectedWaste.created_at).toLocaleString()}</p>
@@ -282,87 +369,84 @@ export default function TasksAndWaste() {
               <button onClick={() => setSelectedWaste(null)} className="text-gray-400 hover:text-black bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center">✕</button>
             </div>
 
-            {/* Image Viewer */}
-            <div className="bg-gray-900 h-48 relative">
-              <img src={selectedWaste.photo_url} alt="Waste" className="w-full h-full object-cover opacity-90" />
-              <span className="absolute top-3 left-3 bg-black/50 text-white text-[10px] font-bold px-2 py-1 rounded backdrop-blur-md uppercase tracking-widest">Waste Photo</span>
-            </div>
-
-            {/* Details Row */}
-            <div className="p-5 flex justify-between items-center bg-gray-50 border-b">
-              <div>
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Item</p>
-                <p className="font-bold text-gray-900 text-lg">{selectedWaste.item_name}</p>
+            {/* Wrap the inner content in an overflow-y-auto container so it scrolls independently */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="bg-gray-900 h-48 relative shrink-0">
+                <img src={selectedWaste.photo_url} alt="Waste" className="w-full h-full object-cover opacity-90" />
+                <span className="absolute top-3 left-3 bg-black/50 text-white text-[10px] font-bold px-2 py-1 rounded backdrop-blur-md uppercase tracking-widest">Waste Photo</span>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Est. Cost</p>
-                <p className="font-bold text-red-600 text-lg">${selectedWaste.estimated_cost}</p>
+
+              <div className="p-5 flex justify-between items-center bg-gray-50 border-b">
+                <div>
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Item</p>
+                  <p className="font-bold text-gray-900 text-lg">{selectedWaste.item_name}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Est. Cost</p>
+                  <p className="font-bold text-red-600 text-lg">${selectedWaste.estimated_cost}</p>
+                </div>
+              </div>
+
+              <div className="p-5">
+                {!selectedWaste.is_analyzed && !isAnalyzing && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex justify-between items-center">
+                    <div>
+                      <h3 className="font-bold text-blue-900 flex items-center gap-1">✦ AI Waste Analysis</h3>
+                      <p className="text-xs text-blue-700 mt-1 max-w-[200px]">Run analysis to get cause, quantity estimate and prevention tips.</p>
+                    </div>
+                    <button onClick={() => handleRunAnalysis(selectedWaste)} className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow-sm transition">
+                      Run Analysis ✦
+                    </button>
+                  </div>
+                )}
+
+                {isAnalyzing && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center animate-pulse">
+                    <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                    <h3 className="font-bold text-gray-900">Analysing waste photo...</h3>
+                    <div className="w-3/4 h-2 bg-gray-200 rounded-full mx-auto mt-3"></div>
+                    <div className="w-1/2 h-2 bg-gray-200 rounded-full mx-auto mt-2"></div>
+                  </div>
+                )}
+
+                {selectedWaste.is_analyzed && !isAnalyzing && (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center border-b pb-2">
+                      <h3 className="font-bold text-gray-900 flex items-center gap-1">✦ AI WASTE ANALYSIS</h3>
+                      <span className="bg-green-100 text-green-800 text-[10px] font-bold px-2 py-1 rounded">COMPLETE</span>
+                    </div>
+                    
+                    <div>
+                      <p className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1 mb-1"><Ionicons name="search" size={12}/> What was wasted</p>
+                      <p className="text-sm text-gray-800 font-medium">{selectedWaste.ai_description}</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1 mb-1"><Ionicons name="warning" size={12}/> Likely Cause</p>
+                      <p className="text-sm text-gray-800 font-medium">{selectedWaste.ai_likely_cause}</p>
+                    </div>
+                    
+                    <div className="bg-gray-50 p-3 rounded-lg border">
+                      <div className="flex justify-between items-center mb-2">
+                        <p className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1"><Ionicons name="stats-chart" size={12}/> Preventability Score</p>
+                        <span className="font-bold text-green-600">{selectedWaste.ai_score}/10</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="bg-green-500 h-2 rounded-full transition-all duration-1000" style={{ width: `${(selectedWaste.ai_score || 0) * 10}%` }}></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1 mb-1"><Ionicons name="bulb" size={12}/> Recommendation</p>
+                      <p className="text-sm text-gray-800 font-medium bg-blue-50 p-3 rounded-lg border border-blue-100">{selectedWaste.ai_prevention_tips}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* AI Banner Area (Handles State 1, 2, and 3) */}
-            <div className="p-5">
-              
-              {/* STATE 1: Not Analyzed */}
-              {!selectedWaste.is_analyzed && !isAnalyzing && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex justify-between items-center">
-                  <div>
-                    <h3 className="font-bold text-blue-900 flex items-center gap-1">✦ AI Waste Analysis</h3>
-                    <p className="text-xs text-blue-700 mt-1 max-w-[200px]">Run analysis to get cause, quantity estimate and prevention tips.</p>
-                  </div>
-                  <button onClick={() => handleRunAnalysis(selectedWaste)} className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow-sm transition">
-                    Run Analysis ✦
-                  </button>
-                </div>
-              )}
-
-              {/* STATE 2: Analyzing (Loading) */}
-              {isAnalyzing && (
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center animate-pulse">
-                  <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-                  <h3 className="font-bold text-gray-900">Analysing waste photo...</h3>
-                  <div className="w-3/4 h-2 bg-gray-200 rounded-full mx-auto mt-3"></div>
-                  <div className="w-1/2 h-2 bg-gray-200 rounded-full mx-auto mt-2"></div>
-                </div>
-              )}
-
-              {/* STATE 3: Complete */}
-              {selectedWaste.is_analyzed && !isAnalyzing && (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center border-b pb-2">
-                    <h3 className="font-bold text-gray-900 flex items-center gap-1">✦ AI WASTE ANALYSIS</h3>
-                    <span className="bg-green-100 text-green-800 text-[10px] font-bold px-2 py-1 rounded">COMPLETE</span>
-                  </div>
-                  
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1 mb-1"><Ionicons name="search" size={12}/> What was wasted</p>
-                    <p className="text-sm text-gray-800 font-medium">{selectedWaste.ai_description}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1 mb-1"><Ionicons name="warning" size={12}/> Likely Cause</p>
-                    <p className="text-sm text-gray-800 font-medium">{selectedWaste.ai_likely_cause}</p>
-                  </div>
-                  
-                  <div className="bg-gray-50 p-3 rounded-lg border">
-                    <div className="flex justify-between items-center mb-2">
-                      <p className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1"><Ionicons name="stats-chart" size={12}/> Preventability Score</p>
-                      <span className="font-bold text-green-600">{selectedWaste.ai_score}/10</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-green-500 h-2 rounded-full transition-all duration-1000" style={{ width: `${(selectedWaste.ai_score || 0) * 10}%` }}></div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1 mb-1"><Ionicons name="bulb" size={12}/> Recommendation</p>
-                    <p className="text-sm text-gray-800 font-medium bg-blue-50 p-3 rounded-lg border border-blue-100">{selectedWaste.ai_prevention_tips}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 border-t bg-gray-50 flex justify-end">
+            {/* Keep the footer locked to the bottom shrink-0 */}
+            <div className="p-4 border-t bg-gray-50 flex justify-end shrink-0">
               <button onClick={() => setSelectedWaste(null)} className="px-5 py-2 bg-white border border-gray-300 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-100">Close</button>
             </div>
           </div>
