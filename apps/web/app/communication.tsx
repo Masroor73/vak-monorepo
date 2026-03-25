@@ -1,3 +1,20 @@
+const checkMessageSafety = async (text: string) => {
+  try {
+    const res = await fetch("http://localhost:5117/moderate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ text }),
+    });
+
+    const data = await res.json();
+    return data.safe;
+  } catch (err) {
+    console.error("Moderation error:", err);
+    return false;
+  }
+};
 import { useEffect, useState } from "react";
 import ManagerLayout from "./layouts/ManagerLayout";
 import { supabase } from "../lib/supabase";
@@ -116,7 +133,12 @@ export default function Communication() {
       setRecognitionError("Please select an employee, a badge, and write a message.");
       return;
     }
+const safe = await checkMessageSafety(message);
 
+if (!safe) {
+  setRecognitionError("Message contains inappropriate content 🚫");
+  return;
+}
     const { error } = await supabase
       .from("recognitions")
       .insert({
@@ -156,6 +178,14 @@ export default function Communication() {
       setAnnouncementError("Please write a message before sending.");
       return;
     }
+    const safe = await checkMessageSafety(announcementMessage);
+    console.log("MESSAGE:", announcementMessage);
+    console.log("SAFE RESULT:", safe);
+    
+if (!safe) {
+  setAnnouncementError("Message contains inappropriate content 🚫");
+  return;
+}
 
     let recipients: Profile[] = [];
 

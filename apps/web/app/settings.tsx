@@ -1,3 +1,19 @@
+const checkMessageSafety = async (text: string) => {
+  try {
+    const res = await fetch("http://localhost:5117/moderate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ text }),
+    });
+
+    const data = await res.json();
+    return data.safe;
+  } catch {
+    return false;
+  }
+};
 import { useEffect, useState } from "react";
 import ManagerLayout from "./layouts/ManagerLayout";
 import { useAuth } from "../context/AuthContext";
@@ -127,6 +143,18 @@ export default function SettingsPage() {
       alert("Contact number must contain only digits.");
       return;
     }
+    // AI MODERATION CHECK (ADD THIS)
+    const safeName = await checkMessageSafety(displayName);
+    const safeEmail = await checkMessageSafety(email);
+
+if (!safeEmail) {
+  showMessage("Email contains inappropriate content 🚫", "error");
+  return;
+}
+    if (!safeName) {
+       showMessage("Name contains inappropriate content 🚫", "error");
+       return;
+      }
 
     setSaving(true);
     setMessage("");

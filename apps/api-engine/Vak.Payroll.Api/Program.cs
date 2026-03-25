@@ -24,6 +24,10 @@ app.UseSwaggerUI();
 app.UseCors();
 app.UseHttpsRedirection();
 
+// ✅ ONLY ONCE
+app.MapModerationRoutes();
+
+// your main APIs
 app.MapApiRoutes();
 
 app.Run();
