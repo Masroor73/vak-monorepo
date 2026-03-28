@@ -91,11 +91,6 @@ export default function ProfileScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#0d1b3e" />
       <SafeAreaView className="flex-1 bg-brand-background" edges={['bottom']}>
 
-        {/* Header */}
-        <View className="bg-brand-secondary p-9 items-center">
-          <Text className="text-white text-[17px] font-medium">My Profile</Text>
-        </View>
-
         <ScrollView
           className="flex-1 bg-brand-background"
           contentContainerStyle={{ paddingBottom: 24, flexGrow: 1 }}
