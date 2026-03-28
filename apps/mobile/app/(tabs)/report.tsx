@@ -205,15 +205,6 @@ export default function ReportFoodWastage() {
         </View>
       </Modal>
 
-      <View className="bg-brand-secondary pt-10 pb-14 px-5 flex-row items-center justify-between">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="w-10 h-10 rounded-full bg-white/10 items-center justify-center">
-          <Ionicons name="arrow-back" size={20} color="#fff" />
-        </TouchableOpacity>
-        <Text className="text-white font-bold text-[17px] tracking-wide">Report Food Wastage</Text>
-        <View className="w-10" />
-      </View>
 
       <ScrollView
         className="-mt-5 flex-1 bg-brand-background rounded-3xl"
@@ -222,7 +213,7 @@ export default function ReportFoodWastage() {
         contentContainerStyle={{ paddingBottom: 100 }}
       >
         <View
-          className="bg-white rounded-lg mt-5 mx-5"
+          className="bg-white rounded-lg mt-16 mx-5"
           style={{ shadowColor: '#0d1b3e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 16, elevation: 6 }}
         >
 
