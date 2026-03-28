@@ -131,7 +131,7 @@ export default function Drawer({ isOpen, toggleDrawer, pendingTasksCount = 0, ne
           </View>
           <Text className="text-red-400 text-sm font-semibold">Log Out</Text>
         </Pressable>
-        <Text className="text-white/15 text-[10px] text-center tracking-wider py-3 pt-10">v1.0.0 · V.A.K App</Text>
+        <Text className="text-white text-[10px] text-center tracking-wider py-3 pt-10">v1.0.0 · V.A.K App</Text>
       </View>
 
     </Animated.View>
