@@ -240,19 +240,6 @@ export default function EditProfileScreen() {
               showsVerticalScrollIndicator={false}
               bounces={false}
             >
-              {/* Header */}
-              <View className="bg-brand-secondary px-5 pt-8 pb-8 flex-row items-center">
-                <TouchableOpacity
-                  onPress={() => router.back()}
-                  className="w-9 h-9 rounded-full border border-white/20 items-center justify-center"
-                  activeOpacity={0.7}
-                >
-                  <Feather name="arrow-left" size={16} color="#fff" />
-                </TouchableOpacity>
-                <Text className="flex-1 text-white text-[17px] font-medium text-center mr-9">
-                  Edit Profile
-                </Text>
-              </View>
 
               {/* Avatar card */}
               <View className="mx-4 mt-8">

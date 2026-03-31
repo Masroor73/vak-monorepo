@@ -102,20 +102,6 @@ export default function NotificationsScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#0d1b3e" />
       <SafeAreaView className="flex-1 bg-brand-background" edges={['bottom']}>
 
-        {/* Header — title only, no mark all read */}
-        <View className="bg-brand-secondary px-5 py-6 flex-row items-center">
-          <Pressable
-            onPress={() => router.back()}
-            className="w-10 h-10 rounded-full bg-white/10 items-center justify-center"
-          >
-            <WhiteArrow width={16} height={16} />
-          </Pressable>
-
-          <Text className="text-white text-[17px] font-medium flex-1 text-center mr-10">
-            Notifications
-          </Text>
-        </View>
-
         {/* Tab selector + Mark all read row */}
         <View className="px-4 pt-4 pb-2">
           <TabSelector active={active} setActive={setActive} />
