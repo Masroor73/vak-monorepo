@@ -294,7 +294,7 @@ export default function SettingsPage() {
         <div className="bg-red-50 border border-red-200 rounded-xl p-6 space-y-4">
           <h3 className="text-red-700 font-semibold">Danger Zone</h3>
           <p className="text-sm text-red-600">
-            Permanently delete your account and all associated data.
+            Permanently delete your account.
           </p>
 
           <div className="max-w-sm">
