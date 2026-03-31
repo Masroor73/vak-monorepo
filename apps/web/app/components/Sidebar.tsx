@@ -173,10 +173,10 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
       <button
         onClick={handleLogout}
-        className="mt-auto mx-1 flex items-center gap-3 px-3 py-3 text-[14px] font-medium text-auth-textSecondary border border-auth-border rounded-[8px] hover:border-red-500/30 hover:text-red-400 hover:bg-red-500/5 transition-all"
+        className="mt-auto mx-1 flex items-center gap-3 px-3 py-3 text-[14px] font-medium text-auth-textSecondary border border-auth-border rounded-[8px] hover:border-red-500/30 hover:text-red-500 hover:bg-red-500/10 transition-all"
       >
         <span className="w-[30px] h-[30px] flex items-center justify-center bg-white/[0.06] rounded-[7px] flex-shrink-0">
-          <Ionicons name="log-out-outline" size={16} />
+         <Ionicons name="log-out-outline" size={16} color="currentColor" />
         </span>
         Sign out
       </button>
