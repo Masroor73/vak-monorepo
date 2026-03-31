@@ -263,24 +263,10 @@ export default function MyTasksScreen() {
   const doneCount = tasks.filter(t => t.status === 'Done').length;
 
   return (
-    <View className="flex-1 bg-brand-secondary">
-      {/* ── Dark header ── */}
-      <View className="bg-brand-secondary pt-7 pb-6 px-5 mr-5">
-        <View className="flex-row items-center justify-between mb-5">
-          <Pressable
-            onPress={() => router.back()}
-            className="w-10 h-10 rounded-full bg-white/10 items-center justify-center"
-          >
-            <WhiteArrow width={16} height={16} />
-          </Pressable>
-          <Text className="text-white font-bold text-lg tracking-wide mr-36">
-            My Tasks
-          </Text>
-        </View>
-      </View>
+    <View className="flex-1">
 
       {/* ── Light content area ── */}
-      <View className="flex-1 bg-brand-background -mt-3">
+      <View className="flex-1 bg-brand-background mt-3">
 
         {/* Stat tiles */}
         <View className="px-6 pt-8 pb-6 flex-row gap-x-4">

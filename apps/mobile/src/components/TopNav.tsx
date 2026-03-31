@@ -1,51 +1,81 @@
-import { View, Pressable } from "react-native";
+import { View, Pressable, Text } from "react-native";
 import { useRouter, usePathname } from "expo-router";
-import Menu from "../../assets/Menu.svg";
-import Bell from "../../assets/Bell.svg";
-import WhiteBell from "../../assets/WhiteBell.svg";
-import WhiteMenu from "../../assets/WhiteMenu.svg";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Props = {
   toggleDrawer: () => void;
+  title?: string;
+  showBack?: boolean;
 };
 
-export default function TopNavigation({ toggleDrawer }: Props) {
+export default function TopNavigation({ toggleDrawer, title, showBack = false }: Props) {
   const router = useRouter();
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
 
-  // Paths where bell should be blue
-  const bellPaths = ["/notification"];
-
-  // Check if the current pathname starts with any of the bell paths
-  // This automatically handles trailing slashes or nested routes
-  const isBellActive = bellPaths.some(path => pathname?.startsWith(path));
+  const isBellActive = pathname?.startsWith("/notification");
 
   return (
     <View
       style={{
         width: "100%",
-        height: 110,
+        paddingTop: insets.top + 8,
+        paddingBottom: 12,
+        paddingHorizontal: 20,
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 20,
-        backgroundColor: "black",
+        backgroundColor: "#0d1b3e",
+        borderBottomWidth: 1,
+        borderBottomColor: "#00000005",
         zIndex: 50,
       }}
     >
-      {/* Menu Button */}
-      <Pressable onPress={toggleDrawer}  style={{marginRight: 18, marginTop: 20 }}>
-        <Menu width={28} height={28} />
-      </Pressable>
+      {/* Left — back arrow or hamburger */}
+      {showBack ? (
+        <Pressable onPress={() => router.back()} hitSlop={8}>
+          <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.85)" />
+        </Pressable>
+      ) : (
+        <Pressable onPress={toggleDrawer} hitSlop={8}>
+          <Ionicons name="menu-outline" size={28} color="rgba(255,255,255,0.85)" />
+        </Pressable>
+      )}
 
-      <View style={{ flex: 1 }} />
+      {/* Center — title if provided */}
+      {title ? (
+        <Text
+          style={{
+            flex: 1,
+            textAlign: "center",
+            fontSize: 16,
+            fontWeight: "600",
+            color: "#ffffff",
+            letterSpacing: -0.2,
+            marginHorizontal: 12,
+          }}
+        >
+          {title}
+        </Text>
+      ) : (
+        <View style={{ flex: 1 }} />
+      )}
 
-      {/* Notifications Button */}
-      <Pressable onPress={() => router.push("/(tabs)/notifications")}  style={{ marginTop: 20 }}>
-        {isBellActive ? (
-          <WhiteBell width={28} height={28} />
-        ) : (
-          <Bell width={28} height={28} />
-        )}
+      {/* Right — bell */}
+      <Pressable
+        onPress={() => router.push("/(tabs)/notifications")}
+        hitSlop={8}
+        style={{
+          padding: 6,
+          borderRadius: 10,
+          backgroundColor: isBellActive ? "rgba(58,154,255,0.15)" : "transparent",
+        }}
+      >
+        <Ionicons
+          name="notifications-outline"
+          size={24}
+          color={isBellActive ? "#3A9AFF" : "rgba(255,255,255,0.85)"}
+        />
       </Pressable>
     </View>
   );

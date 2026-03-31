@@ -238,12 +238,8 @@ export default function SetAvailability() {
       <View className="bg-brand-secondary pb-4 h-[300px]">
 
         {/* Header */}
-        <View className="pt-10">
+        <View className="pt-2">
           <View className="flex-row items-center justify-between mb-5">
-            <Pressable onPress={() => router.back()} className="w-9 h-9 rounded-full bg-white/10 items-center justify-center ml-5">
-              <WhiteArrow width={14} height={14} />
-            </Pressable>
-            <Text className="text-white font-bold text-base tracking-wide mr-10">Set Availability</Text>
             <View/>
           </View>
 
@@ -280,7 +276,7 @@ export default function SetAvailability() {
       </View>
 
       {/* Card */}
-      <View className="px-8 -mt-28 pb-8">
+      <View className="px-8 -mt-44">
         <View className="bg-white rounded-2xl shadow-lg shadow-black/20 elevation-8">
           <View className="px-5 pt-4 pb-3 border-b border-gray-100">
             <Text className="text-brand-secondary font-black text-lg">

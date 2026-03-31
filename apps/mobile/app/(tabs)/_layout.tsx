@@ -32,19 +32,34 @@ export default function TabsLayout() {
       <ShiftsRealtimeListener />
       {/* Stack Navigation */}
       <Stack
-        screenOptions={{
-          header: () => <TopNavigation toggleDrawer={toggleDrawer} />,
-          headerShown: true,
-        }}
-      >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="report" />
-        <Stack.Screen name="swap" />
-        <Stack.Screen name="profile" />
-        <Stack.Screen name="notifications" />
-        <Stack.Screen name="editProfile" />
-        <Stack.Screen name="mySchedule" />
-      </Stack>
+  screenOptions={{
+    header: ({ options }) => (
+      <TopNavigation
+        toggleDrawer={toggleDrawer}
+        title={options.title}
+        showBack={options.headerBackVisible ?? false}
+      />
+    ),
+    headerShown: true,
+  }}
+>
+  {/* ── Bottom nav screens → hamburger, no title ── */}
+  <Stack.Screen name="index" />
+  <Stack.Screen name="profile" options={{ title: "Profile" }} />
+  <Stack.Screen name="notifications" options={{ title: "Notifications" }} />
+
+  {/* ── Drawer screens → back arrow + title ── */}
+  <Stack.Screen name="dailyTasks"     options={{ title: "Daily Tasks",     headerBackVisible: true }} />
+  <Stack.Screen name="recognition"    options={{ title: "Recognition",     headerBackVisible: true }} />
+  <Stack.Screen name="setAvailability" options={{ title: "Set Availability", headerBackVisible: true }} />
+
+  {/* ── Stack-pushed screens → back arrow + title ── */}
+  <Stack.Screen name="report"       options={{ title: "Report",       headerBackVisible: false }} />
+  <Stack.Screen name="swap"         options={{ title: "Swap Shift",   headerBackVisible: false }} />
+  <Stack.Screen name="editProfile"  options={{ title: "Edit Profile", headerBackVisible: true }} />
+  <Stack.Screen name="mySchedule"   options={{ title: "My Schedule",  headerBackVisible: true }} />
+  <Stack.Screen  name="shift/[id]"  options={{ title: "Shift Details", headerBackVisible: true }} />
+  </Stack>
 
       {/* Drawer */}
       <Drawer

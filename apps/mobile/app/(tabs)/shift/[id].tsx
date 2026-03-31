@@ -135,22 +135,12 @@ export default function ShiftDetails() {
 
   return (
     <View className="flex-1 bg-brand-background">
-      <View className="bg-brand-secondary pt-6 pb-16 px-5">
+      <View className="bg-brand-secondary pt-10 pb-16 px-10 flex-row items-center justify-between">
         <View className="flex-row items-center mb-2">
-          <Pressable
-            onPress={() => router.back()}
-            className="w-10 h-10 rounded-full bg-white/10 items-center justify-center"
-          >
-            <WhiteArrow width={16} height={16} />
-          </Pressable>
-
-          <Text className="text-white font-bold text-lg flex-1 text-center mr-10">
-            Shift Details
-          </Text>
         </View>
       </View>
 
-      <View className="-mt-8 flex-1">
+      <View className="-mt-16 flex-1">
         <ScrollView
           className="flex-1"
           contentContainerStyle={{
