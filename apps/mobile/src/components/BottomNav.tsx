@@ -1,27 +1,14 @@
-import { View, TouchableOpacity } from "react-native";
+import { View, TouchableOpacity, Text } from "react-native";
 import { useRouter, usePathname } from "expo-router";
-
-// Normal SVGs
-import Grid from "../../assets/Grid.svg";
-import Alert from "../../assets/Alert.svg";
-import MessageCircle from "../../assets/MessageCircle.svg";
-import AccountCircle from "../../assets/AccountCircle.svg";
-import Swap from "../../assets/Swap.svg";
-
-// Blue SVGs
-import WhiteGrid from "../../assets/WhiteGrid.svg";
-import WhiteAlert from "../../assets/WhiteAlert.svg";
-import WhiteMessageCircle from "../../assets/WhiteMessageCircle.svg";
-import WhiteAccountCircle from "../../assets/WhiteAccountCircle.svg";
-import WhiteSwap from "../../assets/WhiteSwap.svg";
-
+import { Ionicons } from "@expo/vector-icons";
 
 type Tab = {
   key: string;
   basePaths: string[];
   navigateTo: string;
-  Svg: any;     
-  WhiteSvg: any;  
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconActive: keyof typeof Ionicons.glyphMap;
 };
 
 export default function BottomNavigation() {
@@ -29,62 +16,94 @@ export default function BottomNavigation() {
   const pathname = usePathname();
 
   const tabs: Tab[] = [
-    
     {
       key: "Index",
-      basePaths: ["/",  "/index", "/(tabs)"], // Include /index
+      basePaths: ["/", "/index", "/(tabs)"],
       navigateTo: "/(tabs)",
-      Svg: Grid,
-      WhiteSvg: WhiteGrid,
+      label: "Home",
+      icon: "home-outline",
+      iconActive: "home",
     },
     {
       key: "reports",
       basePaths: ["/(tabs)/report", "/report"],
       navigateTo: "/(tabs)/report",
-      Svg: Alert,
-      WhiteSvg: WhiteAlert,
+      label: "Report",
+      icon: "trash-outline",
+      iconActive: "trash",
     },
     {
       key: "swap",
       basePaths: ["/(tabs)/swap", "/swap"],
       navigateTo: "/(tabs)/swap",
-      Svg: Swap,
-      WhiteSvg: WhiteSwap,
+      label: "Swap",
+      icon: "swap-horizontal-outline",
+      iconActive: "swap-horizontal",
     },
     {
       key: "profile",
       basePaths: ["/(tabs)/profile", "/profile"],
       navigateTo: "/(tabs)/profile",
-      Svg: AccountCircle,
-      WhiteSvg: WhiteAccountCircle,
+      label: "Profile",
+      icon: "person-outline",
+      iconActive: "person",
     },
   ];
 
   const isTabActive = (tab: Tab): boolean => {
-    if (tab.key === "Index") {
-      return tab.basePaths.some((base: string) => pathname === base);
-    }
-    return tab.basePaths.some((base: string) => pathname.startsWith(base));
+    if (tab.key === "Index") return tab.basePaths.some((b: string) => pathname === b);
+    return tab.basePaths.some((b: string) => pathname.startsWith(b));
   };
 
   return (
-    <View className="w-full flex-row justify-around items-center bg-black " style={{ height: 100 }}>
+    <View
+      style={{
+        width: "100%",
+        height: 85,
+        flexDirection: "row",
+        justifyContent: "space-around",
+        alignItems: "center",
+        backgroundColor: "#0d1b3e",
+        borderTopWidth: 1,
+        borderTopColor: "rgba(255,255,255,0.07)",
+        paddingBottom: 8,
+      }}
+    >
       {tabs.map((tab: Tab) => {
         const isActive = isTabActive(tab);
-        const Icon = isActive ? tab.WhiteSvg : tab.Svg;
-
         return (
           <TouchableOpacity
             key={tab.navigateTo}
             onPress={() => router.push(tab.navigateTo as any)}
+            style={{
+              alignItems: "center",
+              gap: 3,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 12,
+              backgroundColor: isActive ? "rgba(59,158,255,0.15)" : "transparent",
+            }}
           >
-            <View className="p-2 items-center justify-center"  style={{ marginHorizontal: 20}}>
-              <Icon width={45} height={45}/>
-            </View>
+            <Ionicons
+             name={isActive ? tab.iconActive : tab.icon}
+             size={22}
+             color={isActive ? "#3b9eff" : "rgba(255,255,255,0.75)"}  // 0.4 → 0.75
+            />
+            <Text
+            style={{
+              fontSize: 12,
+              fontWeight: "600",
+              color: isActive ? "#3b9eff" : "rgba(255,255,255,0.75)",  // 0.4 → 0.75
+            }}
+            >
+              {tab.label}
+            </Text>
+            {isActive && (
+              <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: "#3b9eff" }} />
+            )}
           </TouchableOpacity>
         );
       })}
     </View>
   );
 }
-

@@ -194,7 +194,7 @@ export default function Index() {
           <View className="flex-row flex-wrap gap-5 ml-2">
             <View className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2 gap-1.5">
               <Ionicons name="calendar-outline" size={12} color="red" />
-              <Text className="text-white/65 text-[11px] font-medium">{topDate}</Text>
+              <Text className="text-white text-[11px] font-medium">{topDate}</Text>
             </View>
 
             <Pressable onPress={handleRefreshWeather} className="flex-row items-center bg-white/10 border border-white/10 rounded-[20px] px-3 py-2 gap-1.5">
@@ -214,7 +214,7 @@ export default function Index() {
         </View>
       </View>
 
-      <View className="-mt-16 px-4">
+      <View className="-mt-16 px-5">
         <View className="bg-white rounded px-5 pt-5 pb-5 mb-3" style={{ shadowColor: "#0d1b3e", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 18, elevation: 6 }}>
           <View className="flex-row items-center justify-between mb-3">
             <View className="flex-row items-center gap-2">

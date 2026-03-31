@@ -176,20 +176,7 @@ export default function MySchedule() {
   return (
     <View className="flex-1 bg-brand-background">
       {/* Header */}
-      <View className="bg-brand-secondary pt-6 pb-16 px-5">
-        <View className="flex-row items-center justify-between mb-5">
-          <Pressable
-            onPress={() => router.back()}
-            className="w-10 h-10 rounded-full bg-white/10 items-center justify-center"
-          >
-            <WhiteArrow width={16} height={16} />
-          </Pressable>
-
-          <Text className="text-white font-bold text-lg tracking-wide mr-36">
-            My Schedule
-          </Text>
-        </View>
-
+      <View className="bg-brand-secondary pt-3 pb-16 px-5">
         {/* Week Info */}
         <View className="flex-row items-center gap-4 mb-6 mt-3">
           <View

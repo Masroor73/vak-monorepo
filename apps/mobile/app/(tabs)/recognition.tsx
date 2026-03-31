@@ -153,18 +153,6 @@ export default function RecognitionScreen() {
           />
         }
       >
-        {/* Title row */}
-        <View className="flex-row items-center justify-between mt-3 mb-5">
-          <Text className="text-brand-secondary text-3xl font-bold">
-            Recognitions
-          </Text>
-          <View className="bg-brand-primary rounded-full px-3 py-1">
-            <Text className="text-white text-xl font-semibold">
-              {recognitions.length} total
-            </Text>
-          </View>
-        </View>
-
         {/* This month line */}
         {thisMonth > 0 && (
           <View className="flex-row items-center gap-4 mb-5">
