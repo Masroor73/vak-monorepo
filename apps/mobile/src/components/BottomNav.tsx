@@ -29,8 +29,8 @@ export default function BottomNavigation() {
       basePaths: ["/(tabs)/report", "/report"],
       navigateTo: "/(tabs)/report",
       label: "Report",
-      icon: "trash-outline",
-      iconActive: "trash",
+      icon: "document-text-outline",
+      iconActive: "document-text",
     },
     {
       key: "swap",
@@ -85,22 +85,19 @@ export default function BottomNavigation() {
             }}
           >
             <Ionicons
-             name={isActive ? tab.iconActive : tab.icon}
-             size={22}
-             color={isActive ? "#3b9eff" : "rgba(255,255,255,0.75)"}  // 0.4 → 0.75
+              name={isActive ? tab.iconActive : tab.icon}
+              size={22}
+              color={isActive ? "#3b9eff" : "rgba(255,255,255,0.75)"}
             />
             <Text
-            style={{
-              fontSize: 12,
-              fontWeight: "600",
-              color: isActive ? "#3b9eff" : "rgba(255,255,255,0.75)",  // 0.4 → 0.75
-            }}
+              style={{
+                fontSize: 12,
+                fontWeight: "600",
+                color: isActive ? "#3b9eff" : "rgba(255,255,255,0.75)",
+              }}
             >
               {tab.label}
             </Text>
-            {isActive && (
-              <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: "#3b9eff" }} />
-            )}
           </TouchableOpacity>
         );
       })}

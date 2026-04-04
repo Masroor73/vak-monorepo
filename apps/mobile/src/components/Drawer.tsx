@@ -29,7 +29,14 @@ const SECTIONS = (pendingTasksCount: number, newRecognitionCount: number) => [
       { label: "Set Availability", subtitle: "Update your schedule", route: "/(tabs)/setAvailability", icon: <Ionicons name="calendar-outline" size={18} color="red" />, badge: null, badgeRed: false },
     ],
   },
+  {
+    label: "ACTIVITY LOG",
+    items: [
+      { label: "Clock History", subtitle: "View your shifts", route: "/clock-history", icon: <Ionicons name="time-outline" size={18} color="#62CCEF" />, badge: null, badgeRed: false },
+    ],
+  },
 ];
+
 
 export default function Drawer({ isOpen, toggleDrawer, pendingTasksCount = 0, newRecognitionCount = 0 }: Props) {
   const router = useRouter();
@@ -150,11 +157,11 @@ const s = StyleSheet.create({
     shadowOpacity: 0.5, shadowRadius: 20, elevation: 20,
   },
   row: { flexDirection: "row", alignItems: "center", height: 52, paddingHorizontal: 8, borderRadius: 12, marginBottom: 2 },
-  iconBox: { width: 36, height: 36, borderRadius: 9, backgroundColor: "rgba(255,255,255,0.07)", alignItems: "center", justifyContent: "center", marginRight: 10 },
-  badgeRed: { backgroundColor: "#e74c3c", borderRadius: 20, minWidth: 22, height: 22, alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
-  badgeBlue: { backgroundColor: "rgba(91,143,240,0.2)", borderRadius: 20, minWidth: 36, height: 22, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 },
-  badgeTxtWhite: { color: "#fff", fontSize: 11, fontWeight: "700" },
-  badgeTxtBlue: { color: "#5b8ff0", fontSize: 11, fontWeight: "700" },
+  iconBox: { width: 36, height: 36, borderRadius: 9, backgroundColor: "rgba(255,255,255,0.07)", alignItems: "center", justifyContent: "center", marginRight: 10,},
+  badgeRed: { backgroundColor: "#e74c3c", borderRadius: 20, minWidth: 22, height: 22, alignItems: "center", justifyContent: "center", paddingHorizontal: 6, marginRight: 20,},
+  badgeBlue: { backgroundColor: "#3A9AFF", borderRadius: 20, minWidth: 36, height: 22, alignItems: "center", justifyContent: "center", paddingHorizontal: 8, marginRight: 16},
+  badgeTxtWhite: { color: "white", fontSize: 11, fontWeight: "700" },
+  badgeTxtBlue: { color: "white", fontSize: 11, fontWeight: "700" },
   logoutBtn: { flexDirection: "row", alignItems: "center", height: 60, paddingHorizontal: 14, borderRadius: 14, borderWidth: 3, borderColor: "rgba(235,76,60,0.3)", backgroundColor: "rgba(231,76,60,0.08)", marginBottom: 10 },
   logoutIconBox: { width: 32, height: 32, borderRadius: 8, backgroundColor: "rgba(231,76,60,0.15)", alignItems: "center", justifyContent: "center", marginRight: 12 },
 });
