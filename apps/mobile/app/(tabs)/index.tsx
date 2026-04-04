@@ -530,6 +530,7 @@ export default function Index() {
                       userId={user?.id || ""}
                       shiftId={todayShift.id || "demo-shift"}
                       shiftEndTime={todayShift._end}
+                      shiftStartTime={todayShift._start} 
                       onDone={handleClockInDone}
                     />
                   )
