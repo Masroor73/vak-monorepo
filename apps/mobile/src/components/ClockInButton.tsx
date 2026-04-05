@@ -9,7 +9,7 @@ import { supabase } from "../../lib/supabase";
 type Props = {
   shiftId: string;
   userId: string;
-  shiftStartTime: Date; // ← added
+  shiftStartTime: Date; 
   shiftEndTime: Date;
   onDone: () => void;
 };
@@ -200,7 +200,7 @@ export default function ClockInButton({ shiftId, userId, shiftStartTime, shiftEn
             <Ionicons name="hourglass-outline" size={30} color="#3B82F6" />
           </View>
           <Text className="text-gray-800 font-bold text-lg">Too Early to Clock In</Text>
-          <Text className="text-gray-400 text-sm text-center leading-5">
+          <Text className="text-gray-600 text-md text-center leading-5">
             You can only clock in once your shift has started.
           </Text>
         </View>

@@ -162,15 +162,15 @@ export default function ClockOutButton({ shiftId, userId, shiftEndTime, onDone }
         const isShiftOver = new Date() >= shiftEndTime;
 
         await supabase
-          .from("shifts")
-          .update({
-            actual_end_time: now,
-            ...(isShiftOver && { status: "COMPLETED" }),
-            clock_out_photo_url: urlData.publicUrl,
-            clock_out_lat: location.latitude,
-            clock_out_long: location.longitude,
+        .from("shifts")
+        .update({
+          actual_end_time: now,
+          status: isShiftOver ? "COMPLETED" : "PARTIAL",
+          clock_out_photo_url: urlData.publicUrl,
+          clock_out_lat: location.latitude,
+          clock_out_long: location.longitude,
           })
-          .eq("id", shiftId);
+        .eq("id", shiftId);
       }
 
       stopLocationWatch();

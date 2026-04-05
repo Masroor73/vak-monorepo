@@ -360,6 +360,7 @@ export default function MySchedule() {
                           setSelectedShiftId(shift.id ?? null);
                           setSelectedShiftRole(shift.role_at_time_of_shift);
                           setSelectedShiftStartTime(shift.start_time);
+                          setSelectedShiftEndTime(shift.end_time);
                           setSwapVisible(true);
                         }}
                         className="bg-brand-primary rounded-2xl py-5 items-center justify-center mt-3"

@@ -39,8 +39,12 @@ type AvailableEmployee = {
 
 type SwapOption = EligibleShift | AvailableEmployee;
 
-function getInitials(name: string) {
-  return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+const AVATAR_COLORS = ["#62CCEF", "#05CC66", "#FBC02D", "#D32F2F", "#7C3AED", "#EA580C"];
+
+function avatarColor(id: string) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
 function formatTime(timeStr: string) {
@@ -65,49 +69,67 @@ function getShiftSwapError(shiftStartTime: string, shiftEndTime: string): string
   const now = new Date();
   const start = new Date(shiftStartTime);
   const end = new Date(shiftEndTime);
-
-  if (end < now) {
-    return "This shift has already ended and cannot be swapped.";
-  }
-
-  if (start < now && end > now) {
-    return "This shift is currently in progress and cannot be swapped.";
-  }
-
-  if (start < now) {
-    return "This shift has already passed and cannot be swapped.";
-  }
-
+  if (end < now) return "This shift has already ended and cannot be swapped.";
+  if (start < now && end > now) return "This shift is currently in progress and cannot be swapped.";
+  if (start < now) return "This shift has already passed and cannot be swapped.";
   return null;
 }
 
-const AVATAR_COLORS = ["#62CCEF", "#05CC66", "#FBC02D", "#D32F2F", "#7C3AED", "#EA580C"];
+// Convert a "HH:MM" or "HH:MM:SS" time string to minutes since midnight
+function timeStrToMinutes(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
 
-function avatarColor(id: string) {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+// Check if an availability window covers the shift times
+// i.e. availability start <= shift start AND availability end >= shift end
+function availabilityCoversShift(
+  availStart: string, // "HH:MM" or "HH:MM:SS"
+  availEnd: string,
+  shiftStart: string, // ISO datetime
+  shiftEnd: string
+): boolean {
+  const availStartMins = timeStrToMinutes(availStart);
+  const availEndMins = timeStrToMinutes(availEnd);
+
+  // Extract just the time portion from the ISO shift datetimes
+  const shiftStartMins = timeStrToMinutes(
+    new Date(shiftStart).toTimeString().slice(0, 5)
+  );
+  const shiftEndMins = timeStrToMinutes(
+    new Date(shiftEnd).toTimeString().slice(0, 5)
+  );
+
+  return availStartMins <= shiftStartMins && availEndMins >= shiftEndMins;
 }
 
 function InlineError({ message }: { message: string }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fef2f2", borderWidth: 1, borderColor: "#fecaca", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginHorizontal: 24, marginBottom: 12 }}>
-      <Ionicons name="alert-circle-outline" size={14} color="#D32F2F" />
-      <Text style={{ color: "#ef4444", fontSize: 13, flex: 1 }}>{message}</Text>
+    <View className="flex-row items-start gap-x-2.5 bg-red-50 border-l-[3px] border-red-500 rounded-xl px-3.5 py-5 mx-5 mb-3">
+      <Ionicons name="alert-circle" size={25} color="#ef4444" style={{ marginTop: 5 }} />
+      <Text className="text-red-700 text-[15px] flex-1 leading-[18px]">{message}</Text>
     </View>
   );
 }
 
 function InlineSuccess({ message }: { message: string }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#f0fdf4", borderWidth: 1, borderColor: "#bbf7d0", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginHorizontal: 24, marginBottom: 12 }}>
-      <Ionicons name="checkmark-circle-outline" size={14} color="#05CC66" />
-      <Text style={{ color: "#05CC66", fontSize: 13, flex: 1 }}>{message}</Text>
+    <View className="flex-row items-center gap-x-2.5 bg-green-50 border-l-[3px] border-green-500 rounded-xl px-3.5 py-3 mx-5 mb-3">
+      <Ionicons name="checkmark-circle" size={15} color="#05CC66" />
+      <Text className="text-green-700 text-[13px] flex-1">{message}</Text>
     </View>
   );
 }
 
-export default function SwapModal({ visible, onClose, onSwapSent, shiftId, shiftStartTime, shiftEndTime, role }: Props) {
+export default function SwapModal({
+  visible,
+  onClose,
+  onSwapSent,
+  shiftId,
+  shiftStartTime,
+  shiftEndTime,
+  role,
+}: Props) {
   const { user } = useAuth();
 
   const [options, setOptions] = useState<SwapOption[]>([]);
@@ -118,6 +140,7 @@ export default function SwapModal({ visible, onClose, onSwapSent, shiftId, shift
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [sendSuccess, setSendSuccess] = useState<string | null>(null);
+  const [timeBasedError, setTimeBasedError] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -132,67 +155,125 @@ export default function SwapModal({ visible, onClose, onSwapSent, shiftId, shift
     }
   }, [visible, role, user?.id]);
 
+  useEffect(() => {
+    if (!visible) {
+      setTimeBasedError(null);
+      return;
+  }
+
+  // Check immediately, then every second
+  setTimeBasedError(getShiftSwapError(shiftStartTime, shiftEndTime));
+  const id = setInterval(() => {
+    setTimeBasedError(getShiftSwapError(shiftStartTime, shiftEndTime));
+  }, 1000);
+
+  return () => clearInterval(id);
+}, [visible, shiftStartTime, shiftEndTime]);
+
   async function loadOptions() {
-    if (!user || !role) return;
+    if (!user) return;
 
     const swapError = getShiftSwapError(shiftStartTime, shiftEndTime);
-    if (swapError) {
-      setLoadError(swapError);
-      return;
-    }
+    if (swapError) { setLoadError(swapError); return; }
 
     setLoadError(null);
     setLoading(true);
 
+    // The date of YOUR shift — recipients must have availability covering
+    // your exact shift time window on this date
+    const myShiftDate = new Date(shiftStartTime).toISOString().split("T")[0];
+
     try {
+      // ── STEP 1: Fetch all other employees' upcoming shifts ────────────────
       const { data: shifts, error: shiftError } = await supabase
         .from("shifts")
         .select("*, profiles!shifts_employee_id_fkey(full_name, avatar_url)")
-        .eq("role_at_time_of_shift", role)
         .neq("employee_id", user.id)
-        .gt("start_time", shiftStartTime)
+        .gt("start_time", new Date().toISOString())
         .neq("status", "COMPLETED")
         .order("start_time", { ascending: true });
 
-      if (shiftError) {
-        console.log("SHIFT ERROR:", JSON.stringify(shiftError));
-        setLoadError("Failed to load eligible shifts.");
-        return;
+      if (shiftError) { setLoadError("Failed to load eligible shifts."); return; }
+
+      // ── STEP 2: Fetch availability records on YOUR shift date for all
+      //    shift-holding employees — we need the time window too now
+      const shiftEmployeeIds = [...new Set((shifts || []).map((s: any) => s.employee_id))];
+      // Map of employee_id -> their availability record on your shift date
+      const availMapForMyDate = new Map<string, { start_time: string; end_time: string }>();
+
+      if (shiftEmployeeIds.length > 0) {
+        const { data: availForMyDate } = await supabase
+          .from("availabilities")
+          .select("user_id, start_time, end_time")
+          .eq("specific_date", myShiftDate)
+          .eq("is_available", true)
+          .in("user_id", shiftEmployeeIds);
+
+        (availForMyDate || []).forEach((a: any) => {
+          availMapForMyDate.set(a.user_id, {
+            start_time: a.start_time,
+            end_time: a.end_time,
+          });
+        });
       }
 
-      const shiftDate = new Date(shiftStartTime).toISOString().split("T")[0];
+      // Only show shift options where the employee's availability window on
+      // your shift date actually COVERS your shift start and end times
+      const shiftOptions: EligibleShift[] = (shifts || [])
+        .filter((s: any) => {
+          const avail = availMapForMyDate.get(s.employee_id);
+          if (!avail) return false; // no availability at all on your shift date
+          return availabilityCoversShift(
+            avail.start_time,
+            avail.end_time,
+            shiftStartTime,
+            shiftEndTime
+          );
+        })
+        .map((s: any) => ({
+          ...s,
+          employee_name: s.profiles?.full_name ?? "Employee",
+          employee_avatar: s.profiles?.avatar_url ?? null,
+          type: "shift" as const,
+        }));
+
+      // ── STEP 3: Fetch employees available on YOUR shift date (no shift) ───
+      // Exclude anyone who already appears in the Shifts tab
+      const employeesWithShifts = new Set((shifts || []).map((s: any) => s.employee_id));
 
       const { data: available, error: availError } = await supabase
         .from("availabilities")
         .select("*, profiles(full_name, avatar_url)")
-        .eq("specific_date", shiftDate)
+        .eq("specific_date", myShiftDate)
         .eq("is_available", true)
         .neq("user_id", user.id);
 
-      if (availError) {
-        console.log("AVAIL ERROR:", JSON.stringify(availError));
-      }
+      if (availError) console.log("AVAIL ERROR:", JSON.stringify(availError));
 
-      const shiftOptions: EligibleShift[] = (shifts || []).map((s: any) => ({
-        ...s,
-        employee_name: s.profiles?.full_name ?? "Employee",
-        employee_avatar: s.profiles?.avatar_url ?? null,
-        type: "shift" as const,
-      }));
-
-      const availOptions: AvailableEmployee[] = (available || []).map((a: any) => ({
-        id: a.id,
-        employee_id: a.user_id,
-        full_name: a.profiles?.full_name ?? "Employee",
-        avatar_url: a.profiles?.avatar_url ?? null,
-        start_time: a.start_time,
-        end_time: a.end_time,
-        type: "available" as const,
-      }));
+      // Filter out employees who already have a shift (they're in Shifts tab)
+      // AND check their availability window covers your shift times
+      const availOptions: AvailableEmployee[] = (available || [])
+        .filter((a: any) => {
+          if (employeesWithShifts.has(a.user_id)) return false;
+          return availabilityCoversShift(
+            a.start_time,
+            a.end_time,
+            shiftStartTime,
+            shiftEndTime
+          );
+        })
+        .map((a: any) => ({
+          id: a.id,
+          employee_id: a.user_id,
+          full_name: a.profiles?.full_name ?? "Employee",
+          avatar_url: a.profiles?.avatar_url ?? null,
+          start_time: a.start_time,
+          end_time: a.end_time,
+          type: "available" as const,
+        }));
 
       setOptions([...shiftOptions, ...availOptions]);
     } catch (e) {
-      console.log("LOAD ERROR:", e);
       setLoadError("Failed to load options. Please try again.");
     } finally {
       setLoading(false);
@@ -206,10 +287,7 @@ export default function SwapModal({ visible, onClose, onSwapSent, shiftId, shift
     }
 
     const swapError = getShiftSwapError(shiftStartTime, shiftEndTime);
-    if (swapError) {
-      setSendError(swapError);
-      return;
-    }
+    if (swapError) { setSendError(swapError); return; }
 
     setSendError(null);
     setSendSuccess(null);
@@ -217,6 +295,7 @@ export default function SwapModal({ visible, onClose, onSwapSent, shiftId, shift
     try {
       setSending(true);
 
+      // Guard: no duplicate pending swap for this shift
       const { data: existing } = await supabase
         .from("shift_swaps")
         .select("id")
@@ -232,47 +311,36 @@ export default function SwapModal({ visible, onClose, onSwapSent, shiftId, shift
 
       const recipientId = selectedOption.employee_id;
 
-      const { error } = await supabase.from("shift_swaps").insert([
-        {
-          requester_id: user.id,
-          recipient_id: recipientId,
-          shift_id: shiftId,
-          status: "PENDING",
-          reason: "Shift swap request",
-        },
-      ]);
+      // Store recipient_type ("shift" | "available") so the manager web app /
+      // a future DB trigger knows how to handle availability records on approval
+      const { error } = await supabase.from("shift_swaps").insert([{
+        requester_id: user.id,
+        recipient_id: recipientId,
+        shift_id: shiftId,
+        status: "PENDING",
+        reason: "Shift swap request",
+        recipient_type: selectedOption.type, // "shift" | "available"
+      }]);
 
       if (error) {
         setSendError("Failed to send swap request. Please try again.");
         return;
       }
 
-      await supabase.from("notifications").insert([
-        {
-          user_id: user.id,
-          type: "SHIFT_SWAP",
-          title: "Shift Swap Request",
-          message: "🟡 Your shift swap request is PENDING",
-          is_read: false,
-          related_entity_id: shiftId,
-        },
-        {
-          user_id: recipientId,
-          type: "SHIFT_SWAP",
-          title: "Shift Swap Request",
-          message: "🔔 Someone requested to swap shifts with you",
-          is_read: false,
-          related_entity_id: shiftId,
-        },
-      ]);
+      // Only notify the recipient — requester tracks status on SwapScreen
+      await supabase.from("notifications").insert([{
+        user_id: recipientId,
+        type: "SHIFT_SWAP",
+        title: "Shift Swap Request",
+        message: "🔔 Someone requested to swap shifts with you",
+        is_read: false,
+        related_entity_id: shiftId,
+      }]);
 
       setSendSuccess("Swap request sent successfully!");
       setSelectedOption(null);
       onSwapSent?.();
-
-      setTimeout(() => {
-        onClose();
-      }, 1200);
+      setTimeout(() => onClose(), 1200);
     } catch {
       setSendError("Failed to send swap request. Please try again.");
     } finally {
@@ -285,133 +353,140 @@ export default function SwapModal({ visible, onClose, onSwapSent, shiftId, shift
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      {/* Full screen container */}
-      <View style={{ flex: 1, justifyContent: "flex-end" }}>
+      <View className="flex-1 justify-end">
 
-        {/* ── Backdrop ── */}
+        {/* Backdrop */}
         <Pressable
           onPress={onClose}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)" }}
+          className="absolute top-0 left-0 right-0 bottom-0 bg-[rgba(5,10,30,0.65)]"
         />
 
-        {/* ── Sheet — fixed 80% height, flex column so footer stays at bottom ── */}
-        <View style={{
-          height: "80%",
-          backgroundColor: "#fff",
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          flexDirection: "column",
-        }}>
+        {/* Sheet */}
+        <View className="h-[84%] bg-white rounded-tl-[32px] rounded-tr-[32px] flex-col overflow-hidden">
 
-          {/* ── Handle bar ── */}
-          <View style={{ width: 32, height: 4, backgroundColor: "#e5e7eb", borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 8 }} />
+          {/* Header */}
+          <View className="bg-white px-5 pt-[18px] pb-1.5">
 
-          {/* ── Header ── */}
-          <View style={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-              <Text style={{ color: "#0d1b3e", fontSize: 20, fontWeight: "800" }}>Request Shift Swap</Text>
+            {/* Handle */}
+            <View className="w-9 h-1 bg-slate-200 rounded self-center mb-[18px]" />
+
+            <View className="flex-row items-start justify-between">
+              <View className="flex-1">
+                <Text className="text-[#0d1b3e] text-[22px] font-extrabold tracking-tight">
+                  Request a Swap
+                </Text>
+                <Text className="text-slate-500 text-[13px] font-bold uppercase mt-2">
+                  Pick a colleague below to swap with
+                </Text>
+              </View>
               <Pressable
                 onPress={onClose}
-                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center" }}
+                className="w-[34px] h-[34px] rounded-full bg-slate-100 items-center justify-center border border-slate-200 mt-0.5"
               >
-                <Ionicons name="close" size={18} color="#0d1b3e" />
+                <Ionicons name="close" size={17} color="#475569" />
               </Pressable>
             </View>
-            <Text style={{ color: "#9ca3af", fontSize: 12 }}>Pick someone to swap with below</Text>
+
+            {/* Tabs */}
+            <View className="flex-row mt-5 border-b-[1.5px] border-slate-100">
+              {(["shifts", "available"] as const).map((t) => {
+                const active = tab === t;
+                const count = t === "shifts" ? shiftOptions.length : availOptions.length;
+                return (
+                  <Pressable
+                    key={t}
+                    onPress={() => setTab(t)}
+                    className={`flex-1 py-3 items-center flex-row justify-center gap-x-[7px] -mb-[1.5px] border-b-[2.5px] ${active ? "border-[#0d1b3e]" : "border-transparent"}`}
+                  >
+                    <Text className={`text-[14px] font-bold ${active ? "text-[#0d1b3e]" : "text-slate-500"}`}>
+                      {t === "shifts" ? "Shifts" : "Available"}
+                    </Text>
+                    <View className={`min-w-[22px] h-5 rounded-[10px] px-1.5 items-center justify-center ${active ? "bg-[#0d1b3e]" : "bg-slate-100"}`}>
+                      <Text className={`text-[11px] font-extrabold ${active ? "text-white" : "text-slate-400"}`}>
+                        {count}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
 
-          {/* ── Load error ── */}
-          {loadError && <InlineError message={loadError} />}
+          {timeBasedError && (
+            <View className="pt-3.5">
+              <InlineError message={timeBasedError} />
+              </View>
+              )}
 
-          {/* ── Tabs ── */}
-          <View style={{ flexDirection: "row", marginHorizontal: 24, marginBottom: 16, backgroundColor: "#f3f4f6", borderRadius: 12, padding: 4 }}>
-            {(["shifts", "available"] as const).map((t) => (
-              <Pressable
-                key={t}
-                onPress={() => setTab(t)}
-                style={{
-                  flex: 1,
-                  paddingVertical: 8,
-                  borderRadius: 10,
-                  alignItems: "center",
-                  backgroundColor: tab === t ? "#0d1b3e" : "transparent",
-                }}
-              >
-                <Text style={{ fontSize: 12, fontWeight: "700", color: tab === t ? "#fff" : "#9ca3af" }}>
-                  {t === "shifts" ? `Shifts (${shiftOptions.length})` : `Available (${availOptions.length})`}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          {/* Load error */}
+          {!timeBasedError && loadError && (
+            <View className="pt-3.5">
+              <InlineError message={loadError} />
+              </View>
+          )}
 
-          {/* ── List — flex: 1 so it takes remaining space between tabs and footer ── */}
+          {/* List */}
           {loading ? (
-            <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            <View className="flex-1 items-center justify-center gap-y-3">
               <ActivityIndicator size="large" color="#0d1b3e" />
-              <Text style={{ color: "#9ca3af", fontSize: 14, marginTop: 12 }}>Loading options…</Text>
+              <Text className="text-slate-400 text-[13px] font-medium">Finding options…</Text>
             </View>
           ) : (
             <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 8 }}
+              className="flex-1"
+              contentContainerClassName="px-4 pt-3.5 pb-2"
               showsVerticalScrollIndicator={false}
             >
+
+              {/* ── SHIFTS TAB ──────────────────────────────────────────────── */}
               {tab === "shifts" && (
                 <>
                   {shiftOptions.length === 0 ? (
-                    <View style={{ paddingVertical: 40, alignItems: "center" }}>
-                      <Ionicons name="calendar-outline" size={36} color="#d1d5db" />
-                      <Text style={{ color: "#9ca3af", fontSize: 14, marginTop: 12 }}>No eligible shifts found</Text>
+                    <View className="py-12 items-center gap-y-2.5">
+                      <View className="w-[60px] h-[60px] rounded-full bg-slate-50 items-center justify-center border border-slate-400 mb-3">
+                        <Ionicons name="calendar-outline" size={26} color="gray" />
+                      </View>
+                      <Text className="text-gray-700 text-[20px] font-bold">No eligible shifts</Text>
+                      <Text className="text-gray-400 text-[17px] text-center leading-[19px]">
+                        No colleagues have an upcoming shift and availability covering your shift times
+                      </Text>
                     </View>
                   ) : (
                     shiftOptions.map((shift) => {
                       const selected = selectedOption?.id === shift.id;
-                      const color = avatarColor(shift.employee_id);
-                      const initials = getInitials(shift.employee_name ?? "E");
                       return (
                         <Pressable
                           key={shift.id}
                           onPress={() => { setSelectedOption(selected ? null : shift); setSendError(null); }}
-                          style={{
-                            marginBottom: 12,
-                            borderRadius: 16,
-                            borderWidth: 1.5,
-                            borderColor: selected ? "#0d1b3e" : "#e5e7eb",
-                            backgroundColor: selected ? "rgba(13,27,62,0.04)" : "#fff",
-                            shadowColor: "#0d1b3e",
-                            shadowOffset: { width: 0, height: 1 },
-                            shadowOpacity: 0.05,
-                            shadowRadius: 4,
-                            elevation: 1,
-                          }}
+                          className={`mb-2.5 rounded-2xl border-[1.5px] flex-row overflow-hidden ${selected ? "border-[#62CCEF] bg-[#e8f8fd]" : "border-[#eef0f4] bg-gray-50"}`}
                         >
-                          {selected && <View style={{ height: 3, backgroundColor: "#0d1b3e", borderTopLeftRadius: 16, borderTopRightRadius: 16 }} />}
-                          <View style={{ padding: 16, flexDirection: "row", alignItems: "center", gap: 12 }}>
-                            <View style={{
-                              width: 44, height: 44, borderRadius: 22,
-                              backgroundColor: color + "22",
-                              borderWidth: 1.5, borderColor: color + "55",
-                              alignItems: "center", justifyContent: "center"
-                            }}>
-                              <Text style={{ color, fontSize: 14, fontWeight: "700" }}>{initials}</Text>
-                            </View>
-                            <View style={{ flex: 1 }}>
-                              <Text style={{ color: "#0d1b3e", fontWeight: "700", fontSize: 14 }}>{shift.employee_name}</Text>
-                              <Text style={{ color: "#9ca3af", fontSize: 12, marginTop: 2 }}>{formatRole(shift.role_at_time_of_shift)}</Text>
-                              <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 }}>
-                                <Ionicons name="calendar-outline" size={11} color="#9ca3af" />
-                                <Text style={{ color: "#9ca3af", fontSize: 12 }}>
-                                  {formatDate(shift.start_time)}{"  "}{formatTime(shift.start_time)} – {formatTime(shift.end_time)}
-                                </Text>
+                          <View className={`w-1 ${selected ? "bg-[#62CCEF]" : "bg-slate-300"}`} />
+                          <View className="flex-1 p-4 flex-row items-center gap-x-3">
+                            <View className="flex-1 gap-y-1">
+                              <Text className="text-slate-900 font-bold text-[17px]">
+                                {shift.employee_name}
+                              </Text>
+                              <Text className="text-slate-500 text-[14px]">
+                                {formatRole(shift.role_at_time_of_shift)}
+                              </Text>
+                              <View className="flex-row items-center gap-x-1.5 mt-1 flex-wrap">
+                                <View className={`rounded-[7px] px-2 py-1 flex-row items-center gap-x-1 ${selected ? "bg-white/20" : "bg-[#eef0f4]"}`}>
+                                  <Ionicons name="calendar-outline" size={12} color="#64748b" />
+                                  <Text className="text-slate-600 text-[13px] font-semibold">
+                                    {formatDate(shift.start_time)}
+                                  </Text>
+                                </View>
+                                <View className={`rounded-[7px] px-2 py-1 flex-row items-center gap-x-1 ${selected ? "bg-[#62CCEF]/20" : "bg-[#eef0f4]"}`}>
+                                  <Ionicons name="time-outline" size={12} color="#64748b" />
+                                  <Text className="text-slate-600 text-[13px] font-semibold">
+                                    {formatTime(shift.start_time)} – {formatTime(shift.end_time)}
+                                  </Text>
+                                </View>
                               </View>
                             </View>
-                            {selected ? (
-                              <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: "#0d1b3e", alignItems: "center", justifyContent: "center" }}>
-                                <Ionicons name="checkmark" size={14} color="#fff" />
-                              </View>
-                            ) : (
-                              <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: "#d1d5db" }} />
-                            )}
+                            <View className={`w-[26px] h-[26px] rounded-full items-center justify-center border-2 ${selected ? "bg-[#62CCEF] border-[#62CCEF]" : "bg-white border-gray-300"}`}>
+                              {selected && <Ionicons name="checkmark" size={14} color="#ffffff" />}
+                            </View>
                           </View>
                         </Pressable>
                       );
@@ -420,62 +495,48 @@ export default function SwapModal({ visible, onClose, onSwapSent, shiftId, shift
                 </>
               )}
 
+              {/* ── AVAILABLE TAB ───────────────────────────────────────────── */}
               {tab === "available" && (
                 <>
                   {availOptions.length === 0 ? (
-                    <View style={{ paddingVertical: 40, alignItems: "center" }}>
-                      <Ionicons name="people-outline" size={36} color="#d1d5db" />
-                      <Text style={{ color: "#9ca3af", fontSize: 14, marginTop: 12 }}>No available employees found</Text>
+                    <View className="py-12 items-center gap-y-2.5">
+                      <View className="w-[60px] h-[60px] rounded-full bg-slate-50 items-center justify-center border border-slate-400 mb-3">
+                        <Ionicons name="people-outline" size={26} color="gray" />
+                      </View>
+                      <Text className="text-gray-700 text-[20px] font-bold">No available employees</Text>
+                      <Text className="text-gray-400 text-[17px] text-center leading-[19px] px-5">
+                        Nobody is available during your shift times on this date
+                      </Text>
                     </View>
                   ) : (
                     availOptions.map((emp) => {
                       const selected = selectedOption?.id === emp.id;
-                      const color = avatarColor(emp.employee_id);
-                      const initials = getInitials(emp.full_name);
                       return (
                         <Pressable
                           key={emp.id}
                           onPress={() => { setSelectedOption(selected ? null : emp); setSendError(null); }}
-                          style={{
-                            marginBottom: 12,
-                            borderRadius: 16,
-                            borderWidth: 1.5,
-                            borderColor: selected ? "#05CC66" : "#e5e7eb",
-                            backgroundColor: selected ? "rgba(5,204,102,0.04)" : "#fff",
-                            shadowColor: "#0d1b3e",
-                            shadowOffset: { width: 0, height: 1 },
-                            shadowOpacity: 0.05,
-                            shadowRadius: 4,
-                            elevation: 1,
-                          }}
+                          className={`mb-2.5 rounded-2xl border-[1.5px] flex-row overflow-hidden ${selected ? "border-[#62CCEF] bg-[#e8f8fd]" : "border-[#eef0f4] bg-gray-50"}`}
                         >
-                          {selected && <View style={{ height: 3, backgroundColor: "#05CC66", borderTopLeftRadius: 16, borderTopRightRadius: 16 }} />}
-                          <View style={{ padding: 16, flexDirection: "row", alignItems: "center", gap: 12 }}>
-                            <View style={{
-                              width: 44, height: 44, borderRadius: 22,
-                              backgroundColor: color + "22",
-                              borderWidth: 1.5, borderColor: color + "55",
-                              alignItems: "center", justifyContent: "center"
-                            }}>
-                              <Text style={{ color, fontSize: 14, fontWeight: "700" }}>{initials}</Text>
-                            </View>
-                            <View style={{ flex: 1 }}>
-                              <Text style={{ color: "#0d1b3e", fontWeight: "700", fontSize: 14 }}>{emp.full_name}</Text>
-                              <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
-                                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#05CC66" }} />
-                                <Text style={{ color: "#05CC66", fontSize: 12, fontWeight: "600" }}>Available</Text>
-                              </View>
-                              <Text style={{ color: "#9ca3af", fontSize: 12, marginTop: 2 }}>
-                                {formatTime(emp.start_time)} – {formatTime(emp.end_time)}
+                          <View className={`w-1 ${selected ? "bg-[#62CCEF]" : "bg-slate-300"}`} />
+                          <View className="flex-1 p-4 flex-row items-center gap-x-3">
+                            <View className="flex-1 gap-y-1">
+                              <Text className="text-slate-900 font-bold text-[17px]">
+                                {emp.full_name}
                               </Text>
-                            </View>
-                            {selected ? (
-                              <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: "#05CC66", alignItems: "center", justifyContent: "center" }}>
-                                <Ionicons name="checkmark" size={14} color="#fff" />
+                              <View className="flex-row items-center gap-x-[5px]">
+                                <View className="w-[7px] h-[7px] rounded-full bg-[#62CCEF]" />
+                                <Text className="text-[#1a9bbf] text-[14px] font-semibold">Available</Text>
                               </View>
-                            ) : (
-                              <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: "#d1d5db" }} />
-                            )}
+                              <View className={`flex-row items-center gap-x-1 mt-1 rounded-[7px] px-2 py-1 self-start ${selected ? "bg-[#62CCEF]/20" : "bg-[#eef0f4]"}`}>
+                                <Ionicons name="time-outline" size={12} color="#64748b" />
+                                <Text className="text-slate-600 text-[13px] font-semibold">
+                                  {formatTime(emp.start_time)} – {formatTime(emp.end_time)}
+                                </Text>
+                              </View>
+                            </View>
+                            <View className={`w-[26px] h-[26px] rounded-full items-center justify-center border-2 ${selected ? "bg-[#62CCEF] border-[#62CCEF]" : "bg-white border-gray-300"}`}>
+                              {selected && <Ionicons name="checkmark" size={14} color="#ffffff" />}
+                            </View>
                           </View>
                         </Pressable>
                       );
@@ -486,43 +547,24 @@ export default function SwapModal({ visible, onClose, onSwapSent, shiftId, shift
             </ScrollView>
           )}
 
-          {/* ── Send error / success ── */}
+          {/* Send error / success */}
           {sendError && <InlineError message={sendError} />}
           {sendSuccess && <InlineSuccess message={sendSuccess} />}
 
-          {/* ── Footer — always at bottom ── */}
-          <View style={{ paddingHorizontal: 24, paddingBottom: 32, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#f3f4f6" }}>
+          {/* Footer */}
+          <View className="px-20 pb-[34px] pt-3 border-t border-slate-100 bg-white">
             <Pressable
               onPress={sendSwapRequest}
               disabled={!selectedOption || sending}
-              style={{
-                paddingVertical: 16,
-                borderRadius: 16,
-                alignItems: "center",
-                justifyContent: "center",
-                flexDirection: "row",
-                gap: 8,
-                backgroundColor: !selectedOption || sending ? "#f3f4f6" : "#0d1b3e",
-              }}
+              className={`py-[17px] px-6 rounded-[18px] items-center justify-center ${!selectedOption || sending ? "bg-slate-300" : "bg-[#0d1b3e]"}`}
             >
               {sending ? (
                 <ActivityIndicator size="small" color="#0d1b3e" />
               ) : (
-                <Ionicons
-                  name="swap-horizontal-outline"
-                  size={18}
-                  color={!selectedOption ? "#9ca3af" : "#fff"}
-                />
+                <Text className={`font-extrabold text-[13px] tracking-widest uppercase text-center ${!selectedOption ? "text-gray-500" : "text-white"}`}>
+                  Send Swap Request
+                </Text>
               )}
-              <Text style={{
-                fontWeight: "700",
-                fontSize: 13,
-                letterSpacing: 2,
-                textTransform: "uppercase",
-                color: !selectedOption || sending ? "#9ca3af" : "#fff",
-              }}>
-                {sending ? "Sending…" : "Send Swap Request"}
-              </Text>
             </Pressable>
           </View>
 

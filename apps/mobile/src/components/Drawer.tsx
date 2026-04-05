@@ -84,7 +84,14 @@ export default function Drawer({ isOpen, toggleDrawer, pendingTasksCount = 0, ne
       {/* Logo */}
       <View className="items-center pt-16 pb-5">
         <DrawerLogo width={120} height={120} />
-        <Text className="text-white text-xl font-bold tracking-widest mt-2">V.A.K</Text>
+        {/* V.A.K styled logo text */}
+        <View className="flex-row items-end mt-2">
+          <Text className="text-white text-2xl font-extrabold tracking-widest">V</Text>
+          <View className="w-2 h-2 rounded-full bg-auth-accent mb-1.5 mx-0.5" />
+          <Text className="text-white text-2xl font-extrabold tracking-widest">A</Text>
+          <View className="w-2 h-2 rounded-full bg-auth-pending mb-1.5 mx-0.5" />
+          <Text className="text-white text-2xl font-extrabold tracking-widest">K</Text>
+        </View>
       </View>
 
       {/* Navigation Items */}
