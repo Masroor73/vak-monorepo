@@ -349,7 +349,6 @@ export default function MySchedule() {
                         }
                         className="bg-brand-secondaryLight rounded-2xl py-5 items-center justify-center flex-row gap-2 mt-3"
                       >
-                        <Ionicons name="chevron-forward-outline" size={18} color="#ffffff" />
                         <Text className="text-white font-bold text-sm tracking-widest uppercase">
                           View Details
                         </Text>
@@ -363,9 +362,9 @@ export default function MySchedule() {
                           setSelectedShiftEndTime(shift.end_time);
                           setSwapVisible(true);
                         }}
-                        className="bg-brand-primary rounded-2xl py-5 items-center justify-center mt-3"
+                        className="bg-brand-secondaryLight rounded-2xl py-5 items-center justify-center mt-3"
                       >
-                        <Text className="text-brand-secondary font-bold text-sm tracking-widest uppercase">
+                        <Text className="text-white font-bold text-sm tracking-widest uppercase">
                           Request Swap
                         </Text>
                       </Pressable>
