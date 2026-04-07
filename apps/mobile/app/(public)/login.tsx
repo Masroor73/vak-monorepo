@@ -214,7 +214,7 @@ export default function LoginScreen() {
 
   return (
     <View className="flex-1">
-      <View className="bg-auth-primary items-center overflow-hidden pt-20 pb-3">
+      <View className="bg-auth-primary items-center overflow-hidden pt-16 pb-3">
         <Circle className="w-52 h-52 bg-auth-mid -top-20 -right-10" />
         <Ring className="w-36 h-36 border-brand-primary top-20 -right-8" />
         <Diamond className="w-5 h-5 bg-brand-primary top-16 right-24" />
@@ -222,7 +222,11 @@ export default function LoginScreen() {
         <View className="z-10 w-36 h-36 items-center justify-center mt-5">
           <Logo width={110} height={100} />
         </View>
-        <Text className="text-auth-accent text-[20px] font-extrabold tracking-[2px] uppercase">V.A.K</Text>
+        <Text className="text-white text-[30px] font-extrabold tracking-[2px]">
+          V<Text className="text-auth-accent">.</Text>
+          A<Text className="text-auth-pending">.</Text>
+          K
+        </Text>
       </View>
 
       <View className="flex-1 bg-auth-primary overflow-hidden">
