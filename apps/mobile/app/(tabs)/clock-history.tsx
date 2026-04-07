@@ -331,33 +331,43 @@ export default function ClockHistoryScreen() {
   }, [user]);
 
   async function loadHistory() {
-    setLoading(true);
+  setLoading(true);
 
-    const { data: shiftData, error: shiftError } = await supabase
-      .from("shifts")
-      .select("*")
-      .eq("employee_id", user?.id)
-      .not("actual_start_time", "is", null)
-      .order("actual_start_time", { ascending: false });
+  const { data: sessionData, error: sessionError } = await supabase
+    .from("shift_sessions")
+    .select("shift_id")
+    .eq("employee_id", user?.id)
+    .eq("session_type", "WORK");
 
-    if (shiftError || !shiftData) { setLoading(false); return; }
+  if (sessionError || !sessionData) { setLoading(false); return; }
 
-    const shiftIds = shiftData.map((s) => s.id);
-    const { data: sessionData } = await supabase
-      .from("shift_sessions")
-      .select("*")
-      .in("shift_id", shiftIds)
-      .order("clock_in_time", { ascending: true });
+  const workedShiftIds = [...new Set(sessionData.map((s) => s.shift_id))];
 
-    const sessionsByShift: Record<string, Session[]> = {};
-    (sessionData || []).forEach((s) => {
-      if (!sessionsByShift[s.shift_id]) sessionsByShift[s.shift_id] = [];
-      sessionsByShift[s.shift_id].push(s);
-    });
+  if (workedShiftIds.length === 0) { setShifts([]); setLoading(false); return; }
 
-    setShifts(shiftData.map((shift) => ({ ...shift, sessions: sessionsByShift[shift.id] || [] })));
-    setLoading(false);
-  }
+  const { data: shiftData, error: shiftError } = await supabase
+    .from("shifts")
+    .select("*")
+    .in("id", workedShiftIds)
+    .order("actual_start_time", { ascending: false });
+
+  if (shiftError || !shiftData) { setLoading(false); return; }
+
+  const { data: allSessionData } = await supabase
+    .from("shift_sessions")
+    .select("*")
+    .in("shift_id", workedShiftIds)
+    .order("clock_in_time", { ascending: true });
+
+  const sessionsByShift: Record<string, Session[]> = {};
+  (allSessionData || []).forEach((s) => {
+    if (!sessionsByShift[s.shift_id]) sessionsByShift[s.shift_id] = [];
+    sessionsByShift[s.shift_id].push(s);
+  });
+
+  setShifts(shiftData.map((shift) => ({ ...shift, sessions: sessionsByShift[shift.id] || [] })));
+  setLoading(false);
+}
 
   const openPhoto = (uri: string, label: string) =>
     setPhotoViewer({ visible: true, uri, label });

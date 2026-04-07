@@ -5,6 +5,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Location from "expo-location";
 import { File } from "expo-file-system/next";
 import { supabase } from "../../lib/supabase";
+import * as SecureStore from "expo-secure-store";
 
 type Props = {
   shiftId: string;
@@ -14,7 +15,17 @@ type Props = {
   onDone: () => void;
 };
 
-type Step = "IDLE" | "TOO_EARLY" | "SHIFT_OVER" | "CHECKING" | "TOO_FAR" | "CAMERA" | "PREVIEW" | "UPLOADING" | "ERROR"; // ← TOO_EARLY added
+type Step = "IDLE" | "TOO_EARLY" | "SHIFT_OVER" | "CHECKING" | "TOO_FAR" | "CAMERA" | "PREVIEW" | "UPLOADING" | "ERROR" | "DEVICE_BLOCKED";
+
+async function getOrCreateDeviceId(): Promise<string> {
+  const key = "vak_device_id";
+  let deviceId = await SecureStore.getItemAsync(key);
+  if (!deviceId) {
+    deviceId = crypto.randomUUID();
+    await SecureStore.setItemAsync(key, deviceId);
+  }
+  return deviceId;
+}
 
 export default function ClockInButton({ shiftId, userId, shiftStartTime, shiftEndTime, onDone }: Props) {
   const [permission, requestPermission] = useCameraPermissions();
@@ -23,6 +34,7 @@ export default function ClockInButton({ shiftId, userId, shiftStartTime, shiftEn
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [location, setLocation] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [deviceId, setDeviceId] = useState<string | null>(null);
 
   const cameraRef = useRef<any>(null);
   const locationWatcher = useRef<any>(null);
@@ -80,7 +92,7 @@ export default function ClockInButton({ shiftId, userId, shiftStartTime, shiftEn
     else setStep("TOO_FAR");
   }, [distance, step]);
 
-  // ← updated: checks TOO_EARLY before SHIFT_OVER
+  // checks TOO_EARLY before SHIFT_OVER
   const handleClockInPress = async () => {
     if (new Date() < shiftStartTime) {
       setStep("TOO_EARLY");
@@ -90,6 +102,30 @@ export default function ClockInButton({ shiftId, userId, shiftStartTime, shiftEn
       setStep("SHIFT_OVER");
       return;
     }
+
+  const id = deviceId ?? await getOrCreateDeviceId();
+  const bufferTime = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+
+  const { data: activeOnDevice } = await supabase
+    .from("shift_sessions")
+    .select("employee_id")
+    .eq("device_id", id)
+    .neq("employee_id", userId)
+    .is("clock_out_time", null)
+    .maybeSingle();
+
+  if (activeOnDevice) { setStep("DEVICE_BLOCKED"); return; }
+
+  const { data: recentOnDevice } = await supabase
+    .from("shift_sessions")
+    .select("employee_id")
+    .eq("device_id", id)
+    .neq("employee_id", userId)
+    .gt("clock_out_time", bufferTime)
+    .maybeSingle();
+
+  if (recentOnDevice) { setStep("DEVICE_BLOCKED"); return; }
+
     await requestPermission();
     setStep("CHECKING");
     await startLocationWatch();
@@ -134,6 +170,7 @@ export default function ClockInButton({ shiftId, userId, shiftStartTime, shiftEn
         clock_in_photo_url: urlData.publicUrl,
         clock_in_lat: location.latitude,
         clock_in_long: location.longitude,
+        device_id: deviceId,
       });
       if (sessionError) throw sessionError;
 
@@ -186,7 +223,7 @@ export default function ClockInButton({ shiftId, userId, shiftStartTime, shiftEn
 
   // ── IDLE ────────────────────────────────────────────────────────────────────
   if (step === "IDLE") {
-    // ← check TOO_EARLY first
+    // check TOO_EARLY first
     if (new Date() < shiftStartTime) {
       return (
         <View
@@ -318,6 +355,30 @@ export default function ClockInButton({ shiftId, userId, shiftStartTime, shiftEn
       </View>
     );
   }
+
+  // ── DEVICE BLOCKED OR NOT───────────────────────────────────────────────────────────────
+  if (step === "DEVICE_BLOCKED") {
+  return (
+    <View
+      className="rounded-2xl p-5 items-center gap-3"
+      style={{ backgroundColor: "#FEF2F2", borderWidth: 1, borderColor: "#FECACA" }}
+    >
+      <View
+        className="w-16 h-16 rounded-full items-center justify-center"
+        style={{ backgroundColor: "#FEE2E2" }}
+      >
+        <Ionicons name="phone-portrait-outline" size={30} color="#EF4444" />
+      </View>
+      <Text className="text-gray-800 font-bold text-lg">Device Already In Use</Text>
+      <Text className="text-gray-400 text-sm text-center leading-5">
+        Another user is clocked in on this device. Please use a different device or wait 60 minutes after their clock-out.
+      </Text>
+      <TouchableOpacity onPress={reset} className="mt-1">
+        <Text className="text-red-500 font-semibold text-sm">Go Back</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
 
   // ── CHECKING ─────────────────────────────────────────────────────────────────
   if (step === "CHECKING") {

@@ -23,7 +23,7 @@ const WORK_REMINDER_SECONDS = 4.5 * 60 * 60; // 16200s
 export default function Index() {
   const router = useRouter();
   const now = new Date();
-  const { user } = useAuth();
+  const { user, profile } = useAuth()
   const { data: shifts, isLoading, isError, error } = useShifts(user?.id);
 
   const [temperature, setTemperature] = useState<string>("--°C");
@@ -43,9 +43,9 @@ export default function Index() {
   const [breakEnforcement, setBreakEnforcement] = useState<BreakEnforcementState>("OK");
 
   const firstName = useMemo(() => {
-    const full = user?.user_metadata?.full_name || user?.email || "";
+    const full = profile?.full_name || user?.user_metadata?.full_name || user?.email || "";
     return full.trim().split(" ")[0] || "User";
-  }, [user]);
+  }, [user, profile]);
 
   // Register push permissions on mount
   useEffect(() => {
@@ -348,7 +348,6 @@ export default function Index() {
     // OK — standard on-break banner with timer
     return (
       <View className="bg-amber-50 border border-amber-100 rounded-2xl p-4 items-center mb-5 gap-1">
-        <Text className="text-2xl">☕</Text>
         <Text className="font-bold text-amber-800 text-base">On Break</Text>
         {limitSecs !== null && (
           <View className="flex-row items-center gap-1.5 mt-1">
@@ -382,13 +381,12 @@ export default function Index() {
             </View>
             <View className="flex-1">
               <Text className="text-[22px] font-semibold text-white/45 tracking-[1.3px] uppercase mb-2 ml-3">
-                {getGreeting()}
+                {getGreeting()}!
               </Text>
               <View className="flex-row items-center ml-3">
                 <Text className="text-[21px] font-bold text-white tracking-[0.2px]">
                   {firstName}
                 </Text>
-                <MaterialCommunityIcons name="hand-wave" size={22} color="#eab308" style={{ marginLeft: 6 }} />
               </View>
             </View>
           </View>
