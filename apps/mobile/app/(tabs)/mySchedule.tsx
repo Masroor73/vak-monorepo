@@ -1,513 +1,408 @@
-// apps/mobile/app/(tabs)/setAvailability.tsx
-import { useState, useMemo, useEffect } from "react";
-import { View, Text, Pressable, ScrollView, Switch, ActivityIndicator } from "react-native";
+import { useMemo, useState } from "react";
+import { View, Text, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
-import { supabase } from "../../lib/supabase";
-import { useAuth } from "../../context/AuthContext";
-import WhiteArrow from "../../assets/WhiteArrow.svg";
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 
-const DAYS = ["MON","TUE","WED","THU","FRI","SAT","SUN"];
-const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
-const MINUTE_INCREMENTS = ["00","15","30","45"];
+import WhiteArrow from "../../assets/WhiteArrow.svg";
 
-const weekOf = (anchor: Date) => Array.from({ length: 7 }, (_, i) => {
-  const d = new Date(anchor);
-  d.setDate(anchor.getDate() - ((anchor.getDay() + 6) % 7) + i);
-  return d;
-});
-const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
-const formatDateKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-const parseTimeLabel = (t: string) => { const [h,m] = t.split(":"); const hour = +h; return { time: `${hour%12||12}:${m}`, ampm: hour>=12?"PM":"AM" }; };
+import { Shift } from "@vak/contract";
+import { useAuth } from "../../context/AuthContext";
+import { useShifts } from "../../hooks/useShifts";
+import { SHIFTS_QUERY_KEY_BASE } from "../../hooks/shiftsKeys";
 
-const timeToMinutes = (t: string) => {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-};
+import SwapModal from "../../src/components/SwapModal";
 
-const isPastDay = (d: Date) => { const t = new Date(); t.setHours(0,0,0,0); const c = new Date(d); c.setHours(0,0,0,0); return c < t; };
+/* ───────── Helpers ───────── */
 
-const isPastTime = (hour: string, minute: string, date: Date): boolean => {
-  if (!isSameDay(date, new Date())) return false;
-  const now = new Date();
-  const selected = new Date();
-  selected.setHours(Number(hour), Number(minute), 0, 0);
-  return selected <= now;
-};
+const WEEKDAY_SHORT = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
-const validateSchedule = (schedule: DaySchedule): string | null => {
-  if (!schedule.fullDay) {
-    if (!schedule.isOvernight && timeToMinutes(schedule.end) <= timeToMinutes(schedule.start))
-      return "End time must be after start time. Enable overnight shift if this extends past midnight.";
-    if (schedule.isOvernight && timeToMinutes(schedule.end) >= timeToMinutes(schedule.start))
-      return "For overnight shifts, end time must be earlier than start time (next day).";
+function buildWeekDays(anchorDate: Date) {
+  const days: Date[] = [];
+  const dow = anchorDate.getDay();
+  const monday = new Date(anchorDate);
+  monday.setDate(anchorDate.getDate() - ((dow + 6) % 7));
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    days.push(d);
   }
-  return null;
-};
+  return days;
+}
 
-type DaySchedule = { fullDay: boolean; isOvernight: boolean; start: string; end: string; saved: boolean; dbId?: string };
-const getDefaultSchedule = (date: Date): DaySchedule => {
-  if (!isSameDay(date, new Date()))
-    return { fullDay: false, isOvernight: false, start: "09:00", end: "17:00", saved: false };
+function isSameLocalDate(d1: Date, d2: Date) {
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  );
+}
 
-  const now = new Date();
-  const minutes = now.getMinutes();
-  const roundedMinutes = Math.ceil(minutes / 15) * 15;
-  const extraHours = Math.floor(roundedMinutes / 60);
-  const finalMinutes = roundedMinutes % 60;
-  const finalHour = now.getHours() + extraHours;
-  const start = `${String(finalHour).padStart(2, "0")}:${String(finalMinutes).padStart(2, "0")}`;
+/* ───────── Screen ───────── */
 
-  return { fullDay: false, isOvernight: false, start, end: "17:00", saved: false };
-};
-
-export default function SetAvailability() {
+export default function MySchedule() {
   const router = useRouter();
   const { user } = useAuth();
-  const today = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
+  const queryClient = useQueryClient();
+
+  const { data: shifts, isLoading, isError, error } = useShifts(user?.id);
+  const liveShifts = shifts ?? [];
+
+  const today = useMemo(() => new Date(), []);
 
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDate, setSelectedDate] = useState(today);
-  const [availabilityMap, setAvailabilityMap] = useState<Record<string, DaySchedule>>({});
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [picker, setPicker] = useState<"start"|"end"|null>(null);
-  const [copyTo, setCopyTo] = useState<string[]>([]);
-  const [expandApply, setExpandApply] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [preEditSchedule, setPreEditSchedule] = useState<DaySchedule | null>(null);
-  const [confirmClear, setConfirmClear] = useState(false);
-  // ── NEW: tracks whether selected day has an assigned shift ──
-  const [shiftAssigned, setShiftAssigned] = useState(false);
 
-  const anchor = useMemo(() => { const d = new Date(today); d.setDate(today.getDate() + weekOffset * 7); return d; }, [today, weekOffset]);
-  const week = useMemo(() => weekOf(anchor), [anchor]);
+  const [swapVisible, setSwapVisible] = useState(false);
+  const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
+  const [selectedShiftRole, setSelectedShiftRole] = useState<string | null>(null);
+  const [selectedShiftStartTime, setSelectedShiftStartTime] = useState<string | null>(null);
+  const [selectedShiftEndTime, setSelectedShiftEndTime] = useState<string | null>(null); 
 
-  useEffect(() => {
-    if (!error) return;
-    const timer = setTimeout(() => setError(null), 15000);
-    return () => clearTimeout(timer);
-  }, [error]);
+  const anchorDate = useMemo(() => {
+    const d = new Date(today);
+    d.setDate(today.getDate() + weekOffset * 7);
+    return d;
+  }, [today, weekOffset]);
 
-  useEffect(() => {
-    if (!user?.id) return;
-    supabase
-      .from("availabilities")
-      .select("id,specific_date,start_time,end_time,is_overnight")
-      .eq("user_id", user.id)
-      .eq("is_available", true)
-      .not("specific_date", "is", null)
-      .then(({ data }) => {
-        if (data) {
-          const scheduleMap: Record<string, DaySchedule> = {};
-          data.forEach((record) => {
-            const key = record.specific_date;
-            scheduleMap[key] = {
-              fullDay: record.start_time === "09:00:00" && record.end_time === "17:00:00" && !record.is_overnight,
-              isOvernight: record.is_overnight ?? false,
-              start: record.start_time?.slice(0,5) ?? "09:00",
-              end: record.end_time?.slice(0,5) ?? "17:00",
-              saved: true,
-              dbId: record.id,
-            };
-          });
-          setAvailabilityMap(scheduleMap);
-        }
-        setLoading(false);
-      });
-  }, [user?.id]);
+  const weekDays = useMemo(() => buildWeekDays(anchorDate), [anchorDate]);
 
-  // ── NEW: check if the selected day has an assigned shift ──
-  const checkShiftAssigned = async (date: Date) => {
-    if (!user?.id) return;
-    const { data } = await supabase
-      .from("shifts")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("shift_date", formatDateKey(date)) // update "shift_date" to match your shifts table column name
-      .limit(1);
-    setShiftAssigned((data?.length ?? 0) > 0);
+  const getShiftsForDate = (date: Date) => {
+    return liveShifts.filter((s) =>
+      isSameLocalDate(new Date(s.start_time), date)
+    );
   };
 
-  const selectDay = (d: Date) => {
-    if (isPastDay(d)) return;
-    setSelectedDate(d);
-    setPicker(null);
-    setCopyTo([]);
-    setExpandApply(false);
-    setError(null);
-    setConfirmClear(false);
-    // ── NEW: check shift assignment whenever a day is selected ──
-    checkShiftAssigned(d);
-  };
+  const weekShiftCount = useMemo(
+    () => weekDays.reduce((sum, day) => sum + getShiftsForDate(day).length, 0),
+    [weekDays, liveShifts]
+  );
 
-  const selectedDateKey = formatDateKey(selectedDate);
-  const daySchedule = availabilityMap[selectedDateKey] ?? getDefaultSchedule(selectedDate);
-  const isReadOnly = isPastDay(selectedDate) || daySchedule.saved;
-  const updateSelectedDay = (partial: Partial<DaySchedule>) => setAvailabilityMap(prev => ({ ...prev, [selectedDateKey]: { ...daySchedule, ...partial } }));
-  const toggleCopy = (dateKey: string) => setCopyTo(prev => prev.includes(dateKey) ? prev.filter(x => x !== dateKey) : [...prev, dateKey]);
+  const weekType = useMemo(() => {
+    const startOfWeek = weekDays[0];
+    const todayWeekStart = buildWeekDays(today)[0];
+    if (startOfWeek.getTime() === todayWeekStart.getTime()) return "current";
+    if (startOfWeek < todayWeekStart) return "past";
+    return "future";
+  }, [weekDays, today]);
 
-  const startEdit = () => {
-    setPreEditSchedule(daySchedule);
-    updateSelectedDay({ saved: false });
-    setPicker(null);
-    setError(null);
-    setConfirmClear(false);
-  };
+  const selectedDayShifts = useMemo(
+    () => getShiftsForDate(selectedDate),
+    [selectedDate, liveShifts]
+  );
 
-  const cancelEdit = () => {
-    updateSelectedDay(preEditSchedule!);
-    setPreEditSchedule(null);
-    setPicker(null);
-    setError(null);
-  };
+  const weekShiftPill = useMemo(() => {
+    let bg = "bg-gray-200/20";
+    let border = "border-gray-300/30";
+    let text = "text-gray-400";
 
-  const submit = async () => {
-    if (!user?.id || saving) return;
-
-    if (isPastDay(selectedDate)) { setError("Cannot set availability for a past day."); return; }
-
-    if (daySchedule.fullDay) {
-      if (isSameDay(selectedDate, new Date()) && isPastTime("09", "00", selectedDate)) {
-        setError("Full day availability has already passed for today.");
-        return;
-      }
-    } else if (!daySchedule.isOvernight) {
-      const [endH, endM] = daySchedule.end.split(":");
-      if (isPastTime(endH, endM, selectedDate)) {
-        setError("The selected availability window has already passed for today.");
-        return;
+    if (weekShiftCount > 0) {
+      if (weekType === "current") {
+        bg = "bg-brand-success/15";
+        border = "border-brand-success/30";
+        text = "text-brand-success";
+      } else if (weekType === "past") {
+        bg = "bg-red-500/15";
+        border = "border-red-500/30";
+        text = "text-red-400";
+      } else if (weekType === "future") {
+        bg = "bg-yellow-200/20";
+        border = "border-yellow-300/40";
+        text = "text-yellow-300";
       }
     }
 
-    const validationError = validateSchedule(daySchedule);
-    if (validationError) { setError(validationError); return; }
-    setError(null);
+    return { bg, border, text };
+  }, [weekType, weekShiftCount]);
 
-    const targets = [
-      { key: selectedDateKey, date: selectedDate },
-      ...copyTo.map(ck => ({ key: ck, date: new Date(ck + "T00:00:00") })),
-    ];
-
-    setSaving(true);
-
-    const makeRow = (date: Date) => ({
-      user_id: user.id,
-      specific_date: formatDateKey(date),
-      start_time: daySchedule.fullDay ? "09:00" : daySchedule.start,
-      end_time:   daySchedule.fullDay ? "17:00" : daySchedule.end,
-      is_available: true,
-      is_overnight: daySchedule.fullDay ? false : daySchedule.isOvernight,
+  const changeWeek = (direction: "prev" | "next") => {
+    setWeekOffset((prev) => {
+      const next = Math.max(
+        -4,
+        Math.min(4, direction === "prev" ? prev - 1 : prev + 1)
+      );
+      const newAnchor = new Date(today);
+      newAnchor.setDate(today.getDate() + next * 7);
+      const newWeekDays = buildWeekDays(newAnchor);
+      setSelectedDate(next === 0 ? today : newWeekDays[0]);
+      return next;
     });
-
-    try {
-      await Promise.all(targets.map(async ({ key: targetKey, date }) => {
-        const existing = availabilityMap[targetKey];
-        if (existing?.dbId) {
-          await supabase.from("availabilities").update(makeRow(date)).eq("id", existing.dbId).eq("user_id", user.id);
-          setAvailabilityMap(prev => ({ ...prev, [targetKey]: { ...daySchedule, saved: true, dbId: prev[targetKey]?.dbId } }));
-        } else {
-          const { data } = await supabase.from("availabilities").insert(makeRow(date)).select("id").single();
-          if (data) setAvailabilityMap(prev => ({ ...prev, [targetKey]: { ...daySchedule, saved: true, dbId: data.id } }));
-        }
-      }));
-    } catch {
-      setError("Failed to save availability. Please try again.");
-    } finally {
-      setSaving(false);
-      setPicker(null);
-      setCopyTo([]);
-      setPreEditSchedule(null);
-    }
   };
 
-  const clear = async () => {
-    // ── NEW: frontend guard — re-check before actually deleting ──
-    if (shiftAssigned) {
-      setError("Cannot remove availability — a shift has already been assigned for this day.");
-      setConfirmClear(false);
-      return;
-    }
+  /* ───────── Loading ───────── */
 
-    if (daySchedule.dbId) {
-      // ── NEW: catch DB-level trigger error (covers admin dashboard / direct API calls) ──
-      const { error: deleteError } = await supabase
-        .from("availabilities")
-        .delete()
-        .eq("id", daySchedule.dbId)
-        .eq("user_id", user!.id);
+  if (isLoading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-brand-background">
+        <ActivityIndicator size="large" color="#063386" />
+        <Text className="mt-4 text-gray-500 font-medium">Loading schedule...</Text>
+      </View>
+    );
+  }
 
-      if (deleteError) {
-        setError("Cannot remove availability — a shift has already been assigned for this day.");
-        setConfirmClear(false);
-        return; // stop here — do NOT wipe local state
-      }
-    }
+  /* ───────── Error ───────── */
 
-    // Only reaches here if delete succeeded
-    setAvailabilityMap(prev => { const updated = { ...prev }; delete updated[selectedDateKey]; return updated; });
-    setPicker(null);
-    setCopyTo([]);
-    setError(null);
-    setConfirmClear(false);
-  };
+  if (isError) {
+    return (
+      <View className="flex-1 items-center justify-center bg-brand-background px-4">
+        <Text className="text-center text-red-500 font-bold text-lg">
+          Error loading schedule
+        </Text>
+        <Text className="mt-2 text-sm text-gray-500 text-center">
+          {String(error?.message ?? error)}
+        </Text>
+      </View>
+    );
+  }
 
-  const changeWeek = (dir: 1|-1) => setWeekOffset(prev => {
-    const next = Math.max(0, Math.min(4, prev + dir));
-    const a = new Date(today); a.setDate(today.getDate() + next * 7);
-    selectDay(next === 0 ? today : weekOf(a)[0]);
-    return next;
-  });
-
-  if (loading) return <View className="flex-1 items-center justify-center bg-brand-secondary"><ActivityIndicator color="#fff" /></View>;
-
-  const submitLabel = copyTo.length > 0 ? `Submit for ${copyTo.length + 1} Days` : "Submit";
+  /* ───────── UI ───────── */
 
   return (
-    <ScrollView className="flex-1 bg-brand-background" bounces={false} showsVerticalScrollIndicator={false}>
-
-      {/* Blue header background */}
-      <View className="bg-brand-secondary pb-4 h-[300px]">
-
-        {/* Header */}
-        <View className="pt-2">
-          <View className="flex-row items-center justify-between mb-5">
-            <View/>
+    <View className="flex-1 bg-brand-background">
+      {/* Header */}
+      <View className="bg-brand-secondary pb-16 px-5">
+        {/* Week Info */}
+        <View className="flex-row items-center gap-4 mb-6 mt-3">
+          <View
+            className={`rounded-full px-5 py-2 border ${
+              weekType === "current"
+                ? "bg-brand-success/15 border-brand-success/30"
+                : weekType === "past"
+                ? "bg-red-500/15 border-red-500/30"
+                : "bg-yellow-200/20 border-yellow-300/40"
+            }`}
+          >
+            <Text
+              className={`text-md font-semibold ${
+                weekType === "current"
+                  ? "text-brand-success"
+                  : weekType === "past"
+                  ? "text-red-400"
+                  : "text-yellow-300"
+              }`}
+            >
+              {weekType === "current"
+                ? "This Week"
+                : weekType === "past"
+                ? "Past Week"
+                : "Upcoming Week"}
+            </Text>
           </View>
 
-          <View className="mb-5 ml-14">
-            <View className={`self-start rounded-full px-3 py-1 border ${weekOffset === 0 ? "bg-brand-success/15 border-brand-success/30" : "bg-yellow-200/20 border-yellow-300/40"}`}>
-              <Text className={`text-[10px] font-semibold ${weekOffset === 0 ? "text-brand-success" : "text-yellow-300"}`}>{weekOffset === 0 ? "This Week" : "Upcoming Week"}</Text>
-            </View>
+          <View
+            className={`rounded-full px-5 py-2 border ${weekShiftPill.bg} ${weekShiftPill.border}`}
+          >
+            <Text className={`text-md font-semibold ${weekShiftPill.text}`}>
+              {weekShiftCount > 0
+                ? `${weekShiftCount} shift${weekShiftCount !== 1 ? "s" : ""} this week`
+                : "No shifts this week"}
+            </Text>
           </View>
+        </View>
 
-          {/* Day pill row */}
-          <View className="flex-row items-center px-6">
-            <Pressable onPress={() => changeWeek(-1)} disabled={weekOffset === 0} className="w-8 h-8 items-center justify-center">
-              <WhiteArrow width={14} height={14} style={{ opacity: weekOffset === 0 ? 0.2 : 1 }} />
-            </Pressable>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 5 }} className="flex-1">
-              {week.map((d, i) => {
-                const isSelected = isSameDay(d, selectedDate);
-                const isSaved = !!availabilityMap[formatDateKey(d)]?.saved;
-                const isPast = isPastDay(d);
-                return (
-                  <Pressable key={i} onPress={() => selectDay(d)} disabled={isPast} style={isPast ? { pointerEvents: "none" } : undefined} className={`items-center py-2 px-2.5 rounded-xl min-w-[40px] ${isSelected ? "bg-white" : isPast ? "bg-white/5" : "bg-white/10"}`}>
-                    <Text className={`text-[9px] font-semibold mb-0.5 ${isSelected ? "text-brand-secondary" : isPast ? "text-white/20" : "text-white/50"}`}>{DAYS[i]}</Text>
-                    <Text className={`text-sm font-bold ${isSelected ? "text-brand-secondary" : isPast ? "text-white/20" : "text-white"}`}>{d.getDate()}</Text>
-                    {isSaved && <View className="w-1.5 h-1.5 rounded-full bg-brand-success mt-0.5" />}
-                  </Pressable>
-                );
+        {/* Week Calendar */}
+        <View className="flex-row items-center">
+          <Pressable
+            onPress={() => changeWeek("prev")}
+            className="w-8 h-8 items-center justify-center mr-1"
+          >
+            <WhiteArrow width={16} height={16} />
+          </Pressable>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 7 }}
+            className="flex-1"
+          >
+            {weekDays.map((day, i) => {
+              const isSelected = isSameLocalDate(day, selectedDate);
+              const hasShift = getShiftsForDate(day).length > 0;
+
+              return (
+                <Pressable
+                  key={day.toDateString()}
+                  onPress={() => setSelectedDate(day)}
+                  className={`items-center rounded-xl min-w-[44px] ${
+                    isSelected ? "bg-white" : "bg-white/10"
+                  }`}
+                  style={{
+                    height: 58,
+                    paddingTop: 8,
+                    paddingBottom: 6,
+                    paddingHorizontal: 12,
+                  }}
+                >
+                  <Text
+                    className={`text-[10px] font-semibold ${
+                      isSelected ? "text-brand-secondary" : "text-white/50"
+                    }`}
+                  >
+                    {WEEKDAY_SHORT[i]}
+                  </Text>
+
+                  <Text
+                    className={`text-sm font-bold mt-1 ${
+                      isSelected ? "text-brand-secondary" : "text-white"
+                    }`}
+                  >
+                    {day.getDate()}
+                  </Text>
+
+                  <View
+                    style={{
+                      height: 8,
+                      marginTop: 2,
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    {hasShift && (
+                      <View
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: 4,
+                          backgroundColor: "#22c55e",
+                        }}
+                      />
+                    )}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          <Pressable
+            onPress={() => changeWeek("next")}
+            className="w-8 h-8 items-center justify-center ml-1"
+          >
+            <WhiteArrow
+              width={16}
+              height={16}
+              style={{ transform: [{ rotate: "180deg" }] }}
+            />
+          </Pressable>
+        </View>
+
+        {/* Selected Day */}
+        <View className="mt-6">
+          <View className="flex-row items-center gap-3">
+            <View className="w-2 h-2 rounded-full bg-brand-primary" />
+            <Text className="text-md font-bold text-white tracking-widest uppercase">
+              {selectedDate.toLocaleDateString([], {
+                weekday: "long",
+                month: "short",
+                day: "numeric",
               })}
-            </ScrollView>
-            <Pressable onPress={() => changeWeek(1)} className="w-8 h-8 items-center justify-center">
-              <WhiteArrow width={14} height={14} style={{ transform: [{ rotate: "180deg" }] }} />
-            </Pressable>
+            </Text>
           </View>
         </View>
       </View>
 
-      {/* Card */}
-      <View className="px-8 -mt-44">
-        <View className="bg-white rounded-2xl shadow-lg shadow-black/20 elevation-8">
-          <View className="px-5 pt-4 pb-3 border-b border-gray-100">
-            <Text className="text-brand-secondary font-black text-lg">
-              {selectedDate.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}
-            </Text>
-            <Text className="text-gray-600 font-medium">
-              {isPastDay(selectedDate) ? "Past days cannot be edited" : daySchedule.saved ? "Edit or clear availability" : "Submit your availability"}
-            </Text>
-          </View>
-
-          <View className="p-5" style={{ gap: 12 }}>
-
-            {/* Full Day toggle */}
-            <View className="flex-row items-center justify-between px-4 py-3.5 rounded border border-gray-400">
-              <View>
-                <Text className="text-gray-900 font-extrabold">Full Day Available</Text>
-                <Text className="text-gray-700 font-semibold">Available for any time slot</Text>
-              </View>
-              <Switch value={daySchedule.fullDay} onValueChange={(v) => { if (!isReadOnly) updateSelectedDay({ fullDay: v, isOvernight: false }); }} disabled={isReadOnly} trackColor={{ false: "#e5e7eb", true: "#05CC66" }} thumbColor="#fff" />
-            </View>
-
-            {/* Overnight toggle only shown when fullDay is off */}
-            {!daySchedule.fullDay && (
-              <View className="flex-row items-center justify-between px-4 py-3.5 rounded border border-gray-400">
-                <View>
-                  <Text className="text-gray-900 font-extrabold">Overnight Shift</Text>
-                  <Text className="text-gray-700 font-semibold">Shift extends past midnight</Text>
-                </View>
-                <Switch value={daySchedule.isOvernight} onValueChange={(v) => { if (!isReadOnly) updateSelectedDay({ isOvernight: v }); }} disabled={isReadOnly} trackColor={{ false: "#e5e7eb", true: "#6366f1" }} thumbColor="#fff" />
-              </View>
-            )}
-
-            {/* Overnight info banner */}
-            {daySchedule.isOvernight && !daySchedule.fullDay && (
-              <View className="px-4 py-3 rounded bg-indigo-50 border border-indigo-200 flex-row items-center" style={{ gap: 8 }}>
-                <Ionicons name="moon-outline" size={20} color="#4338ca" />
-                <Text className="text-indigo-700 font-semibold text-md">Overnight shift, ends the following day</Text>
-              </View>
-            )}
-
-            {/* Time pickers */}
-            {!daySchedule.fullDay && (
-              <View style={{ gap: 8 }}>
-                <Text className="text-gray-500 font-semibold uppercase">Specific Hours</Text>
-                <View className="flex-row gap-3">
-                  {(["start","end"] as const).map((field, fieldIndex) => {
-                    const { time, ampm } = parseTimeLabel(daySchedule[field]);
-                    const isOpen = picker === field;
-                    return (
-                      <Pressable key={field}
-                        onPress={() => { if (!isReadOnly) setPicker(currentPicker => currentPicker === field ? null : field); }}
-                        className={`flex-1 rounded p-4 border ${isOpen ? "bg-brand-secondary border-brand-secondary" : "bg-white border-gray-400"}`}>
-                        <Text className={`text-[12px] font-semibold tracking-widest uppercase mb-1 ${isOpen ? "text-white" : "text-gray-600"}`}>{fieldIndex === 0 ? "FROM" : "TO"}</Text>
-                        <View className="flex-row items-baseline gap-1">
-                          <Text className={`font-black text-xl ${isOpen ? "text-white" : "text-brand-secondary"}`}>{time}</Text>
-                          <Text className={`font-bold text-xs ${isOpen ? "text-white/90" : "text-gray-600"}`}>{ampm}</Text>
-                        </View>
-                        {field === "end" && daySchedule.isOvernight && (
-                          <Text className={`text-[15px] font-extrabold ${isOpen ? "text-white/70" : "text-indigo-500"}`}>next day</Text>
-                        )}
-                      </Pressable>
-                    );
-                  })}
-                </View>
-                {picker && !isReadOnly && (
-                  <View className="bg-gray-50 border border-gray-400 rounded p-3" style={{ gap: 8 }}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 5 }}>
-                      {HOURS.map((value) => {
-                        const active = daySchedule[picker].split(":")[0] === value;
-                        const currentMinute = daySchedule[picker].split(":")[1];
-                        const next = `${value}:${currentMinute}`;
-                        const { time, ampm } = parseTimeLabel(`${value}:00`);
-                        const past = (picker === "end" && daySchedule.isOvernight)
-                          ? false
-                          : isPastTime(value, currentMinute, selectedDate);
-                        return (
-                          <Pressable key={value} onPress={() => { if (!past) updateSelectedDay({ [picker]: next }); }} disabled={past}
-                            className={`px-3 h-9 items-center justify-center rounded-lg ${active ? "bg-brand-secondary" : past ? "bg-gray-100 border border-gray-100" : "bg-white border border-gray-200"}`}>
-                            <Text className={`text-m font-bold ${active ? "text-white" : past ? "text-gray-300" : "text-gray-800"}`}>{time}{ampm}</Text>
-                          </Pressable>
-                        );
-                      })}
-                    </ScrollView>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 5 }}>
-                      {MINUTE_INCREMENTS.map((val) => {
-                        const active = daySchedule[picker].split(":")[1] === val;
-                        const currentHour = daySchedule[picker].split(":")[0];
-                        const next = `${currentHour}:${val}`;
-                        const past = (picker === "end" && daySchedule.isOvernight)
-                          ? false
-                          : isPastTime(currentHour, val, selectedDate);
-                        return (
-                          <Pressable key={val} onPress={() => { if (!past) updateSelectedDay({ [picker]: next }); }} disabled={past}
-                            className={`w-11 h-9 items-center justify-center rounded-lg ${active ? "bg-brand-secondary" : past ? "bg-gray-100 border border-gray-100" : "bg-white border border-gray-200"}`}>
-                            <Text className={`text-m font-bold ${active ? "text-white" : past ? "text-gray-300" : "text-gray-800"}`}>:{val}</Text>
-                          </Pressable>
-                        );
-                      })}
-                    </ScrollView>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Apply to other days */}
-            <Pressable
-              onPress={() => { if (!isReadOnly) setExpandApply(prev => !prev); }}
-              className="flex-row items-center justify-between px-4 py-3.5 rounded border border-gray-400"
-            >
-              <View>
-                <Text className="text-gray-900 font-bold">Apply to Other Days</Text>
-                <Text className="text-gray-600 mt-2">
-                  {copyTo.length === 0 ? "Copy to multiple days" : `${copyTo.length} day${copyTo.length > 1 ? "s" : ""} selected`}
+      {/* Shifts */}
+      <View className="-mt-8 flex-1">
+        <ScrollView
+          className="flex-1"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+        >
+          <View className="bg-white rounded-xl overflow-hidden shadow-xl">
+            {selectedDayShifts.length === 0 ? (
+              <View className="px-5 py-10 items-center">
+                <Text className="text-xl font-bold text-gray-800 text-center">
+                  No shifts scheduled
+                </Text>
+                <Text className="text-lg text-gray-400 text-center mt-2">
+                  Enjoy your day off! nothing on the clock!
                 </Text>
               </View>
-              <View className={`w-7 h-7 rounded items-center justify-center border ${expandApply && !isReadOnly ? "bg-brand-secondary border-brand-secondary" : "border-gray-800"}`}>
-                <Text className={`${expandApply && !isReadOnly ? "text-white" : "text-gray-800"}`}>{expandApply && !isReadOnly ? "−" : "+"}</Text>
-              </View>
-            </Pressable>
-
-            {expandApply && !isReadOnly && (
-              <View style={{ gap: 8 }}>
-                <View className="flex-row flex-wrap" style={{ gap: 8 }}>
-                  {week.filter(d => !isSameDay(d, selectedDate) && !isPastDay(d) && !availabilityMap[formatDateKey(d)]?.saved).map((d) => {
-                    const dateKey = formatDateKey(d);
-                    const isChosen = copyTo.includes(dateKey);
-                    const dayIndex = week.findIndex(w => isSameDay(w, d));
-                    return (
-                      <Pressable key={dateKey} onPress={() => toggleCopy(dateKey)}
-                        style={{ width: "22%" }}
-                        className={`items-center py-2 rounded-sm border ${isChosen ? "bg-brand-secondary border-brand-secondary" : "bg-white border-gray-400"}`}>
-                        <Text className={`text-[9px] font-bold ${isChosen ? "text-white/70" : "text-gray-600"}`}>{DAYS[dayIndex]}</Text>
-                        <Text className={`text-md font-black ${isChosen ? "text-white" : "text-gray-800"}`}>{d.getDate()}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-            )}
-
-            {/* Error banner */}
-            {error && (
-              <View className="px-4 py-3 rounded bg-red-50 border border-red-300">
-                <Text className="text-red-600 font-semibold text-sm">{error}</Text>
-              </View>
-            )}
-
-            {/* Buttons */}
-            {!isPastDay(selectedDate) && (daySchedule.saved && copyTo.length === 0 ? (
-              confirmClear ? (
-                <View style={{ gap: 8 }} className="mt-2">
-                  <Text className="text-gray-700 font-extrabold text-[18px] text-center p-3">Clear availability for this day?</Text>
-                  <View className="flex-row gap-3">
-                    <Pressable onPress={() => setConfirmClear(false)} className="flex-1 rounded-xl py-4 items-center bg-gray-200">
-                      <Text className="text-gray-800 font-black text-medium tracking-widest uppercase">Cancel</Text>
-                    </Pressable>
-                    <Pressable onPress={clear} className="flex-1 rounded-xl py-4 items-center bg-red-600">
-                      <Text className="text-white font-black text-medium tracking-widest uppercase">Confirm</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              ) : (
-                <View className="flex-row gap-3 mt-2">
-                  <Pressable onPress={startEdit} className="flex-1 rounded-xl py-4 items-center bg-brand-secondary">
-                    <Text className="text-white font-black text-medium tracking-widest uppercase">Edit</Text>
-                  </Pressable>
-                  {/* ── NEW: disable Clear button and show tooltip if shift is assigned ── */}
-                  <Pressable
-                    onPress={() => {
-                      if (shiftAssigned) {
-                        setError("Cannot remove availability — a shift has already been assigned for this day.");
-                        return;
-                      }
-                      setConfirmClear(true);
-                    }}
-                    className={`flex-1 rounded-xl py-4 items-center ${shiftAssigned ? "bg-red-300" : "bg-red-600"}`}
-                  >
-                    <Text className="text-white font-black text-medium tracking-widest uppercase">Clear</Text>
-                  </Pressable>
-                </View>
-              )
             ) : (
-              <View className="flex-row gap-3 mt-2">
-                {preEditSchedule && (
-                  <Pressable onPress={cancelEdit} className="flex-1 rounded-xl py-4 items-center bg-gray-200">
-                    <Text className="text-gray-800 font-black text-medium tracking-widest uppercase">Cancel</Text>
-                  </Pressable>
-                )}
-                <Pressable onPress={submit} disabled={saving} className="flex-1 rounded-xl py-5 items-center justify-center bg-brand-secondary">
-                  {saving
-                    ? <ActivityIndicator size="small" color="#fff" />
-                    : <Text numberOfLines={1} adjustsFontSizeToFit className="font-black text-medium tracking-widest uppercase text-white text-center">{submitLabel}</Text>
-                  }
-                </Pressable>
+              <View className="px-5 py-5 gap-3">
+                {selectedDayShifts.map((shift: Shift, index: number) => {
+                  const start = new Date(shift.start_time).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
+                  const end = new Date(shift.end_time).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
+
+                  return (
+                    <View key={shift.id}>
+                      <View className="bg-gray-50 rounded p-5 border border-gray-400 mb-5">
+                        <Text className="text-xl font-bold text-gray-800">
+                          {shift.role_at_time_of_shift}
+                        </Text>
+                        <Text className="text-lg text-gray-600 mt-0.5">
+                          {shift.location_id}
+                        </Text>
+                        <Text className="text-lg text-gray-500 mt-1 font-medium">
+                          {start} — {end}
+                        </Text>
+                      </View>
+
+                      <Pressable
+                        onPress={() =>
+                          router.push(`/(tabs)/shift/${shift.id}` as any)
+                        }
+                        className="bg-brand-secondaryLight rounded-2xl py-5 items-center justify-center flex-row gap-2 mt-3"
+                      >
+                        <Text className="text-white font-bold text-sm tracking-widest uppercase">
+                          View Details
+                        </Text>
+                      </Pressable>
+
+                      <Pressable
+                        onPress={() => {
+                          setSelectedShiftId(shift.id ?? null);
+                          setSelectedShiftRole(shift.role_at_time_of_shift);
+                          setSelectedShiftStartTime(shift.start_time);
+                          setSelectedShiftEndTime(shift.end_time);
+                          setSwapVisible(true);
+                        }}
+                        className="bg-brand-secondaryLight rounded-2xl py-5 items-center justify-center mt-3"
+                      >
+                        <Text className="text-white font-bold text-sm tracking-widest uppercase">
+                          Request Swap
+                        </Text>
+                      </Pressable>
+
+                      {index < selectedDayShifts.length - 1 && (
+                        <View className="h-px bg-gray-100 mt-3" />
+                      )}
+                    </View>
+                  );
+                })}
               </View>
-            ))}
+            )}
           </View>
-        </View>
+        </ScrollView>
       </View>
-    </ScrollView>
+
+      {selectedShiftId && selectedShiftRole && selectedShiftStartTime && (
+        <SwapModal
+          visible={swapVisible}
+          shiftId={selectedShiftId}
+          shiftStartTime={selectedShiftStartTime}
+          shiftEndTime={selectedShiftEndTime ?? ""} 
+          role={selectedShiftRole}
+          onSwapSent={() => {
+            queryClient.invalidateQueries({
+              queryKey: SHIFTS_QUERY_KEY_BASE,
+              exact: false,
+            });
+          }}
+          onClose={() => {
+            setSwapVisible(false);
+            setSelectedShiftId(null);
+            setSelectedShiftRole(null);
+            setSelectedShiftStartTime(null);
+            setSelectedShiftEndTime(null);
+          }}
+        />
+      )}
+    </View>
   );
 }
