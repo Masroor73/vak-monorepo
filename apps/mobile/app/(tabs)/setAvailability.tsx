@@ -77,6 +77,8 @@ export default function SetAvailability() {
   const [error, setError] = useState<string | null>(null);
   const [preEditSchedule, setPreEditSchedule] = useState<DaySchedule | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
+  // ── NEW: tracks whether selected day has an assigned shift ──
+  const [shiftAssigned, setShiftAssigned] = useState(false);
 
   const anchor = useMemo(() => { const d = new Date(today); d.setDate(today.getDate() + weekOffset * 7); return d; }, [today, weekOffset]);
   const week = useMemo(() => weekOf(anchor), [anchor]);
@@ -115,6 +117,21 @@ export default function SetAvailability() {
       });
   }, [user?.id]);
 
+  // ── NEW: check if the selected day has an assigned shift ──
+  const checkShiftAssigned = async (date: Date) => {
+    if (!user?.id) return;
+    const dayStart = `${formatDateKey(date)}T00:00:00`;
+    const dayEnd = `${formatDateKey(date)}T23:59:59`;
+    const { data } = await supabase
+     .from("shifts")
+     .select("id")
+     .eq("employee_id", user.id)   
+     .gte("start_time", dayStart) 
+     .lte("start_time", dayEnd)
+     .limit(1);
+    setShiftAssigned((data?.length ?? 0) > 0);
+  };
+
   const selectDay = (d: Date) => {
     if (isPastDay(d)) return;
     setSelectedDate(d);
@@ -123,6 +140,8 @@ export default function SetAvailability() {
     setExpandApply(false);
     setError(null);
     setConfirmClear(false);
+    // ── NEW: check shift assignment whenever a day is selected ──
+    checkShiftAssigned(d);
   };
 
   const selectedDateKey = formatDateKey(selectedDate);
@@ -206,13 +225,29 @@ export default function SetAvailability() {
   };
 
   const clear = async () => {
+    // ── NEW: frontend guard — re-check before actually deleting ──
+    if (shiftAssigned) {
+      setError("Cannot remove availability — a shift has already been assigned for this day.");
+      setConfirmClear(false);
+      return;
+    }
+
     if (daySchedule.dbId) {
-      await supabase
+      // ── NEW: catch DB-level trigger error (covers admin dashboard / direct API calls) ──
+      const { error: deleteError } = await supabase
         .from("availabilities")
         .delete()
         .eq("id", daySchedule.dbId)
         .eq("user_id", user!.id);
+
+      if (deleteError) {
+        setError("Cannot remove availability — a shift has already been assigned for this day.");
+        setConfirmClear(false);
+        return; // stop here — do NOT wipe local state
+      }
     }
+
+    // Only reaches here if delete succeeded
     setAvailabilityMap(prev => { const updated = { ...prev }; delete updated[selectedDateKey]; return updated; });
     setPicker(null);
     setCopyTo([]);
@@ -443,7 +478,17 @@ export default function SetAvailability() {
                   <Pressable onPress={startEdit} className="flex-1 rounded-xl py-4 items-center bg-brand-secondary">
                     <Text className="text-white font-black text-medium tracking-widest uppercase">Edit</Text>
                   </Pressable>
-                  <Pressable onPress={() => setConfirmClear(true)} className="flex-1 rounded-xl py-4 items-center bg-red-600">
+                  {/* ── NEW: disable Clear button and show tooltip if shift is assigned ── */}
+                  <Pressable
+                    onPress={() => {
+                      if (shiftAssigned) {
+                        setError("Cannot remove availability — a shift has already been assigned for this day.");
+                        return;
+                      }
+                      setConfirmClear(true);
+                    }}
+                    className={`flex-1 rounded-xl py-4 items-center ${shiftAssigned ? "bg-red-300" : "bg-red-600"}`}
+                  >
                     <Text className="text-white font-black text-medium tracking-widest uppercase">Clear</Text>
                   </Pressable>
                 </View>
