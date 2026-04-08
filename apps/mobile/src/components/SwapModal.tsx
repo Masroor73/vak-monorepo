@@ -169,7 +169,7 @@ export default function SwapModal({
   const myEnd = new Date(shiftEndTime).toTimeString().slice(0, 5);
 
   try {
-    //  Fetch all upcoming shifts excluding the current user
+    // Fetch all upcoming shifts excluding the current user
     const { data: shifts, error: shiftError } = await supabase
       .from("shifts")
       .select("*, profiles!shifts_employee_id_fkey(full_name, avatar_url)")
@@ -181,24 +181,6 @@ export default function SwapModal({
     if (shiftError) {
       setLoadError("Failed to load eligible shifts.");
       return;
-    }
-
-    //Build a map for availability on other days
-    const shiftEmployeeIds = [...new Set((shifts || []).map((s: any) => s.employee_id))];
-    const availMapForMyDate = new Map<string, { start_time: string; end_time: string }>();
-
-    if (shiftEmployeeIds.length > 0) {
-      const { data: availForMyDate } = await supabase
-        .from("availabilities")
-        .select("user_id, start_time, end_time, specific_date")
-        .in("user_id", shiftEmployeeIds);
-
-      (availForMyDate || []).forEach((a: any) => {
-        availMapForMyDate.set(a.user_id, {
-          start_time: a.start_time,
-          end_time: a.end_time,
-        });
-      });
     }
 
     // Deduplicate shifts per employee
@@ -239,19 +221,19 @@ export default function SwapModal({
     const { data: available, error: availError } = await supabase
       .from("availabilities")
       .select("*, profiles(full_name, avatar_url)")
-      .eq("is_available", true); 
+      .eq("is_available", true);
 
     if (availError) console.error("Failed to load availabilities:", availError.message);
 
     const seenAvail = new Set<string>();
 
-    // Track shifts on other days
-    const employeesWithShiftsOnOtherDays = new Set(
-      (shifts || []).map((s: any) => {
-        const shiftDate = new Date(s.start_time).toISOString().split("T")[0];
-        return `${s.employee_id}-${shiftDate}`;
-      })
-    );
+    // Map all of user's future shifts to filter overlapping availability
+    const { data: myShifts } = await supabase
+      .from("shifts")
+      .select("*")
+      .eq("employee_id", user.id)
+      .gt("start_time", new Date().toISOString())
+      .neq("status", "COMPLETED");
 
     const availOptions: AvailableEmployee[] = (available || [])
       .filter((a: any) => {
@@ -260,7 +242,7 @@ export default function SwapModal({
         const aEnd = a.end_time.slice(0, 5);
         const today = new Date().toISOString().split("T")[0];
 
-        // Exclude past dates
+        // Exclude past dates and same-day slots
         if (availDate <= today) return false;
         if (availDate === myShiftDate) return false;
 
@@ -278,9 +260,17 @@ export default function SwapModal({
 
         // Deduplicate by employee + date
         const key = `${a.user_id}-${availDate}`;
-        if (employeesWithShiftsOnOtherDays.has(key)) return false;
         if (seenAvail.has(key)) return false;
         seenAvail.add(key);
+
+        // --- NEW: Remove user's availability if overlapping a shift ---
+        if (a.user_id === user.id && myShifts?.some(s => {
+          const sStart = new Date(s.start_time);
+          const sEnd = new Date(s.end_time);
+          const aStartDate = new Date(`${availDate}T${a.start_time}`);
+          const aEndDate = new Date(`${availDate}T${a.end_time}`);
+          return aStartDate < sEnd && aEndDate > sStart; // overlap check
+        })) return false;
 
         return true;
       })
@@ -295,7 +285,7 @@ export default function SwapModal({
         type: "available" as const,
       }));
 
-    //  Set state
+    // Set final options
     setOptions([...shiftOptions, ...availOptions]);
   } catch (e) {
     setLoadError("Failed to load options. Please try again.");
