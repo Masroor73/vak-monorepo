@@ -227,7 +227,7 @@ export default function SetAvailability() {
   const clear = async () => {
     // ── NEW: frontend guard — re-check before actually deleting ──
     if (shiftAssigned) {
-      setError("Cannot remove availability — a shift has already been assigned for this day.");
+      setError("Cannot remove availability, a shift has already been assigned for this day.");
       setConfirmClear(false);
       return;
     }
@@ -241,7 +241,7 @@ export default function SetAvailability() {
         .eq("user_id", user!.id);
 
       if (deleteError) {
-        setError("Cannot remove availability — a shift has already been assigned for this day.");
+        setError("Cannot remove availability, a shift has already been assigned for this day.");
         setConfirmClear(false);
         return; // stop here — do NOT wipe local state
       }
@@ -482,7 +482,7 @@ export default function SetAvailability() {
                   <Pressable
                     onPress={() => {
                       if (shiftAssigned) {
-                        setError("Cannot remove availability — a shift has already been assigned for this day.");
+                        setError("Cannot remove availability, a shift has already been assigned for this day.");
                         return;
                       }
                       setConfirmClear(true);
