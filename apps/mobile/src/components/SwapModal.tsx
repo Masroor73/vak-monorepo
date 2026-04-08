@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal, View, Text, Pressable, ScrollView, ActivityIndicator } from "react-native";
+import { Modal, View, Text, Pressable, ScrollView, ActivityIndicator, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
@@ -34,18 +34,11 @@ type AvailableEmployee = {
   avatar_url?: string | null;
   start_time: string;
   end_time: string;
+  shift_date: string;
   type: "available";
 };
 
 type SwapOption = EligibleShift | AvailableEmployee;
-
-const AVATAR_COLORS = ["#62CCEF", "#05CC66", "#FBC02D", "#D32F2F", "#7C3AED", "#EA580C"];
-
-function avatarColor(id: string) {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
 
 function formatTime(timeStr: string) {
   if (timeStr.includes("T")) {
@@ -75,31 +68,21 @@ function getShiftSwapError(shiftStartTime: string, shiftEndTime: string): string
   return null;
 }
 
-// Convert a "HH:MM" or "HH:MM:SS" time string to minutes since midnight
 function timeStrToMinutes(t: string): number {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
 }
 
-// Check if an availability window covers the shift times
-// i.e. availability start <= shift start AND availability end >= shift end
 function availabilityCoversShift(
-  availStart: string, // "HH:MM" or "HH:MM:SS"
+  availStart: string,
   availEnd: string,
-  shiftStart: string, // ISO datetime
+  shiftStart: string,
   shiftEnd: string
 ): boolean {
   const availStartMins = timeStrToMinutes(availStart);
   const availEndMins = timeStrToMinutes(availEnd);
-
-  // Extract just the time portion from the ISO shift datetimes
-  const shiftStartMins = timeStrToMinutes(
-    new Date(shiftStart).toTimeString().slice(0, 5)
-  );
-  const shiftEndMins = timeStrToMinutes(
-    new Date(shiftEnd).toTimeString().slice(0, 5)
-  );
-
+  const shiftStartMins = timeStrToMinutes(new Date(shiftStart).toTimeString().slice(0, 5));
+  const shiftEndMins = timeStrToMinutes(new Date(shiftEnd).toTimeString().slice(0, 5));
   return availStartMins <= shiftStartMins && availEndMins >= shiftEndMins;
 }
 
@@ -141,6 +124,7 @@ export default function SwapModal({
   const [sendError, setSendError] = useState<string | null>(null);
   const [sendSuccess, setSendSuccess] = useState<string | null>(null);
   const [timeBasedError, setTimeBasedError] = useState<string | null>(null);
+  const [reason, setReason] = useState("");
 
   useEffect(() => {
     if (visible) {
@@ -152,6 +136,7 @@ export default function SwapModal({
       setLoadError(null);
       setSendError(null);
       setSendSuccess(null);
+      setReason("");
     }
   }, [visible, role, user?.id]);
 
@@ -159,130 +144,173 @@ export default function SwapModal({
     if (!visible) {
       setTimeBasedError(null);
       return;
+    }
+    setTimeBasedError(getShiftSwapError(shiftStartTime, shiftEndTime));
+    const id = setInterval(() => {
+      setTimeBasedError(getShiftSwapError(shiftStartTime, shiftEndTime));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [visible, shiftStartTime, shiftEndTime]);
+
+  async function loadOptions() { 
+  if (!user) return;
+
+  const swapError = getShiftSwapError(shiftStartTime, shiftEndTime);
+  if (swapError) {
+    setLoadError(swapError);
+    return;
   }
 
-  // Check immediately, then every second
-  setTimeBasedError(getShiftSwapError(shiftStartTime, shiftEndTime));
-  const id = setInterval(() => {
-    setTimeBasedError(getShiftSwapError(shiftStartTime, shiftEndTime));
-  }, 1000);
+  setLoadError(null);
+  setLoading(true);
 
-  return () => clearInterval(id);
-}, [visible, shiftStartTime, shiftEndTime]);
+  const myShiftDate = new Date(shiftStartTime).toISOString().split("T")[0];
+  const myStart = new Date(shiftStartTime).toTimeString().slice(0, 5);
+  const myEnd = new Date(shiftEndTime).toTimeString().slice(0, 5);
 
-  async function loadOptions() {
-    if (!user) return;
+  try {
+    //  Fetch all upcoming shifts excluding the current user
+    const { data: shifts, error: shiftError } = await supabase
+      .from("shifts")
+      .select("*, profiles!shifts_employee_id_fkey(full_name, avatar_url)")
+      .neq("employee_id", user.id)
+      .gt("start_time", new Date().toISOString())
+      .neq("status", "COMPLETED")
+      .order("start_time", { ascending: true });
 
-    const swapError = getShiftSwapError(shiftStartTime, shiftEndTime);
-    if (swapError) { setLoadError(swapError); return; }
+    if (shiftError) {
+      setLoadError("Failed to load eligible shifts.");
+      return;
+    }
 
-    setLoadError(null);
-    setLoading(true);
+    //Build a map for availability on other days
+    const shiftEmployeeIds = [...new Set((shifts || []).map((s: any) => s.employee_id))];
+    const availMapForMyDate = new Map<string, { start_time: string; end_time: string }>();
 
-    // The date of YOUR shift — recipients must have availability covering
-    // your exact shift time window on this date
-    const myShiftDate = new Date(shiftStartTime).toISOString().split("T")[0];
-
-    try {
-      // ── STEP 1: Fetch all other employees' upcoming shifts ────────────────
-      const { data: shifts, error: shiftError } = await supabase
-        .from("shifts")
-        .select("*, profiles!shifts_employee_id_fkey(full_name, avatar_url)")
-        .neq("employee_id", user.id)
-        .gt("start_time", new Date().toISOString())
-        .neq("status", "COMPLETED")
-        .order("start_time", { ascending: true });
-
-      if (shiftError) { setLoadError("Failed to load eligible shifts."); return; }
-
-      // ── STEP 2: Fetch availability records on YOUR shift date for all
-      //    shift-holding employees — we need the time window too now
-      const shiftEmployeeIds = [...new Set((shifts || []).map((s: any) => s.employee_id))];
-      // Map of employee_id -> their availability record on your shift date
-      const availMapForMyDate = new Map<string, { start_time: string; end_time: string }>();
-
-      if (shiftEmployeeIds.length > 0) {
-        const { data: availForMyDate } = await supabase
-          .from("availabilities")
-          .select("user_id, start_time, end_time")
-          .eq("specific_date", myShiftDate)
-          .eq("is_available", true)
-          .in("user_id", shiftEmployeeIds);
-
-        (availForMyDate || []).forEach((a: any) => {
-          availMapForMyDate.set(a.user_id, {
-            start_time: a.start_time,
-            end_time: a.end_time,
-          });
-        });
-      }
-
-      // Only show shift options where the employee's availability window on
-      // your shift date actually COVERS your shift start and end times
-      const shiftOptions: EligibleShift[] = (shifts || [])
-        .filter((s: any) => {
-          const avail = availMapForMyDate.get(s.employee_id);
-          if (!avail) return false; // no availability at all on your shift date
-          return availabilityCoversShift(
-            avail.start_time,
-            avail.end_time,
-            shiftStartTime,
-            shiftEndTime
-          );
-        })
-        .map((s: any) => ({
-          ...s,
-          employee_name: s.profiles?.full_name ?? "Employee",
-          employee_avatar: s.profiles?.avatar_url ?? null,
-          type: "shift" as const,
-        }));
-
-      // ── STEP 3: Fetch employees available on YOUR shift date (no shift) ───
-      // Exclude anyone who already appears in the Shifts tab
-      const employeesWithShifts = new Set((shifts || []).map((s: any) => s.employee_id));
-
-      const { data: available, error: availError } = await supabase
+    if (shiftEmployeeIds.length > 0) {
+      const { data: availForMyDate } = await supabase
         .from("availabilities")
-        .select("*, profiles(full_name, avatar_url)")
-        .eq("specific_date", myShiftDate)
-        .eq("is_available", true)
-        .neq("user_id", user.id);
+        .select("user_id, start_time, end_time, specific_date")
+        .in("user_id", shiftEmployeeIds);
 
-      if (availError) console.log("AVAIL ERROR:", JSON.stringify(availError));
-
-      // Filter out employees who already have a shift (they're in Shifts tab)
-      // AND check their availability window covers your shift times
-      const availOptions: AvailableEmployee[] = (available || [])
-        .filter((a: any) => {
-          if (employeesWithShifts.has(a.user_id)) return false;
-          return availabilityCoversShift(
-            a.start_time,
-            a.end_time,
-            shiftStartTime,
-            shiftEndTime
-          );
-        })
-        .map((a: any) => ({
-          id: a.id,
-          employee_id: a.user_id,
-          full_name: a.profiles?.full_name ?? "Employee",
-          avatar_url: a.profiles?.avatar_url ?? null,
+      (availForMyDate || []).forEach((a: any) => {
+        availMapForMyDate.set(a.user_id, {
           start_time: a.start_time,
           end_time: a.end_time,
-          type: "available" as const,
-        }));
-
-      setOptions([...shiftOptions, ...availOptions]);
-    } catch (e) {
-      setLoadError("Failed to load options. Please try again.");
-    } finally {
-      setLoading(false);
+        });
+      });
     }
-  }
 
+    // Deduplicate shifts per employee
+    const seenShiftIds = new Set<string>();
+
+    const shiftOptions: EligibleShift[] = (shifts || [])
+      .filter((s: any) => {
+        const shiftDate = new Date(s.start_time).toISOString().split("T")[0];
+        if (shiftDate === myShiftDate) return false; // skip same-day shifts
+        return true;
+      })
+      .filter((s: any) => {
+        if (seenShiftIds.has(s.id)) return false;
+        seenShiftIds.add(s.id);
+        return true;
+      })
+      .map((s: any) => ({
+        ...s,
+        employee_name: s.profiles?.full_name ?? "Employee",
+        employee_avatar: s.profiles?.avatar_url ?? null,
+        type: "shift" as const,
+      }));
+
+    // Employees with conflicting shifts
+    const employeesWithConflictingShifts = new Set(
+      (shifts || [])
+        .filter((s: any) => {
+          const sStart = new Date(s.start_time).getTime();
+          const sEnd = new Date(s.end_time).getTime();
+          const myStartTime = new Date(shiftStartTime).getTime();
+          const myEndTime = new Date(shiftEndTime).getTime();
+          return sStart < myEndTime && sEnd > myStartTime;
+        })
+        .map((s: any) => s.employee_id)
+    );
+
+    // Load availabilities (including yourself)
+    const { data: available, error: availError } = await supabase
+      .from("availabilities")
+      .select("*, profiles(full_name, avatar_url)")
+      .eq("is_available", true); 
+
+    if (availError) console.error("Failed to load availabilities:", availError.message);
+
+    const seenAvail = new Set<string>();
+
+    // Track shifts on other days
+    const employeesWithShiftsOnOtherDays = new Set(
+      (shifts || []).map((s: any) => {
+        const shiftDate = new Date(s.start_time).toISOString().split("T")[0];
+        return `${s.employee_id}-${shiftDate}`;
+      })
+    );
+
+    const availOptions: AvailableEmployee[] = (available || [])
+      .filter((a: any) => {
+        const availDate = a.specific_date ?? myShiftDate;
+        const aStart = a.start_time.slice(0, 5);
+        const aEnd = a.end_time.slice(0, 5);
+        const today = new Date().toISOString().split("T")[0];
+
+        // Exclude past dates
+        if (availDate <= today) return false;
+        if (availDate === myShiftDate) return false;
+
+        // Must cover exact time slot
+        if (aStart !== myStart || aEnd !== myEnd) return false;
+
+        // Skip employees with conflicting shifts
+        if (employeesWithConflictingShifts.has(a.user_id)) return false;
+
+        // Skip if already in shiftOptions
+        const alreadyInShifts = shiftOptions.some(
+          (s) => s.employee_id === a.user_id && new Date(s.start_time).toISOString().split("T")[0] === availDate
+        );
+        if (alreadyInShifts) return false;
+
+        // Deduplicate by employee + date
+        const key = `${a.user_id}-${availDate}`;
+        if (employeesWithShiftsOnOtherDays.has(key)) return false;
+        if (seenAvail.has(key)) return false;
+        seenAvail.add(key);
+
+        return true;
+      })
+      .map((a: any) => ({
+        id: a.id,
+        employee_id: a.user_id,
+        full_name: a.user_id === user.id ? "Your Availability" : a.profiles?.full_name ?? "Employee",
+        avatar_url: a.profiles?.avatar_url ?? null,
+        start_time: a.start_time,
+        end_time: a.end_time,
+        shift_date: a.specific_date ?? myShiftDate,
+        type: "available" as const,
+      }));
+
+    //  Set state
+    setOptions([...shiftOptions, ...availOptions]);
+  } catch (e) {
+    setLoadError("Failed to load options. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+}
   async function sendSwapRequest() {
     if (!selectedOption || !user) {
       setSendError("Please choose a shift or employee first.");
+      return;
+    }
+
+    if (!reason.trim()) {
+      setSendError("Please enter a reason for the swap request.");
       return;
     }
 
@@ -295,7 +323,6 @@ export default function SwapModal({
     try {
       setSending(true);
 
-      // Guard: no duplicate pending swap for this shift
       const { data: existing } = await supabase
         .from("shift_swaps")
         .select("id")
@@ -311,15 +338,13 @@ export default function SwapModal({
 
       const recipientId = selectedOption.employee_id;
 
-      // Store recipient_type ("shift" | "available") so the manager web app /
-      // a future DB trigger knows how to handle availability records on approval
       const { error } = await supabase.from("shift_swaps").insert([{
         requester_id: user.id,
         recipient_id: recipientId,
         shift_id: shiftId,
         status: "PENDING",
-        reason: "Shift swap request",
-        recipient_type: selectedOption.type, // "shift" | "available"
+        reason: reason.trim(),
+        recipient_type: selectedOption.type,
       }]);
 
       if (error) {
@@ -327,18 +352,18 @@ export default function SwapModal({
         return;
       }
 
-      // Only notify the recipient — requester tracks status on SwapScreen
       await supabase.from("notifications").insert([{
         user_id: recipientId,
         type: "SHIFT_SWAP",
         title: "Shift Swap Request",
-        message: "🔔 Someone requested to swap shifts with you",
+        message: "Someone requested to swap shifts with you",
         is_read: false,
         related_entity_id: shiftId,
       }]);
 
       setSendSuccess("Swap request sent successfully!");
       setSelectedOption(null);
+      setReason("");
       onSwapSent?.();
       setTimeout(() => onClose(), 1200);
     } catch {
@@ -415,17 +440,15 @@ export default function SwapModal({
           {timeBasedError && (
             <View className="pt-3.5">
               <InlineError message={timeBasedError} />
-              </View>
-              )}
+            </View>
+          )}
 
-          {/* Load error */}
           {!timeBasedError && loadError && (
             <View className="pt-3.5">
               <InlineError message={loadError} />
-              </View>
+            </View>
           )}
 
-          {/* List */}
           {loading ? (
             <View className="flex-1 items-center justify-center gap-y-3">
               <ActivityIndicator size="large" color="#0d1b3e" />
@@ -527,11 +550,23 @@ export default function SwapModal({
                                 <View className="w-[7px] h-[7px] rounded-full bg-[#62CCEF]" />
                                 <Text className="text-[#1a9bbf] text-[14px] font-semibold">Available</Text>
                               </View>
-                              <View className={`flex-row items-center gap-x-1 mt-1 rounded-[7px] px-2 py-1 self-start ${selected ? "bg-[#62CCEF]/20" : "bg-[#eef0f4]"}`}>
-                                <Ionicons name="time-outline" size={12} color="#64748b" />
-                                <Text className="text-slate-600 text-[13px] font-semibold">
-                                  {formatTime(emp.start_time)} – {formatTime(emp.end_time)}
-                                </Text>
+                              <View className="flex-row items-center gap-x-1.5 mt-1 flex-wrap">
+                                <View className={`rounded-[7px] px-2 py-1 flex-row items-center gap-x-1 ${selected ? "bg-white/20" : "bg-[#eef0f4]"}`}>
+                                  <Ionicons name="calendar-outline" size={12} color="#64748b" />
+                                  <Text className="text-slate-600 text-[13px] font-semibold">
+                                    {new Date(emp.shift_date + "T00:00:00").toLocaleDateString("en-US", {
+                                      weekday: "short",
+                                      month: "short",
+                                      day: "numeric",
+                                    })}
+                                  </Text>
+                                </View>
+                                <View className={`rounded-[7px] px-2 py-1 flex-row items-center gap-x-1 ${selected ? "bg-[#62CCEF]/20" : "bg-[#eef0f4]"}`}>
+                                  <Ionicons name="time-outline" size={12} color="#64748b" />
+                                  <Text className="text-slate-600 text-[13px] font-semibold">
+                                    {formatTime(emp.start_time)} – {formatTime(emp.end_time)}
+                                  </Text>
+                                </View>
                               </View>
                             </View>
                             <View className={`w-[26px] h-[26px] rounded-full items-center justify-center border-2 ${selected ? "bg-[#62CCEF] border-[#62CCEF]" : "bg-white border-gray-300"}`}>
@@ -551,8 +586,27 @@ export default function SwapModal({
           {sendError && <InlineError message={sendError} />}
           {sendSuccess && <InlineSuccess message={sendSuccess} />}
 
+          {/* Reason Input */}
+          <View className="px-5 pb-3 pt-2 border-t border-slate-300 bg-white">
+            <Text className="text-slate-700 text-[15px] font-bold uppercase tracking-wide mb-2">
+              Reason <Text className="text-red-500">*</Text>
+            </Text>
+            <TextInput
+              value={reason}
+              onChangeText={(text) => { setReason(text); setSendError(null); }}
+              placeholder="Why do you need to swap this shift?"
+              placeholderTextColor="gray"
+              multiline
+              numberOfLines={3}
+              maxLength={400}
+              className="bg-gray border border-gray-400 rounded-2xl px-4 py-3 text-slate-800 text-[14px] leading-[20px]"
+              style={{ textAlignVertical: "top", minHeight: 72 }}
+            />
+            <Text className="text-slate-600 text-[13px] text-right mt-1">{reason.length}/400</Text>
+          </View>
+
           {/* Footer */}
-          <View className="px-20 pb-[34px] pt-3 border-t border-slate-100 bg-white">
+          <View className="px-20 pb-[34px] pt-2 border-t border-slate-100 bg-white">
             <Pressable
               onPress={sendSwapRequest}
               disabled={!selectedOption || sending}
