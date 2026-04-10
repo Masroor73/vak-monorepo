@@ -334,7 +334,7 @@ export default function SwapModal({
         shift_id: shiftId,
         status: "PENDING",
         reason: reason.trim(),
-        recipient_type: selectedOption.type,
+        recipient_type: selectedOption.type === "shift" ? "existing shift" : "Available",
       }]);
 
       if (error) {
