@@ -19,7 +19,7 @@ const SECTIONS = (pendingTasksCount: number, newRecognitionCount: number) => [
   {
     label: "MAIN",
     items: [
-      { label: "Daily Tasks List", subtitle: "View today's tasks", route: "/(tabs)/dailyTasks", icon: <Ionicons name="clipboard-outline" size={18} color="brown" />, badge: pendingTasksCount > 0 ? String(pendingTasksCount) : null, badgeRed: true,} ,
+      { label: "Daily Tasks List", subtitle: "View today's tasks", route: "/(tabs)/dailyTasks", icon: <Ionicons name="clipboard-outline" size={18} color="brown" />, badge: pendingTasksCount > 0 ? String(pendingTasksCount) : null, badgeRed: true, },
       { label: "Recognition", subtitle: "View & give kudos", route: "/(tabs)/recognition", icon: <Ionicons name="star" size={18} color="yellow" />, badge: newRecognitionCount > 0 ? "New" : null, badgeRed: false, },
     ],
   },
@@ -27,6 +27,15 @@ const SECTIONS = (pendingTasksCount: number, newRecognitionCount: number) => [
     label: "SCHEDULING",
     items: [
       { label: "Set Availability", subtitle: "Update your schedule", route: "/(tabs)/setAvailability", icon: <Ionicons name="calendar-outline" size={18} color="red" />, badge: null, badgeRed: false },
+    ],
+  },
+  {
+    label: "LEGAL",
+    items: [
+      // Added by Carivaldo: opens the Terms & Conditions screen from the drawer
+      { label: "Terms & Conditions", subtitle: "Review app terms", route: "/(tabs)/termsConditions", icon: <Ionicons name="document-text-outline" size={18} color="#62CCEF" />, badge: null, badgeRed: false },
+      // Added by Carivaldo: opens the Privacy Policy screen from the drawer
+      { label: "Privacy Policy", subtitle: "How your data is used", route: "/(tabs)/privacyPolicy", icon: <Ionicons name="shield-checkmark-outline" size={18} color="#62CCEF" />, badge: null, badgeRed: false },
     ],
   },
 ];
@@ -47,96 +56,96 @@ export default function Drawer({ isOpen, toggleDrawer, pendingTasksCount = 0, ne
   }, [isOpen]);
 
   const handleLogout = async () => {
-  try {
-    await signOut();
-  } catch (error) {
-    console.log("SignOut error:", error);
-  } finally {
-    router.replace("/(public)/login"); // navigate no matter what
-  }
-};
+    try {
+      await signOut();
+    } catch (error) {
+      console.log("SignOut error:", error);
+    } finally {
+      router.replace("/(public)/login"); // navigate no matter what
+    }
+  };
 
   if (!isOpen) return null;
 
   return (
-  <>
-    {/* Overlay */}
-    <Animated.View
-      style={[
-        StyleSheet.absoluteFillObject,
-        { backgroundColor: "rgba(0,0,0,0.45)", zIndex: 10, opacity: overlayAnim },
-      ]}
-      pointerEvents="auto"
-    >
-      <Pressable style={StyleSheet.absoluteFill} onPress={toggleDrawer} />
-    </Animated.View>
+    <>
+      {/* Overlay */}
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFillObject,
+          { backgroundColor: "rgba(0,0,0,0.45)", zIndex: 10, opacity: overlayAnim },
+        ]}
+        pointerEvents="auto"
+      >
+        <Pressable style={StyleSheet.absoluteFill} onPress={toggleDrawer} />
+      </Animated.View>
 
-    {/* Drawer */}
-    <Animated.View style={[s.drawer, { transform: [{ translateX: drawerAnim }] }]}>
-      
-      {/* Logo */}
-      <View className="items-center pt-16 pb-5">
-        <DrawerLogo width={120} height={120} />
-        <Text className="text-white text-xl font-bold tracking-widest mt-2">V.A.K</Text>
-      </View>
+      {/* Drawer */}
+      <Animated.View style={[s.drawer, { transform: [{ translateX: drawerAnim }] }]}>
 
-      {/* Navigation Items */}
-      <View className="px-3.5">
-        
-      <View className="h-1 bg-white/10 mx-5 mb-2" />
-        {SECTIONS(pendingTasksCount, newRecognitionCount).map(({ label, items }) => (
-          <View key={label}>
-            <Text className="text-white/30 text-xs font-bold tracking-widest ml-3 mt-3 mb-2">{label}</Text>
+        {/* Logo */}
+        <View className="items-center pt-16 pb-5">
+          <DrawerLogo width={120} height={120} />
+          <Text className="text-white text-xl font-bold tracking-widest mt-2">V.A.K</Text>
+        </View>
 
-            {items.map((item) => (
-              <Pressable
-                key={item.route}
-                onPress={() => {
-                  router.push(item.route as any);
-                  toggleDrawer();
-                }}
-                style={s.row}
-              >
-                {/* Icon */}
-                <View style={s.iconBox}>
-                  {item.icon}
-                </View>
+        {/* Navigation Items */}
+        <View className="px-3.5">
 
-                {/* Labels */}
-                <View className="flex-1 justify-center">
-                  <Text className="text-[13px] font-medium text-white">{item.label}</Text>
-                  <Text className="text-white/70 text-[11px]">{item.subtitle}</Text>
-                </View>
+          <View className="h-1 bg-white/10 mx-5 mb-2" />
+          {SECTIONS(pendingTasksCount, newRecognitionCount).map(({ label, items }) => (
+            <View key={label}>
+              <Text className="text-white/30 text-xs font-bold tracking-widest ml-3 mt-3 mb-2">{label}</Text>
 
-                {/* Badge */}
-                {item.badge && (
-                  <View style={item.badgeRed ? s.badgeRed : s.badgeBlue}>
-                    <Text style={item.badgeRed ? s.badgeTxtWhite : s.badgeTxtBlue}>{item.badge}</Text>
+              {items.map((item) => (
+                <Pressable
+                  key={item.route}
+                  onPress={() => {
+                    router.push(item.route as any);
+                    toggleDrawer();
+                  }}
+                  style={s.row}
+                >
+                  {/* Icon */}
+                  <View style={s.iconBox}>
+                    {item.icon}
                   </View>
-                )}
-              </Pressable>
-            ))}
 
-            <View className="h-1 bg-white/10 mx-5 mb-2 mt-2" />
-          </View>
-        ))}
-      </View>
+                  {/* Labels */}
+                  <View className="flex-1 justify-center">
+                    <Text className="text-[13px] font-medium text-white">{item.label}</Text>
+                    <Text className="text-white/70 text-[11px]">{item.subtitle}</Text>
+                  </View>
 
-      <View className="flex-1" />
-      {/* Footer */}
-      <View className="px-8">
-        <Pressable onPress={handleLogout} style={s.logoutBtn}>
-          <View style={s.logoutIconBox}>
-            <MaterialIcons name="logout" size={18} color="#e74c3c" />
-          </View>
-          <Text className="text-red-400 text-sm font-semibold">Log Out</Text>
-        </Pressable>
-        <Text className="text-white text-[10px] text-center tracking-wider py-3 pt-10">v1.0.0 · V.A.K App</Text>
-      </View>
+                  {/* Badge */}
+                  {item.badge && (
+                    <View style={item.badgeRed ? s.badgeRed : s.badgeBlue}>
+                      <Text style={item.badgeRed ? s.badgeTxtWhite : s.badgeTxtBlue}>{item.badge}</Text>
+                    </View>
+                  )}
+                </Pressable>
+              ))}
 
-    </Animated.View>
-  </>
-);
+              <View className="h-1 bg-white/10 mx-5 mb-2 mt-2" />
+            </View>
+          ))}
+        </View>
+
+        <View className="flex-1" />
+        {/* Footer */}
+        <View className="px-8">
+          <Pressable onPress={handleLogout} style={s.logoutBtn}>
+            <View style={s.logoutIconBox}>
+              <MaterialIcons name="logout" size={18} color="#e74c3c" />
+            </View>
+            <Text className="text-red-400 text-sm font-semibold">Log Out</Text>
+          </Pressable>
+          <Text className="text-white text-[10px] text-center tracking-wider py-3 pt-10">v1.0.0 · V.A.K App</Text>
+        </View>
+
+      </Animated.View>
+    </>
+  );
 }
 
 const s = StyleSheet.create({
