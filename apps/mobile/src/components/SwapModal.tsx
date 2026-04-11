@@ -99,7 +99,7 @@ function InlineSuccess({ message }: { message: string }) {
   return (
     <View className="flex-row items-center gap-x-2.5 bg-green-50 border-l-[3px] border-green-500 rounded-xl px-3.5 py-3 mx-5 mb-3">
       <Ionicons name="checkmark-circle" size={15} color="#05CC66" />
-      <Text className="text-green-700 text-[13px] flex-1">{message}</Text>
+      <Text className="text-green-700 text-[15px] flex-1">{message}</Text>
     </View>
   );
 }
@@ -125,6 +125,7 @@ export default function SwapModal({
   const [sendSuccess, setSendSuccess] = useState<string | null>(null);
   const [timeBasedError, setTimeBasedError] = useState<string | null>(null);
   const [reason, setReason] = useState("");
+  const [pendingSwapExists, setPendingSwapExists] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -137,8 +138,21 @@ export default function SwapModal({
       setSendError(null);
       setSendSuccess(null);
       setReason("");
+      setPendingSwapExists(false);
     }
   }, [visible, role, user?.id]);
+
+  useEffect(() => {
+    if (!sendError) return;
+     const id = setTimeout(() => setSendError(null), 15000);
+     return () => clearTimeout(id);
+  }, [sendError]);
+
+  useEffect(() => {
+    if (!loadError) return;
+    const id = setTimeout(() => setLoadError(null), 15000);
+    return () => clearTimeout(id);
+  }, [loadError]);
 
   useEffect(() => {
     if (!visible) {
@@ -163,6 +177,22 @@ export default function SwapModal({
 
   setLoadError(null);
   setLoading(true);
+  setPendingSwapExists(false);
+
+  // Check if a pending swap already exists for this shift
+  const { data: existingSwap } = await supabase
+    .from("shift_swaps")
+    .select("id")
+    .eq("requester_id", user.id)
+    .eq("shift_id", shiftId)
+    .eq("status", "PENDING")
+    .maybeSingle();
+
+  if (existingSwap) {
+    setPendingSwapExists(true);
+    setLoading(false);
+    return;
+  }
 
   const myShiftDate = new Date(shiftStartTime).toISOString().split("T")[0];
   const myStart = new Date(shiftStartTime).toTimeString().slice(0, 5);
@@ -393,6 +423,14 @@ export default function SwapModal({
                 <Text className="text-slate-500 text-[13px] font-bold uppercase mt-2">
                   Pick a colleague below to swap with
                 </Text>
+                {pendingSwapExists && (
+                  <View className="flex-row items-center gap-2 bg-green-50 border border-green-400 rounded-xl p-2 mt-3">
+                    <Ionicons name="checkmark-circle" size={20} color="#16a34a" />
+                    <Text className="text-green-700 text-[13px] font-semibold flex-1">
+                      Swap request pending, awaiting manager approval
+                    </Text>
+                  </View>
+                 )}
               </View>
               <Pressable
                 onPress={onClose}
