@@ -7,14 +7,23 @@ type Props = {
   toggleDrawer: () => void;
   title?: string;
   showBack?: boolean;
+  unreadCount?: number;
+  hasDrawerAlert?: boolean;
 };
 
-export default function TopNavigation({ toggleDrawer, title, showBack = false }: Props) {
+export default function TopNavigation({
+  toggleDrawer,
+  title,
+  showBack,
+  unreadCount = 0,
+  hasDrawerAlert = false,
+}: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
 
   const isBellActive = pathname?.startsWith("/notification");
+  const badgeCount = unreadCount > 99 ? "99+" : String(unreadCount);
 
   return (
     <View
@@ -38,11 +47,28 @@ export default function TopNavigation({ toggleDrawer, title, showBack = false }:
         </Pressable>
       ) : (
         <Pressable onPress={toggleDrawer} hitSlop={8}>
-          <Ionicons name="menu-outline" size={28} color="rgba(255,255,255,0.85)" />
+          <View style={{ width: 32, height: 32, alignItems: "center", justifyContent: "center" }}>
+            <Ionicons name="menu-outline" size={28} color="rgba(255,255,255,0.85)" />
+            {hasDrawerAlert && (
+              <View
+                style={{
+                  position: "absolute",
+                  top: 5,
+                  right: 3,
+                  width: 12,
+                  height: 12,
+                  borderRadius: 6,
+                  backgroundColor: "#e74c3c",
+                  borderWidth: 1.5,
+                  borderColor: "#0d1b3e",
+                }}
+              />
+            )}
+          </View>
         </Pressable>
       )}
 
-      {/* Center — title if provided */}
+      {/* Center — title */}
       {title ? (
         <Text
           style={{
@@ -61,7 +87,7 @@ export default function TopNavigation({ toggleDrawer, title, showBack = false }:
         <View style={{ flex: 1 }} />
       )}
 
-      {/* Right — bell */}
+      {/* Right — bell with badge */}
       <Pressable
         onPress={() => router.push("/(tabs)/notifications")}
         hitSlop={8}
@@ -71,11 +97,35 @@ export default function TopNavigation({ toggleDrawer, title, showBack = false }:
           backgroundColor: isBellActive ? "rgba(58,154,255,0.15)" : "transparent",
         }}
       >
-        <Ionicons
-          name="notifications-outline"
-          size={24}
-          color={isBellActive ? "#3A9AFF" : "rgba(255,255,255,0.85)"}
-        />
+        <View style={{ width: 32, height: 32, alignItems: "center", justifyContent: "center" }}>
+          <Ionicons
+            name="notifications-outline"
+            size={24}
+            color={isBellActive ? "#3A9AFF" : "rgba(255,255,255,0.85)"}
+          />
+          {unreadCount > 0 && (
+            <View
+              style={{
+                position: "absolute",
+                top: 0,
+                right: 0,
+                backgroundColor: "#e74c3c",
+                borderRadius: 10,
+                minWidth: 18,
+                height: 18,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingHorizontal: 4,
+                borderWidth: 1.5,
+                borderColor: "#0d1b3e",
+              }}
+            >
+              <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>
+                {badgeCount}
+              </Text>
+            </View>
+          )}
+        </View>
       </Pressable>
     </View>
   );

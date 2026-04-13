@@ -17,6 +17,7 @@ type AuthContextType = {
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   login: (email: string, password: string, rememberMe: boolean) => Promise<{ data?: any; error?: string; pendingApproval?: boolean }>;
   signInWithGoogle: () => Promise<{ error?: string }>;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -31,6 +32,7 @@ const AuthContext = createContext<AuthContextType>({
   signUp: async () => ({ error: null }),
   login: async () => ({ error: "Not implemented" }),
   signInWithGoogle: async () => ({ error: "Not implemented" }),
+  refreshUser: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -94,6 +96,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     }
   };
+  
+  // -------------------- Refresh user --------------------
+const refreshUser = async () => {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+  setUser(user)
+  const { data } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+  if (data) setProfile(data as Profile)
+}
 
   // -------------------- Auth state initialization --------------------
   useEffect(() => {
@@ -239,7 +254,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <AuthContext.Provider
-      value={{ session, user, profile, loading, isAdmin, isManager, isEmployee, signOut, signUp, login, signInWithGoogle }}
+      value={{ session, user, profile, loading, isAdmin, isManager, isEmployee, signOut, signUp, login, signInWithGoogle, refreshUser }}
     >
       {children}
     </AuthContext.Provider>

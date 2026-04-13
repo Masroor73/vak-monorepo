@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, StatusBar, Image} from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, StatusBar, Image, Pressable } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Feather } from '@expo/vector-icons'
 import { router, useFocusEffect } from 'expo-router'
 import { supabase } from '../../lib/supabase'
@@ -9,11 +9,13 @@ import { Profile } from '@vak/contract'
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth()
+  const insets = useSafeAreaInsets()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [password, setPassword] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useFocusEffect(
     useCallback(() => {
@@ -41,13 +43,17 @@ export default function ProfileScreen() {
   const closeDeleteModal = () => {
     setDeleteModalVisible(false)
     setPassword('')
+    setDeleteError(null)
   }
 
   const handleDeleteConfirm = async () => {
+    setDeleteError(null)
+
     if (!password.trim()) {
-      Alert.alert('Required', 'Please enter your password.')
+      setDeleteError('Please enter your password.')
       return
     }
+
     setDeleting(true)
     try {
       const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -55,7 +61,7 @@ export default function ProfileScreen() {
         password: password.trim(),
       })
       if (signInError) {
-        Alert.alert('Incorrect password', 'Please try again.')
+        setDeleteError('Incorrect password. Please try again.')
         return
       }
       const { error } = await supabase.rpc('delete_user_account')
@@ -63,13 +69,15 @@ export default function ProfileScreen() {
       await signOut()
       router.replace('/(public)/login')
     } catch (err: any) {
-      Alert.alert('Error', err.message ?? 'Could not delete account.')
+      setDeleteError(err.message ?? 'Could not delete account. Please try again.')
     } finally {
       setDeleting(false)
       setPassword('')
     }
   }
-
+  
+  console.log('insets', insets)
+  
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-brand-background">
@@ -89,8 +97,7 @@ export default function ProfileScreen() {
   return (
     <>
       <StatusBar barStyle="light-content" backgroundColor="#0d1b3e" />
-      <SafeAreaView className="flex-1 bg-brand-background" edges={['bottom']}>
-
+      <View style={{ flex: 1 }} className="bg-brand-background">
         <ScrollView
           className="flex-1 bg-brand-background"
           contentContainerStyle={{ paddingBottom: 24, flexGrow: 1 }}
@@ -157,62 +164,69 @@ export default function ProfileScreen() {
               <Text className="text-damascus-primary text-[15px] font-medium">Delete account</Text>
             </TouchableOpacity>
           </View>
-
         </ScrollView>
-      </SafeAreaView>
+      </View>
 
       {/* Delete sheet */}
-      <Modal visible={deleteModalVisible} transparent animationType="slide" onRequestClose={closeDeleteModal}>
-        <TouchableOpacity
-          className="flex-1 justify-end bg-black/45"
-          activeOpacity={1}
-          onPress={closeDeleteModal}
-        >
+<Modal visible={deleteModalVisible} transparent animationType="slide" onRequestClose={closeDeleteModal}>
+  <Pressable className="flex-1 justify-end bg-black/45" onPress={closeDeleteModal}>
+    <Pressable onPress={(e) => e.stopPropagation()}>
+      <View className="bg-white rounded-t-3xl px-6 pt-4 pb-10">
+        <View className="w-8 h-1 bg-gray-200 rounded-full self-center mb-5" />
+
+        <View className="w-13 h-13 rounded-full bg-red-50 items-center justify-center self-center mb-3">
+          <Feather name="trash-2" size={30} color="#D32F2F" />
+        </View>
+
+        <Text className="text-[20px] font-semibold text-gray-900 text-center mb-1.5">
+          Delete account?
+        </Text>
+        <Text className="text-[15px] text-gray-600 text-center leading-7 mb-6">
+          Are you sure you want to permanently delete your account? {'\n'} Your shift history will be preserved for payroll records, but your login access will be removed and this cannot be undone. {'\n'} Tap outside to cancel.
+        </Text>
+
+        <Text className="text-[11px] font-semibold text-gray-900 tracking-wide mb-2">
+          CONFIRM PASSWORD
+        </Text>
+        <TextInput
+          className={`h-16 bg-gray-50 border rounded-xl px-4 text-[14px] text-gray-900 mb-4 ${
+            deleteError ? 'border-red-400' : 'border-gray-400'
+          }`}
+          placeholder="Enter your password"
+          placeholderTextColor="#c0c0c0"
+          secureTextEntry
+          value={password}
+          onChangeText={(t) => {
+            setPassword(t)
+            setDeleteError(null)
+          }}
+          autoCapitalize="none"
+          editable={!deleting}
+        />
+
+        {deleteError && (
+          <View className="flex-row items-center gap-1.5 mb-3">
+            <Feather name="alert-circle" size={13} color="#D32F2F" />
+            <Text className="text-[13px] text-red-500">{deleteError}</Text>
+          </View>
+        )}
+
+        <View className="items-center">
           <TouchableOpacity
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
-            className="bg-white rounded-t-3xl px-6 pt-4 pb-9"
+            className="h-16 w-1/2 bg-damascus-primary rounded-xl items-center justify-center"
+            onPress={handleDeleteConfirm}
+            disabled={deleting}
           >
-            <View className="w-8 h-1 bg-gray-200 rounded-full self-center mb-5" />
-
-            <View className="w-13 h-13 rounded-full bg-red-50 items-center justify-center self-center mb-3">
-              <Feather name="trash-2" size={30} color="#D32F2F" />
-            </View>
-
-            <Text className="text-[20px] font-semibold text-gray-900 text-center mb-1.5">
-              Delete account?
-            </Text>
-            <Text className="text-[15px] text-gray-600 text-center leading-5 mb-6">
-              All your data will be permanently removed.{'\n'}Tap outside to cancel.
-            </Text>
-
-            <Text className="text-[11px] font-semibold text-gray-900 tracking-wide mb-2">
-              CONFIRM PASSWORD
-            </Text>
-            <TextInput
-              className="h-14 bg-gray-50 border border-gray-400 rounded-xl px-4 text-[14px] text-gray-900 mb-4"
-              placeholder="Enter your password"
-              placeholderTextColor="#c0c0c0"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              autoCapitalize="none"
-              editable={!deleting}
-            />
-
-            <TouchableOpacity
-              className="h-12 bg-damascus-primary rounded-xl items-center justify-center"
-              onPress={handleDeleteConfirm}
-              disabled={deleting}
-            >
-              {deleting
-                ? <ActivityIndicator color="#fff" size="small" />
-                : <Text className="text-white text-[15px] font-semibold">Delete account</Text>
-              }
-            </TouchableOpacity>
+            {deleting
+              ? <ActivityIndicator color="#fff" size="small" />
+              : <Text className="text-white text-[16px] font-semibold">Delete account</Text>
+            }
           </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+        </View>
+      </View>
+    </Pressable>
+  </Pressable>
+</Modal>
     </>
   )
 }
