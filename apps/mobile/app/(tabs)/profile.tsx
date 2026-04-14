@@ -75,9 +75,9 @@ export default function ProfileScreen() {
       setPassword('')
     }
   }
-  
+
   console.log('insets', insets)
-  
+
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-brand-background">
@@ -153,6 +153,43 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Added by Carivaldo: legal buttons moved to Profile screen */}
+          <View className="mx-4 mt-2 mb-2 bg-white rounded-2xl overflow-hidden" style={cardShadow}>
+            <Text className="text-[15px] font-semibold text-gray-800 tracking-wide px-4 pt-3.5 pb-1.5">
+              LEGAL
+            </Text>
+
+            <TouchableOpacity
+              className="flex-row items-center px-4 py-4 border-t border-gray-100"
+              onPress={() => router.push('/(tabs)/termsConditions')}
+              activeOpacity={0.75}
+            >
+              <View className="w-9 h-9 rounded-lg bg-brand-background items-center justify-center mr-3">
+                <Feather name="file-text" size={15} color="#0d1b3e" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-[15px] font-semibold text-gray-900">Terms & Conditions</Text>
+                <Text className="text-[12px] font-semibold text-gray-500 mt-0.5">Review app terms</Text>
+              </View>
+              <Feather name="chevron-right" size={18} color="#9CA3AF" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="flex-row items-center px-4 py-4 border-t border-gray-100"
+              onPress={() => router.push('/(tabs)/privacyPolicy')}
+              activeOpacity={0.75}
+            >
+              <View className="w-9 h-9 rounded-lg bg-brand-background items-center justify-center mr-3">
+                <Feather name="shield" size={15} color="#0d1b3e" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-[15px] font-semibold text-gray-900">Privacy Policy</Text>
+                <Text className="text-[12px] font-semibold text-gray-500 mt-0.5">How your data is used</Text>
+              </View>
+              <Feather name="chevron-right" size={18} color="#9CA3AF" />
+            </TouchableOpacity>
+          </View>
+
           {/* Delete */}
           <View className="mx-4">
             <TouchableOpacity
@@ -168,65 +205,64 @@ export default function ProfileScreen() {
       </View>
 
       {/* Delete sheet */}
-<Modal visible={deleteModalVisible} transparent animationType="slide" onRequestClose={closeDeleteModal}>
-  <Pressable className="flex-1 justify-end bg-black/45" onPress={closeDeleteModal}>
-    <Pressable onPress={(e) => e.stopPropagation()}>
-      <View className="bg-white rounded-t-3xl px-6 pt-4 pb-10">
-        <View className="w-8 h-1 bg-gray-200 rounded-full self-center mb-5" />
+      <Modal visible={deleteModalVisible} transparent animationType="slide" onRequestClose={closeDeleteModal}>
+        <Pressable className="flex-1 justify-end bg-black/45" onPress={closeDeleteModal}>
+          <Pressable onPress={(e) => e.stopPropagation()}>
+            <View className="bg-white rounded-t-3xl px-6 pt-4 pb-10">
+              <View className="w-8 h-1 bg-gray-200 rounded-full self-center mb-5" />
 
-        <View className="w-13 h-13 rounded-full bg-red-50 items-center justify-center self-center mb-3">
-          <Feather name="trash-2" size={30} color="#D32F2F" />
-        </View>
+              <View className="w-13 h-13 rounded-full bg-red-50 items-center justify-center self-center mb-3">
+                <Feather name="trash-2" size={30} color="#D32F2F" />
+              </View>
 
-        <Text className="text-[20px] font-semibold text-gray-900 text-center mb-1.5">
-          Delete account?
-        </Text>
-        <Text className="text-[15px] text-gray-600 text-center leading-7 mb-6">
-          Are you sure you want to permanently delete your account? {'\n'} Your shift history will be preserved for payroll records, but your login access will be removed and this cannot be undone. {'\n'} Tap outside to cancel.
-        </Text>
+              <Text className="text-[20px] font-semibold text-gray-900 text-center mb-1.5">
+                Delete account?
+              </Text>
+              <Text className="text-[15px] text-gray-600 text-center leading-7 mb-6">
+                Are you sure you want to permanently delete your account? {'\n'} Your shift history will be preserved for payroll records, but your login access will be removed and this cannot be undone. {'\n'} Tap outside to cancel.
+              </Text>
 
-        <Text className="text-[11px] font-semibold text-gray-900 tracking-wide mb-2">
-          CONFIRM PASSWORD
-        </Text>
-        <TextInput
-          className={`h-16 bg-gray-50 border rounded-xl px-4 text-[14px] text-gray-900 mb-4 ${
-            deleteError ? 'border-red-400' : 'border-gray-400'
-          }`}
-          placeholder="Enter your password"
-          placeholderTextColor="#c0c0c0"
-          secureTextEntry
-          value={password}
-          onChangeText={(t) => {
-            setPassword(t)
-            setDeleteError(null)
-          }}
-          autoCapitalize="none"
-          editable={!deleting}
-        />
+              <Text className="text-[11px] font-semibold text-gray-900 tracking-wide mb-2">
+                CONFIRM PASSWORD
+              </Text>
+              <TextInput
+                className={`h-16 bg-gray-50 border rounded-xl px-4 text-[14px] text-gray-900 mb-4 ${deleteError ? 'border-red-400' : 'border-gray-400'
+                  }`}
+                placeholder="Enter your password"
+                placeholderTextColor="#c0c0c0"
+                secureTextEntry
+                value={password}
+                onChangeText={(t) => {
+                  setPassword(t)
+                  setDeleteError(null)
+                }}
+                autoCapitalize="none"
+                editable={!deleting}
+              />
 
-        {deleteError && (
-          <View className="flex-row items-center gap-1.5 mb-3">
-            <Feather name="alert-circle" size={13} color="#D32F2F" />
-            <Text className="text-[13px] text-red-500">{deleteError}</Text>
-          </View>
-        )}
+              {deleteError && (
+                <View className="flex-row items-center gap-1.5 mb-3">
+                  <Feather name="alert-circle" size={13} color="#D32F2F" />
+                  <Text className="text-[13px] text-red-500">{deleteError}</Text>
+                </View>
+              )}
 
-        <View className="items-center">
-          <TouchableOpacity
-            className="h-16 w-1/2 bg-damascus-primary rounded-xl items-center justify-center"
-            onPress={handleDeleteConfirm}
-            disabled={deleting}
-          >
-            {deleting
-              ? <ActivityIndicator color="#fff" size="small" />
-              : <Text className="text-white text-[16px] font-semibold">Delete account</Text>
-            }
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Pressable>
-  </Pressable>
-</Modal>
+              <View className="items-center">
+                <TouchableOpacity
+                  className="h-16 w-1/2 bg-damascus-primary rounded-xl items-center justify-center"
+                  onPress={handleDeleteConfirm}
+                  disabled={deleting}
+                >
+                  {deleting
+                    ? <ActivityIndicator color="#fff" size="small" />
+                    : <Text className="text-white text-[16px] font-semibold">Delete account</Text>
+                  }
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </>
   )
 }
