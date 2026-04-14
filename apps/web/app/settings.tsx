@@ -4,7 +4,25 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import Toggle from "./components/Toggle";
-const badWords = ["fuck", "shit", "bitch"];
+const badWords = [
+  "fuck", "fucking", "fucker",
+  "shit", "shitty",
+  "bitch", "bitches",
+  "asshole", "ass",
+  "bastard",
+  "dick", "dickhead",
+  "pussy",
+  "cunt",
+  "slut",
+  "whore",
+  "nigger", "niga", "nigga",
+  "retard", "retarded",
+  "gay", "lesbian", // ⚠️ optional (be careful with this)
+  "kill", "die",
+  "stupid", "idiot", "dumb",
+  "moron",
+  "badass"
+];
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();

@@ -32,7 +32,21 @@ type Notification = {
   created_at: string;
 };
 
-const badWords = ["fuck", "shit", "bitch", "hell"];
+const badWords = [
+  "fuck", "fucking", "fucker",
+  "shit", "shitty",
+  "bitch", "bitches",
+  "asshole",
+  "bastard",
+  "dick", "dickhead",
+  "pussy",
+  "cunt",
+  "slut",
+  "whore",
+  "retard", "retarded",
+  "stupid", "idiot", "dumb", "moron",
+  "badass"
+];
 
 export default function Communication() {
 
