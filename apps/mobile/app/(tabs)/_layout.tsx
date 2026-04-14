@@ -61,6 +61,8 @@ export default function TabsLayout() {
           <Stack.Screen name="report"          options={{ title: "Report",           headerBackVisible: false }} />
           <Stack.Screen name="swap"            options={{ title: "Shift Swap",       headerBackVisible: false }} />
           <Stack.Screen name="editProfile"     options={{ title: "Edit Profile",     headerBackVisible: true }} />
+          <Stack.Screen name="termsConditions" options={{ title: "Terms & Conditions", headerBackVisible: true }} />
+          <Stack.Screen name="privacyPolicy"   options={{ title: "Privacy Policy",   headerBackVisible: true }} />
           <Stack.Screen name="mySchedule"      options={{ title: "My Schedule",      headerBackVisible: true }} />
           <Stack.Screen name="shift/[id]"      options={{ title: "Shift Details",    headerBackVisible: true }} />
         </Stack>
