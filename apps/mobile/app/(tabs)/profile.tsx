@@ -142,19 +142,8 @@ export default function ProfileScreen() {
             <InfoRow icon="phone" label="Phone" value={profile?.phone_number ?? '—'} last />
           </View>
 
-          {/* Edit button */}
-          <View className="mx-4 mb-2.5">
-            <TouchableOpacity
-              className="bg-brand-secondary rounded-xl h-16 items-center justify-center"
-              onPress={() => router.push('/(tabs)/editProfile')}
-              activeOpacity={0.85}
-            >
-              <Text className="text-white font-semibold text-[15px]">Edit Profile</Text>
-            </TouchableOpacity>
-          </View>
-
           {/* Added by Carivaldo: legal buttons moved to Profile screen */}
-          <View className="mx-4 mt-2 mb-2 bg-white rounded-2xl overflow-hidden" style={cardShadow}>
+          <View className="mx-4 mb-8 bg-white rounded-2xl overflow-hidden" style={cardShadow}>
             <Text className="text-[15px] font-semibold text-gray-800 tracking-wide px-4 pt-3.5 pb-1.5">
               LEGAL
             </Text>
@@ -187,6 +176,17 @@ export default function ProfileScreen() {
                 <Text className="text-[12px] font-semibold text-gray-500 mt-0.5">How your data is used</Text>
               </View>
               <Feather name="chevron-right" size={18} color="#9CA3AF" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Edit button */}
+          <View className="mx-4 mb-2.5">
+            <TouchableOpacity
+              className="bg-brand-secondary rounded-xl h-16 items-center justify-center"
+              onPress={() => router.push('/(tabs)/editProfile')}
+              activeOpacity={0.85}
+            >
+              <Text className="text-white font-semibold text-[15px]">Edit Profile</Text>
             </TouchableOpacity>
           </View>
 
