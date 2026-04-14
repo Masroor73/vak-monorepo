@@ -15,14 +15,22 @@ export const ShiftSchema = z.object({
   actual_start_time: z.string().datetime({ offset: true }).nullable().optional(),
   actual_end_time: z.string().datetime({ offset: true }).nullable().optional(),
   
-  // GEO-FENCING (The Compliance Proof)
+ // GEO-FENCING (The Compliance Proof)
   clock_in_lat: z.number().min(-90).max(90).nullable().optional(),
   clock_in_long: z.number().min(-180).max(180).nullable().optional(),
-  
+  clock_out_lat: z.number().min(-90).max(90).nullable().optional(),    // ← add
+  clock_out_long: z.number().min(-180).max(180).nullable().optional(), // ← add
+
+  // PHOTO PROOF
+  clock_in_photo_url: z.string().url().nullable().optional(),          // ← add
+  clock_out_photo_url: z.string().url().nullable().optional(),         // ← add
+
   // METADATA
   role_at_time_of_shift: JobRoleEnum,
   status: ShiftStatusEnum.default('DRAFT'),
+  audit_status: z.string().nullable().optional(),                      // ← add
   location_id: z.string().default('damascus-hq'),
+  location_ref: z.string().nullable().optional(),            
   
   // COMPLIANCE DATA
   unpaid_break_minutes: z.number().int().min(0).default(0),

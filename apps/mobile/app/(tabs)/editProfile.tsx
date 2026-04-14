@@ -11,6 +11,7 @@ import { useAuth } from '../../context/AuthContext'
 import { EditProfileSchema, EditProfileInput } from '@vak/contract'
 import { checkProfanity } from '@/src/utils/profanityFilter'
 
+
 const MAX_FILE_SIZE_MB = 5
 
 function formatPhone(raw: string): string {
@@ -24,7 +25,7 @@ function formatPhone(raw: string): string {
 }
 
 export default function EditProfileScreen() {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
@@ -179,27 +180,30 @@ export default function EditProfileScreen() {
       const trimmedEmail = data.email.trim()
 
       const [{ error: profileError }, { error: authError }] = await Promise.all([
-        supabase
-          .from('profiles')
-          .update({
+         supabase
+         .from('profiles')
+         .update({
             full_name: data.full_name.trim(),
             phone_number: data.phone_number?.replace(/[^0-9]/g, '') || null,
             email: trimmedEmail,
-          })
-          .eq('id', user.id),
-        trimmedEmail !== user.email
-          ? supabase.auth.updateUser({ email: trimmedEmail })
-          : Promise.resolve({ error: null }),
+            })
+            .eq('id', user.id),
+             supabase.auth.updateUser({
+               data: { full_name: data.full_name.trim() },
+                ...(trimmedEmail !== user.email ? { email: trimmedEmail } : {}),
+                }),
       ])
 
       if (profileError) throw new Error(profileError.message)
       if (authError) throw new Error(authError.message)
 
+      await refreshUser()
+
       setSaveSuccess(true)
       if (trimmedEmail !== user.email) {
         setSaveError('Check your new email inbox to confirm the change.')
       } else {
-        router.back()
+        setTimeout(() => router.back(), 100)
       }
     } catch (err: any) {
       setSaveError(err.message ?? 'Could not save changes.')

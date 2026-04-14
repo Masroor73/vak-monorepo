@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Pressable} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import WhiteArrow from "../../assets/WhiteArrow.svg";
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import { useFocusEffect } from "expo-router";
+import { useBadges } from "../../context/BadgeContext";
+
 
 type Priority       = 'HIGH' | 'MEDIUM' | 'LOW';
 type Status         = 'Pending' | 'In Progress' | 'Done';
@@ -193,6 +195,7 @@ function TaskCard({ task, updatingId, onCycle }: { task: Task; updatingId: strin
 
 export default function MyTasksScreen() {
   const router   = useRouter();
+   const { clearTasksBadge } = useBadges(); 
   const { user } = useAuth();
   const insets   = useSafeAreaInsets();
   const [tasks,          setTasks]          = useState<Task[]>([]);
@@ -200,6 +203,10 @@ export default function MyTasksScreen() {
   const [refreshing,     setRefreshing]     = useState(false);
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('ALL');
   const [updatingId,     setUpdatingId]     = useState<string | null>(null);
+
+   useFocusEffect(useCallback(() => { 
+    clearTasksBadge();               
+  }, []));   
 
   const fetchTasks = async (isRefresh = false) => {
     if (!user) return;

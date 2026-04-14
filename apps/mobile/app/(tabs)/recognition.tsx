@@ -1,17 +1,12 @@
 // apps/mobile/app/(tabs)/recognition.tsx
 
-import { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  ActivityIndicator,
-  RefreshControl,
-  Image,
-} from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { View, Text, ScrollView, ActivityIndicator, RefreshControl, Image,} from "react-native";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Feather } from "@expo/vector-icons";
+import { useFocusEffect } from "expo-router";
+import { useBadges } from "@/context/BadgeContext";
 
 type Recognition = {
   id: string;
@@ -61,6 +56,7 @@ function getInitials(name: string) {
 
 export default function RecognitionScreen() {
   const { user } = useAuth();
+  const { clearRecognitionBadge } = useBadges();
   const [recognitions, setRecognitions] = useState<Recognition[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -68,6 +64,11 @@ export default function RecognitionScreen() {
   useEffect(() => {
     if (user) fetchRecognitions();
   }, [user]);
+
+   useFocusEffect(useCallback(() => {        
+    clearRecognitionBadge();                 
+  }, []));                                  
+
 
   async function fetchRecognitions() {
     try {
