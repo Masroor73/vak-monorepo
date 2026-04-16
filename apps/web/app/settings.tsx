@@ -4,6 +4,25 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import Toggle from "./components/Toggle";
+const badWords = [
+  "fuck", "fucking", "fucker",
+  "shit", "shitty",
+  "bitch", "bitches",
+  "asshole", "ass",
+  "bastard",
+  "dick", "dickhead",
+  "pussy",
+  "cunt",
+  "slut",
+  "whore",
+  "nigger", "niga", "nigga",
+  "retard", "retarded",
+  "gay", "lesbian", // ⚠️ optional (be careful with this)
+  "kill", "die",
+  "stupid", "idiot", "dumb",
+  "moron",
+  "badass"
+];
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
@@ -73,7 +92,9 @@ export default function SettingsPage() {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email);
   }
-
+  function containsBadWords(text: string) {
+  return badWords.some(word => text.toLowerCase().includes(word));
+  }
   /* AVATAR UPLOAD */
 
   async function uploadAvatar(e: any) {
@@ -107,24 +128,32 @@ export default function SettingsPage() {
       .update({ avatar_url: newAvatarUrl })
       .eq("id", user.id);
   }
+  
 
   /* SAVE PROFILE */
 
   async function saveProfile() {
     if (!user) return;
+    // 🚫 BLOCK BAD WORDS HERE (CORRECT PLACE)
+if (containsBadWords(displayName)) {
+  showMessage("Name contains inappropriate words.", "error");
+  return;
+}
+
+if (containsBadWords(email)) {
+  showMessage("Email contains inappropriate words.", "error");
+  return;
+}
 
     if (!validateName(displayName)) {
-      alert("Name must contain only letters.");
       return;
     }
 
     if (!validateEmail(email)) {
-      alert("Enter a valid email.");
       return;
     }
 
     if (!validatePhone(phone)) {
-      alert("Contact number must contain only digits.");
       return;
     }
 
@@ -141,6 +170,8 @@ export default function SettingsPage() {
           avatar_url: avatarUrl,
         })
         .eq("id", user.id);
+        await loadProfile();
+window.location.reload(); // 🔥 THIS FIXES TOP RIGHT
 
       showMessage("Profile updated successfully.", "success");
       setEditMode(false);
@@ -218,9 +249,12 @@ export default function SettingsPage() {
                 className="mt-1 w-full border rounded-lg px-3 py-2 disabled:bg-gray-100"
                 value={displayName}
                 onChange={(e) => {
-                  const value = e.target.value.replace(/[^a-zA-Z\s]/g, "");
-                  setDisplayName(value);
-                }}
+  const value = e.target.value;
+
+  setDisplayName(
+    value.replace(/[^a-zA-Z\s]/g, "").slice(0, 40)
+  );
+}}
               />
             </div>
 
@@ -228,6 +262,7 @@ export default function SettingsPage() {
               <label className="text-sm text-gray-500">Email</label>
               <input
                 type="email"
+                maxLength={40}
                 disabled={!editMode}
                 className="mt-1 w-full border rounded-lg px-3 py-2 disabled:bg-gray-100"
                 value={email}
@@ -284,12 +319,15 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {message && (
-          <div className={`text-sm ${messageType === "error" ? "text-red-600" : "text-green-600"}`}>
-            {message}
-          </div>
-        )}
-
+   {message && (
+  <div className={`px-4 py-2 rounded-lg text-sm mb-3 ${
+    messageType === "error"
+      ? "bg-red-100 text-red-600"
+      : "bg-green-100 text-green-600"
+  }`}>
+    {message}
+  </div>
+)}
         {/* Danger Zone */}
         <div className="bg-red-50 border border-red-200 rounded-xl p-6 space-y-4">
           <h3 className="text-red-700 font-semibold">Danger Zone</h3>

@@ -285,7 +285,7 @@ export default function Topbar({
             <div className="absolute right-0 top-12 w-56 bg-white border border-gray-200 rounded-xl shadow-xl p-2 z-50">
               <div className="px-3 pb-3 pt-1 border-b border-gray-100 mb-2">
                 <div className="text-sm font-bold text-gray-900 capitalize">{displayName}</div>
-                <div className="text-xs text-gray-500">{user?.email}</div>
+                <div className="text-xs text-gray-500">{profile?.email || user?.email}</div>
               </div>
               <button
                 onClick={() => router.push("/settings")}

@@ -32,6 +32,22 @@ type Notification = {
   created_at: string;
 };
 
+const badWords = [
+  "fuck", "fucking", "fucker",
+  "shit", "shitty",
+  "bitch", "bitches",
+  "asshole",
+  "bastard",
+  "dick", "dickhead",
+  "pussy",
+  "cunt",
+  "slut",
+  "whore",
+  "retard", "retarded",
+  "stupid", "idiot", "dumb", "moron",
+  "badass"
+];
+
 export default function Communication() {
 
   const { profile } = useAuth();
@@ -53,6 +69,10 @@ export default function Communication() {
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
 
   const [textSize, setTextSize] = useState("text-sm");
+
+function containsBadWords(text: string) {
+  return badWords.some(word => text.toLowerCase().includes(word));
+}
 
   /* ================================
      INLINE FEEDBACK STATE
@@ -112,10 +132,23 @@ export default function Communication() {
       return;
     }
 
-    if (!selectedEmployee || !badge || !message) {
-      setRecognitionError("Please select an employee, a badge, and write a message.");
-      return;
-    }
+    // ❌ EMPTY CHECK
+if (!selectedEmployee || !badge || !message.trim()) {
+  setRecognitionError("Please select an employee, a badge, and write a message.");
+  return;
+}
+
+// ❌ LENGTH CHECK
+if (message.length > 150) {
+  setRecognitionError("Recognition message too long (max 150 characters).");
+  return;
+}
+
+// ❌ BAD WORD CHECK
+if (containsBadWords(message)) {
+  setRecognitionError("Inappropriate language detected.");
+  return;
+}
 
     const { error } = await supabase
       .from("recognitions")
@@ -151,12 +184,48 @@ export default function Communication() {
       setAnnouncementError("Session error. Please refresh and try again.");
       return;
     }
+    // ❌ EMPTY CHECK
+if (!announcementMessage.trim()) {
+  setAnnouncementError("Announcement cannot be empty.");
+  return;
+}
 
+// ❌ LENGTH CHECK
+if (announcementMessage.length > 200) {
+  setAnnouncementError("Announcement too long (max 200 characters).");
+  return;
+}
+
+// ❌ BAD WORD CHECK
+if (containsBadWords(announcementMessage)) {
+  setAnnouncementError("Inappropriate language detected.");
+  return;
+}
     if (!announcementMessage) {
       setAnnouncementError("Please write a message before sending.");
       return;
     }
+// 🔥 AI MODERATION CHECK
+try {
+  const res = await fetch("http://localhost:5065/moderate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ text: announcementMessage })
+  });
 
+  const data = await res.json();
+
+  if (data?.categoriesAnalysis?.[0]?.severity > 2) {
+    setAnnouncementError("Blocked by AI moderation.");
+    return;
+  }
+
+} catch (err) {
+  console.log("AI moderation failed:", err);
+  // optional: don't block user if API fails
+}
     let recipients: Profile[] = [];
 
     if (target === "ALL") {
@@ -215,6 +284,7 @@ export default function Communication() {
     setSelectedEmployees([]);
     setTarget("ALL");
     setAnnouncementSuccess(true);
+    setAnnouncementError(null);
     setTimeout(() => setAnnouncementSuccess(false), 3000);
     loadAnnouncements();
   }
@@ -297,11 +367,12 @@ export default function Communication() {
           <div className="space-y-4">
 
             <textarea
-              placeholder="Write announcement..."
-              value={announcementMessage}
-              onChange={(e) => setAnnouncementMessage(e.target.value)}
-              className="w-full border rounded-lg p-3"
-            />
+  placeholder="Write announcement..."
+  value={announcementMessage}
+  maxLength={200}
+  onChange={(e) => setAnnouncementMessage(e.target.value)}
+  className="w-full border rounded-lg p-3"
+/>
 
             <div className="flex gap-4 text-sm">
               <label>
@@ -335,9 +406,11 @@ export default function Communication() {
 
             {/* INLINE FEEDBACK */}
 
-            {announcementError && (
-              <p className="text-sm text-red-500">{announcementError}</p>
-            )}
+           {announcementError && (
+  <div className="bg-red-100 border border-red-300 text-red-600 px-4 py-2 rounded-lg">
+    {announcementError}
+  </div>
+)}
 
             {announcementSuccess && (
               <p className="text-sm text-green-600">Announcement sent successfully!</p>
@@ -463,6 +536,7 @@ export default function Communication() {
             <textarea
               placeholder="Write recognition message..."
               value={message}
+              maxLength={150}
               onChange={(e)=>setMessage(e.target.value)}
               rows={3}
               className={`w-full border rounded-lg p-3 resize-none overflow-y-auto max-h-24 ${textSize}`}
