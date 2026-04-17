@@ -31,24 +31,41 @@ type ShiftRow = {
   audit_status: string;
 };
 
-function getWeekStart(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  d.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function addDays(date: Date, amount: number): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + amount);
-  return d;
-}
+type AuditRow = ShiftRow & {
+  employeeName: string;
+  avatar: string;
+  auditStatus: AuditStatus;
+  varianceMinutes: number | null;
+  varianceTone: "warning" | "danger" | "neutral";
+  varianceLabel: string;
+};
 
 function parseValidDate(value?: string | null): Date | null {
   if (!value) return null;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function startOfMonth(date: Date) {
+  const d = new Date(date.getFullYear(), date.getMonth(), 1);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function endOfMonth(date: Date) {
+  const d = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function startOfCalendarGrid(date: Date) {
+  const monthStart = startOfMonth(date);
+  const day = monthStart.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const d = new Date(monthStart);
+  d.setDate(monthStart.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 
 function formatDate(value: string) {
@@ -63,6 +80,21 @@ function formatDate(value: string) {
   });
 }
 
+function formatShortDate(date: Date) {
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatMonthLabel(date: Date) {
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
 function formatTime(value?: string | null) {
   const parsed = parseValidDate(value);
   if (!parsed) return "—";
@@ -71,21 +103,6 @@ function formatTime(value?: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function formatRange(start: Date, end: Date) {
-  const startLabel = start.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-
-  const endLabel = end.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-
-  return `${startLabel} – ${endLabel}`;
 }
 
 function formatRole(role?: string | null) {
@@ -120,17 +137,6 @@ function getStatusClasses(status: AuditStatus) {
       return "bg-red-100 text-red-700";
     default:
       return "bg-yellow-100 text-yellow-700";
-  }
-}
-
-function getAccentClasses(status: AuditStatus) {
-  switch (status) {
-    case "APPROVED":
-      return "border-l-4 border-l-green-500";
-    case "FLAGGED":
-      return "border-l-4 border-l-red-500";
-    default:
-      return "border-l-4 border-l-transparent";
   }
 }
 
@@ -201,10 +207,21 @@ function getVarianceClasses(tone: "warning" | "danger" | "neutral") {
   }
 }
 
-function getGpsClasses(flagged: boolean, hasGps: boolean) {
-  if (!hasGps) return "bg-gray-50 border border-gray-200 text-gray-500";
-  if (flagged) return "bg-red-50 border border-red-200 text-red-700";
-  return "bg-blue-50 border border-blue-200 text-blue-700";
+function formatDayKey(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function getDayKeyFromValue(value?: string | null) {
+  const parsed = parseValidDate(value);
+  if (!parsed) return null;
+  return formatDayKey(parsed);
+}
+
+function isSameDay(a: Date, b: Date) {
+  return formatDayKey(a) === formatDayKey(b);
 }
 
 function SummaryCard({
@@ -243,37 +260,48 @@ function SummaryCard({
   );
 }
 
-function PhotoBox({
-  label,
-  url,
-  timestamp,
-  emptyText,
+function PhotoModal({
+  open,
+  title,
+  imageUrl,
+  onClose,
 }: {
-  label: string;
-  url?: string | null;
-  timestamp?: string | null;
-  emptyText: string;
+  open: boolean;
+  title: string;
+  imageUrl: string | null;
+  onClose: () => void;
 }) {
+  if (!open || !imageUrl) return null;
+
   return (
-    <div>
-      <div className="text-sm font-medium text-gray-700 mb-2">{label}</div>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-4xl rounded-lg bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b px-4 py-3">
+          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded border px-3 py-1 text-sm hover:bg-gray-50"
+          >
+            Close
+          </button>
+        </div>
 
-      <div className="relative h-36 rounded-lg border bg-gray-50 overflow-hidden flex items-center justify-center">
-        {url ? (
-          <img
-            src={url}
-            alt={label}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <span className="text-sm text-gray-300">{emptyText}</span>
-        )}
-
-        {timestamp && (
-          <div className="absolute bottom-2 left-2 rounded bg-gray-700 px-2 py-1 text-xs font-medium text-white">
-            {formatTime(timestamp)}
+        <div className="p-4">
+          <div className="flex max-h-[75vh] items-center justify-center overflow-auto rounded-lg border bg-gray-50 p-2">
+            <img
+              src={imageUrl}
+              alt={title}
+              className="max-h-[70vh] w-auto max-w-full rounded"
+            />
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
@@ -290,28 +318,39 @@ export default function AuditPage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<AuditFilter>("ALL");
+  const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
 
-  const weekStart = useMemo(() => getWeekStart(new Date()), []);
-  const rangeStart = useMemo(() => addDays(weekStart, -7), [weekStart]);
-  const rangeEnd = useMemo(() => addDays(weekStart, 7), [weekStart]);
-  const rangeLabel = useMemo(
-    () => formatRange(rangeStart, addDays(rangeEnd, -1)),
-    [rangeStart, rangeEnd]
-  );
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  const [photoModalTitle, setPhotoModalTitle] = useState("");
+  const [photoModalUrl, setPhotoModalUrl] = useState<string | null>(null);
+
+  const monthStart = useMemo(() => startOfMonth(visibleMonth), [visibleMonth]);
+  const monthEnd = useMemo(() => endOfMonth(visibleMonth), [visibleMonth]);
+
+  const calendarDays = useMemo(() => {
+    const start = startOfCalendarGrid(visibleMonth);
+    return Array.from({ length: 42 }, (_, index) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + index);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    });
+  }, [visibleMonth]);
 
   const fetchShifts = useCallback(async () => {
     const { data, error } = await supabase
       .from("shifts")
       .select("*")
-      .gte("start_time", rangeStart.toISOString())
-      .lt("start_time", rangeEnd.toISOString())
+      .gte("start_time", monthStart.toISOString())
+      .lt("start_time", monthEnd.toISOString())
       .not("actual_start_time", "is", null)
       .order("start_time", { ascending: true });
 
     if (!error && data) {
       setShifts(data as ShiftRow[]);
     }
-  }, [rangeStart, rangeEnd]);
+  }, [monthStart, monthEnd]);
 
   const fetchProfiles = useCallback(async () => {
     const { data, error } = await supabase
@@ -344,7 +383,7 @@ export default function AuditPage() {
     fetchData();
 
     const channel = supabase
-      .channel("audit-page-shifts")
+      .channel("audit-page-calendar")
       .on(
         "postgres_changes",
         {
@@ -388,6 +427,19 @@ export default function AuditPage() {
     }
   }
 
+  function openPhoto(title: string, url: string | null) {
+    if (!url) return;
+    setPhotoModalTitle(title);
+    setPhotoModalUrl(url);
+    setPhotoModalOpen(true);
+  }
+
+  function closePhoto() {
+    setPhotoModalOpen(false);
+    setPhotoModalTitle("");
+    setPhotoModalUrl(null);
+  }
+
   const profileMap = useMemo(() => {
     const map = new Map<string, Profile>();
     profiles.forEach((profile) => {
@@ -396,7 +448,7 @@ export default function AuditPage() {
     return map;
   }, [profiles]);
 
-  const auditCards = useMemo(() => {
+  const auditRows = useMemo<AuditRow[]>(() => {
     return shifts.map((shift) => {
       const profile = profileMap.get(shift.employee_id);
       const employeeName = profile?.full_name ?? "Unknown User";
@@ -420,19 +472,42 @@ export default function AuditPage() {
     });
   }, [shifts, profileMap]);
 
+  const filteredRows = useMemo(() => {
+    if (activeFilter === "ALL") return auditRows;
+    return auditRows.filter((row) => row.auditStatus === activeFilter);
+  }, [auditRows, activeFilter]);
+
   const totals = useMemo(() => {
     return {
-      total: auditCards.length,
-      pending: auditCards.filter((card) => card.auditStatus === "PENDING").length,
-      approved: auditCards.filter((card) => card.auditStatus === "APPROVED").length,
-      flagged: auditCards.filter((card) => card.auditStatus === "FLAGGED").length,
+      total: auditRows.length,
+      pending: auditRows.filter((row) => row.auditStatus === "PENDING").length,
+      approved: auditRows.filter((row) => row.auditStatus === "APPROVED").length,
+      flagged: auditRows.filter((row) => row.auditStatus === "FLAGGED").length,
     };
-  }, [auditCards]);
+  }, [auditRows]);
 
-  const filteredCards = useMemo(() => {
-    if (activeFilter === "ALL") return auditCards;
-    return auditCards.filter((card) => card.auditStatus === activeFilter);
-  }, [auditCards, activeFilter]);
+  const dayBuckets = useMemo(() => {
+    const map = new Map<string, AuditRow[]>();
+
+    filteredRows.forEach((row) => {
+      const key = getDayKeyFromValue(row.start_time);
+      if (!key) return;
+
+      const existing = map.get(key) ?? [];
+      existing.push(row);
+      map.set(key, existing);
+    });
+
+    return map;
+  }, [filteredRows]);
+
+  const selectedDayKey = useMemo(() => formatDayKey(selectedDate), [selectedDate]);
+
+  const selectedDayRows = useMemo(() => {
+    return dayBuckets.get(selectedDayKey) ?? [];
+  }, [dayBuckets, selectedDayKey]);
+
+  const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   return (
     <ManagerLayout>
@@ -440,10 +515,10 @@ export default function AuditPage() {
         <div>
           <h1 className="text-2xl font-bold">Clock-In Audit</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Approve or flag clock-in records before running payroll
+            Review audit records by calendar day so managers can spot issues faster
           </p>
           <p className="text-xs text-gray-400 mt-1">
-            Showing audit records from {rangeLabel}
+            Showing audit records for {formatMonthLabel(visibleMonth)}
           </p>
         </div>
 
@@ -477,163 +552,337 @@ export default function AuditPage() {
           />
         </div>
 
-        <div className="space-y-4">
-          {loading ? (
-            <div className="bg-white rounded-lg border p-8 text-sm text-gray-500">
-              Loading audit records...
+        <div className="bg-white rounded-lg border overflow-hidden">
+          <div className="flex flex-col gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-lg font-semibold text-gray-900">
+                {formatMonthLabel(visibleMonth)}
+              </div>
+              <div className="text-sm text-gray-500">
+                Click a day to review and manage its clock-ins
+              </div>
             </div>
-          ) : filteredCards.length === 0 ? (
-            <div className="bg-white rounded-lg border p-8 text-sm text-gray-500">
-              No audit records match this filter.
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setVisibleMonth(
+                    new Date(
+                      visibleMonth.getFullYear(),
+                      visibleMonth.getMonth() - 1,
+                      1
+                    )
+                  )
+                }
+                className="rounded border px-3 py-2 text-sm hover:bg-gray-50"
+              >
+                Previous
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const today = new Date();
+                  setVisibleMonth(startOfMonth(today));
+                  setSelectedDate(today);
+                }}
+                className="rounded border px-3 py-2 text-sm hover:bg-gray-50"
+              >
+                Today
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setVisibleMonth(
+                    new Date(
+                      visibleMonth.getFullYear(),
+                      visibleMonth.getMonth() + 1,
+                      1
+                    )
+                  )
+                }
+                className="rounded border px-3 py-2 text-sm hover:bg-gray-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-7 border-b bg-gray-50">
+            {weekDays.map((day) => (
+              <div
+                key={day}
+                className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500"
+              >
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {loading ? (
+            <div className="p-8 text-sm text-gray-500">Loading calendar...</div>
+          ) : (
+            <div className="grid grid-cols-7">
+              {calendarDays.map((day) => {
+                const dayKey = formatDayKey(day);
+                const rows = dayBuckets.get(dayKey) ?? [];
+                const pendingCount = rows.filter(
+                  (row) => row.auditStatus === "PENDING"
+                ).length;
+                const approvedCount = rows.filter(
+                  (row) => row.auditStatus === "APPROVED"
+                ).length;
+                const flaggedCount = rows.filter(
+                  (row) => row.auditStatus === "FLAGGED"
+                ).length;
+                const inMonth = day.getMonth() === visibleMonth.getMonth();
+                const isSelected = isSameDay(day, selectedDate);
+                const isToday = isSameDay(day, new Date());
+
+                return (
+                  <button
+                    key={dayKey}
+                    type="button"
+                    onClick={() => setSelectedDate(day)}
+                    className={`min-h-[130px] border-b border-r p-3 text-left align-top transition hover:bg-gray-50 ${
+                      inMonth ? "bg-white" : "bg-gray-50 text-gray-400"
+                    } ${isSelected ? "ring-2 ring-inset ring-black" : ""}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold ${
+                          isToday ? "bg-black text-white" : "text-gray-900"
+                        }`}
+                      >
+                        {day.getDate()}
+                      </span>
+
+                      {rows.length > 0 && (
+                        <span className="text-xs font-medium text-gray-500">
+                          {rows.length} audit{rows.length === 1 ? "" : "s"}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      {pendingCount > 0 && (
+                        <div className="rounded bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-700">
+                          {pendingCount} pending
+                        </div>
+                      )}
+
+                      {approvedCount > 0 && (
+                        <div className="rounded bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
+                          {approvedCount} approved
+                        </div>
+                      )}
+
+                      {flaggedCount > 0 && (
+                        <div className="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700">
+                          {flaggedCount} flagged
+                        </div>
+                      )}
+
+                      {rows.slice(0, 2).map((row) => (
+                        <div
+                          key={row.id}
+                          className="truncate rounded border border-gray-200 px-2 py-1 text-xs text-gray-700"
+                        >
+                          {row.employeeName} • {formatTime(row.actual_start_time)}
+                        </div>
+                      ))}
+
+                      {rows.length > 2 && (
+                        <div className="text-xs text-gray-500">
+                          +{rows.length - 2} more
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white rounded-lg border overflow-hidden">
+          <div className="border-b px-4 py-4">
+            <div className="text-lg font-semibold text-gray-900">
+              {formatShortDate(selectedDate)}
+            </div>
+            <div className="text-sm text-gray-500 mt-1">
+              {selectedDayRows.length} audit record
+              {selectedDayRows.length === 1 ? "" : "s"} for this day
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="p-8 text-sm text-gray-500">Loading records...</div>
+          ) : selectedDayRows.length === 0 ? (
+            <div className="p-8 text-sm text-gray-500">
+              No audit records match this day and filter.
             </div>
           ) : (
-            filteredCards.map((audit) => {
-              const hasClockInGps =
-                audit.clock_in_lat !== null && audit.clock_in_long !== null;
-              const isFlagged = audit.auditStatus === "FLAGGED";
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr className="text-left text-gray-500">
+                    <th className="px-4 py-3 font-medium">Employee</th>
+                    <th className="px-4 py-3 font-medium">Clock in</th>
+                    <th className="px-4 py-3 font-medium">Shift start</th>
+                    <th className="px-4 py-3 font-medium">Clock out</th>
+                    <th className="px-4 py-3 font-medium">Variance</th>
+                    <th className="px-4 py-3 font-medium">Role</th>
+                    <th className="px-4 py-3 font-medium">Location</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 font-medium">Photos</th>
+                    <th className="px-4 py-3 font-medium">Actions</th>
+                  </tr>
+                </thead>
 
-              return (
-                <div
-                  key={audit.id}
-                  className={`bg-white rounded-lg border overflow-hidden ${getAccentClasses(
-                    audit.auditStatus
-                  )}`}
-                >
-                  <div className="flex items-center justify-between px-6 py-4 border-b">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-indigo-500 text-white text-sm font-bold flex items-center justify-center">
-                        {audit.avatar}
-                      </div>
-
-                      <div>
-                        <div className="text-lg font-semibold text-gray-900">
-                          {audit.employeeName}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {formatDate(audit.start_time)}
-                        </div>
-                      </div>
-                    </div>
-
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusClasses(
-                        audit.auditStatus
-                      )}`}
-                    >
-                      {audit.auditStatus.charAt(0) +
-                        audit.auditStatus.slice(1).toLowerCase()}
-                    </span>
-                  </div>
-
-                  <div className="grid gap-6 px-6 py-4 lg:grid-cols-[1.2fr_0.9fr]">
-                    <div className="space-y-4">
-                      <PhotoBox
-                        label="Clock-in photo"
-                        url={audit.clock_in_photo_url}
-                        timestamp={audit.actual_start_time}
-                        emptyText="No clock-in photo"
-                      />
-
-                      <PhotoBox
-                        label="Clock-out photo"
-                        url={audit.clock_out_photo_url}
-                        timestamp={audit.actual_end_time}
-                        emptyText="Not clocked out yet"
-                      />
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <div className="text-sm text-gray-500">Clock in</div>
-                          <div className="mt-1 text-2xl font-bold text-gray-900">
-                            {formatTime(audit.actual_start_time)}
+                <tbody>
+                  {selectedDayRows.map((audit) => (
+                    <tr key={audit.id} className="border-t align-top">
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-500 text-xs font-bold text-white">
+                            {audit.avatar}
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900">
+                              {audit.employeeName}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {formatDate(audit.start_time)}
+                            </div>
                           </div>
                         </div>
+                      </td>
 
-                        <div>
-                          <div className="text-sm text-gray-500">Shift start</div>
-                          <div className="mt-1 text-2xl font-bold text-gray-900">
-                            {formatTime(audit.start_time)}
-                          </div>
+                      <td className="px-4 py-4 text-gray-900">
+                        {formatTime(audit.actual_start_time)}
+                      </td>
+
+                      <td className="px-4 py-4 text-gray-900">
+                        {formatTime(audit.start_time)}
+                      </td>
+
+                      <td className="px-4 py-4 text-gray-900">
+                        {formatTime(audit.actual_end_time)}
+                      </td>
+
+                      <td className="px-4 py-4">
+                        <div
+                          className={`font-medium ${getVarianceClasses(
+                            audit.varianceTone
+                          )}`}
+                        >
+                          {formatVariance(audit.varianceMinutes)}
                         </div>
-
-                        <div>
-                          <div className="text-sm text-gray-500">Clock out</div>
-                          <div className="mt-1 text-2xl font-bold text-gray-900">
-                            {formatTime(audit.actual_end_time)}
-                          </div>
+                        <div className="mt-1 text-xs text-gray-500">
+                          {audit.varianceLabel}
                         </div>
+                      </td>
 
-                        <div>
-                          <div className="text-sm text-gray-500">
-                            {audit.varianceLabel}
-                          </div>
-                          <div
-                            className={`mt-1 text-xl font-semibold ${getVarianceClasses(
-                              audit.varianceTone
-                            )}`}
+                      <td className="px-4 py-4 text-gray-700">
+                        {formatRole(audit.role_at_time_of_shift)}
+                      </td>
+
+                      <td className="px-4 py-4 text-gray-700">
+                        {audit.location_id ?? "—"}
+                      </td>
+
+                      <td className="px-4 py-4">
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-medium ${getStatusClasses(
+                            audit.auditStatus
+                          )}`}
+                        >
+                          {audit.auditStatus.charAt(0) +
+                            audit.auditStatus.slice(1).toLowerCase()}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-4">
+                        <div className="flex flex-col gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openPhoto(
+                                `${audit.employeeName} - Clock-in photo`,
+                                audit.clock_in_photo_url
+                              )
+                            }
+                            disabled={!audit.clock_in_photo_url}
+                            className="rounded border px-3 py-2 text-xs hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            {formatVariance(audit.varianceMinutes)}
+                            View In Photo
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openPhoto(
+                                `${audit.employeeName} - Clock-out photo`,
+                                audit.clock_out_photo_url
+                              )
+                            }
+                            disabled={!audit.clock_out_photo_url}
+                            className="rounded border px-3 py-2 text-xs hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            View Out Photo
+                          </button>
+
+                          <div className="text-xs text-gray-500">
+                            GPS:{" "}
+                            {audit.clock_in_lat !== null &&
+                            audit.clock_in_long !== null
+                              ? `${audit.clock_in_lat}, ${audit.clock_in_long}`
+                              : "No GPS recorded"}
                           </div>
                         </div>
-                      </div>
+                      </td>
 
-                      <div className="text-sm text-gray-500">
-                        Role:{" "}
-                        <span className="font-medium text-gray-800">
-                          {formatRole(audit.role_at_time_of_shift)}
-                        </span>
-                      </div>
+                      <td className="px-4 py-4">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() =>
+                              updateAuditStatus(audit.id, "APPROVED")
+                            }
+                            disabled={savingId === audit.id}
+                            className="rounded border px-3 py-2 text-xs hover:bg-gray-50 disabled:opacity-50"
+                          >
+                            Approve
+                          </button>
 
-                      <div className="text-sm text-gray-500">
-                        Location:{" "}
-                        <span className="font-medium text-gray-800">
-                          {audit.location_id ?? "—"}
-                        </span>
-                      </div>
-
-                      <div
-                        className={`rounded-lg px-4 py-3 text-sm ${getGpsClasses(
-                          isFlagged,
-                          hasClockInGps
-                        )}`}
-                      >
-                        <div className="font-medium">
-                          {isFlagged ? "GPS issue" : "GPS at clock-in"}
+                          <button
+                            onClick={() =>
+                              updateAuditStatus(audit.id, "FLAGGED")
+                            }
+                            disabled={savingId === audit.id}
+                            className="rounded border px-3 py-2 text-xs hover:bg-gray-50 disabled:opacity-50"
+                          >
+                            Flag
+                          </button>
                         </div>
-                        <div className="mt-1">
-                          {hasClockInGps
-                            ? `${audit.clock_in_lat}, ${audit.clock_in_long}`
-                            : "No GPS recorded"}
-                        </div>
-                      </div>
-
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => updateAuditStatus(audit.id, "APPROVED")}
-                          disabled={savingId === audit.id}
-                          className="border rounded px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
-                        >
-                          Approve
-                        </button>
-
-                        <button
-                          onClick={() => updateAuditStatus(audit.id, "FLAGGED")}
-                          disabled={savingId === audit.id}
-                          className="border rounded px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
-                        >
-                          Flag
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>
+
+      <PhotoModal
+        open={photoModalOpen}
+        title={photoModalTitle}
+        imageUrl={photoModalUrl}
+        onClose={closePhoto}
+      />
     </ManagerLayout>
   );
 }
